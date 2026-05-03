@@ -356,18 +356,17 @@ export function useConversations() {
    * @param {string} partnerUsername
    * @param {string} partnerAvatar
    */
-  const upsertConversation = useCallback((msg, partnerId, partnerUsername, partnerAvatar) => {
+  const upsertConversation = useCallback((msg, partnerId, partnerUsername, partnerAvatar, incrementUnread = true) => {
     setConversations((prev) => {
       const exists = prev.find((c) => c.partner_id === partnerId);
       if (exists) {
         return prev.map((c) =>
           c.partner_id === partnerId
-            ? { ...c, last_content: msg.content, last_at: msg.created_at, unread_count: c.unread_count + 1 }
+            ? { ...c, last_content: msg.content, last_at: msg.created_at, unread_count: incrementUnread ? c.unread_count + 1 : c.unread_count }
             : c
         );
       }
-      // New conversation — prepend to the top of the list
-      return [{ partner_id: partnerId, partner_username: partnerUsername, partner_avatar: partnerAvatar, last_content: msg.content, last_at: msg.created_at, unread_count: 1 }, ...prev];
+      return [{ partner_id: partnerId, partner_username: partnerUsername, partner_avatar: partnerAvatar, last_content: msg.content, last_at: msg.created_at, unread_count: incrementUnread ? 1 : 0 }, ...prev];
     });
   }, []);
 

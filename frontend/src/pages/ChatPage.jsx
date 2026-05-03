@@ -245,13 +245,14 @@ export default function ChatPage() {
   useEffect(() => {
     return onNewDm((msg) => {
       const fromId = msg.from_user_id ?? msg.sender_id ?? msg.user_id;
+      const isSelf = fromId === user?.id;
       if (activeDmRef.current?.id === fromId) {
         addDmMsg(msg);
       }
       const sender = users.find((u) => u.id === fromId);
-      upsertConversation(msg, fromId, sender?.username || "?", sender?.avatar || "👤");
+      upsertConversation(msg, fromId, sender?.username || "?", sender?.avatar || "👤", !isSelf);
     });
-  }, [onNewDm, addDmMsg, users, upsertConversation]);
+  }, [onNewDm, addDmMsg, users, upsertConversation, user]);
 
   // Merge edited DM data — apply when either partner is the current DM view
   useEffect(() => {
@@ -347,7 +348,7 @@ export default function ChatPage() {
   function handleDmSent(msg) {
     addDmMsg(msg);
     if (activeDm) {
-      upsertConversation(msg, activeDm.id, activeDm.username, activeDm.avatar || "👤");
+      upsertConversation(msg, activeDm.id, activeDm.username, activeDm.avatar || "👤", false);
     }
   }
 
