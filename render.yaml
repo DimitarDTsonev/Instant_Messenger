@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: instant-messenger-backend
+    runtime: node
+    rootDir: backend
+    buildCommand: npm ci
+    startCommand: node server.js
+    plan: free
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+      # Auto-generated secure secret — Render rotates it on each deploy
+      - key: JWT_SECRET
+        generateValue: true
+
+      # Set this to your GitHub Pages URL after the first frontend deploy
+      # e.g. https://your-username.github.io
+      - key: FRONTEND_URL
+        sync: false

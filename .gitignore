@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Build output
+dist/
+*/dist/
+
+# Environment variables (never commit real secrets)
+.env
+.env.local
+.env.production.local
+.env.development.local
+*/.env
+*/.env.local
+*/.env.production
+
+# Database (SQLite file created at runtime)
+*.db
+*.sqlite
+*.sqlite3
+
+# Uploaded user files
+uploads/*
+!uploads/.gitkeep
+
+# Test coverage reports
+coverage/
+*/coverage/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
