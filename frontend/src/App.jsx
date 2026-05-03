@@ -3,11 +3,13 @@
 //  Manages routing: InvitePage | LoginPage | ChatPage
 // ============================================================
 
+import { useEffect } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { SocketProvider } from "./context/SocketContext";
 import LoginPage  from "./pages/LoginPage";
 import ChatPage   from "./pages/ChatPage";
 import InvitePage from "./pages/InvitePage";
+import { API_BASE } from "./config";
 
 /**
  * AppInner - Inner routing component that reads auth state and renders
@@ -73,6 +75,10 @@ function AppInner() {
  * @returns {JSX.Element}
  */
 export default function App() {
+  useEffect(() => {
+    fetch(`${API_BASE.replace("/api", "")}/api/health`).catch(() => {});
+  }, []);
+
   return (
     <AuthProvider>
       <AppInner />
