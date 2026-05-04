@@ -48,6 +48,7 @@ vi.mock("../../components/Sidebar", () => ({
       <button data-testid="sidebar-open-settings"  onClick={() => props.onOpenSettings?.(props.channels?.[0])} />
       <button data-testid="sidebar-delete-channel" onClick={() => props.onDeleteChannel?.(props.channels?.[0])} />
       <button data-testid="sidebar-create-channel" onClick={() => props.onCreateChannel?.("new-ch", "desc", 0)} />
+      <button data-testid="sidebar-close"          onClick={() => props.onClose?.()} />
     </div>
   ),
 }));
@@ -726,5 +727,13 @@ describe("mobile sidebar", () => {
     await waitFor(() =>
       expect(screen.getByTestId("sidebar")).toHaveAttribute("data-open", "false")
     );
+  });
+
+  test("calling onClose from Sidebar closes the sidebar", () => {
+    render(<ChatPage />);
+    fireEvent.click(screen.getByTitle("Menu"));
+    expect(screen.getByTestId("sidebar")).toHaveAttribute("data-open", "true");
+    fireEvent.click(screen.getByTestId("sidebar-close"));
+    expect(screen.getByTestId("sidebar")).toHaveAttribute("data-open", "false");
   });
 });

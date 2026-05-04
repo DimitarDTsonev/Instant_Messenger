@@ -368,7 +368,57 @@ describe("logout button", () => {
 });
 
 // ─────────────────────────────────────────────────────────
-//  16. Mobile open prop
+//  16. Channel hover action buttons
+// ─────────────────────────────────────────────────────────
+describe("channel hover actions", () => {
+  function getChannelRow(name) {
+    // channel name span → parent div (the channel item row)
+    return screen.getByText(name).parentElement;
+  }
+
+  test("hovering a channel shows the settings button", () => {
+    render(<Sidebar {...buildProps()} />);
+    fireEvent.mouseEnter(getChannelRow("general"));
+    expect(screen.getByTitle("Settings")).toBeInTheDocument();
+  });
+
+  test("mouse-leaving a channel hides action buttons", () => {
+    render(<Sidebar {...buildProps()} />);
+    fireEvent.mouseEnter(getChannelRow("general"));
+    fireEvent.mouseLeave(getChannelRow("general"));
+    expect(screen.queryByTitle("Settings")).not.toBeInTheDocument();
+  });
+
+  test("clicking settings button calls onOpenSettings and stops propagation", () => {
+    const onOpenSettings  = vi.fn();
+    const onSelectChannel = vi.fn();
+    render(<Sidebar {...buildProps({ onOpenSettings, onSelectChannel })} />);
+    fireEvent.mouseEnter(getChannelRow("general"));
+    fireEvent.click(screen.getByTitle("Settings"));
+    expect(onOpenSettings).toHaveBeenCalledWith(expect.objectContaining({ name: "general" }));
+    // stopPropagation means the channel row click (onSelectChannel) should NOT fire
+    expect(onSelectChannel).not.toHaveBeenCalled();
+  });
+
+  test("hovering a channel shows the delete button for admin/owner", () => {
+    render(<Sidebar {...buildProps()} />);
+    fireEvent.mouseEnter(getChannelRow("general"));
+    expect(screen.getByTitle("Delete channel")).toBeInTheDocument();
+  });
+
+  test("clicking delete button calls onDeleteChannel and stops propagation", () => {
+    const onDeleteChannel = vi.fn();
+    const onSelectChannel = vi.fn();
+    render(<Sidebar {...buildProps({ onDeleteChannel, onSelectChannel })} />);
+    fireEvent.mouseEnter(getChannelRow("general"));
+    fireEvent.click(screen.getByTitle("Delete channel"));
+    expect(onDeleteChannel).toHaveBeenCalledWith(expect.objectContaining({ name: "general" }));
+    expect(onSelectChannel).not.toHaveBeenCalled();
+  });
+});
+
+// ─────────────────────────────────────────────────────────
+//  17. Mobile open prop
 // ─────────────────────────────────────────────────────────
 describe("mobile open prop", () => {
   test("sidebar element has class 'sidebar' by default", () => {
