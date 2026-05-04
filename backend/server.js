@@ -24,11 +24,13 @@
 //    ./src/socket/handlers   — registerSocketHandlers(io)
 // ============================================================
 
-const express = require("express");
-const http    = require("http");
-const path    = require("path");
+const express   = require("express");
+const http      = require("http");
+const path      = require("path");
 const { Server } = require("socket.io");
-const cors = require("cors");
+const cors      = require("cors");
+const helmet    = require("helmet");
+const rateLimit = require("express-rate-limit");
 
 const { initDatabase } = require("./src/db/database");
 const authRoutes    = require("./src/routes/auth");
@@ -37,7 +39,9 @@ const messageRoutes = require("./src/routes/messages");
 const dmRoutes      = require("./src/routes/dm");
 const uploadRoutes  = require("./src/routes/upload");
 const inviteRoutes  = require("./src/routes/invites");
+const adminRoutes   = require("./src/routes/admin");
 const { registerSocketHandlers } = require("./src/socket/handlers");
+const { checkIpBanned, logSecurityEvent } = require("./src/middleware/security");
 
 // Core Express application instance
 const app = express();
@@ -71,14 +75,57 @@ const io = new Server(httpServer, {
 // Express middleware
 // -----------------------------------------------------------
 
+// Security headers (CSP, X-Frame-Options, HSTS, etc.)
+app.use(helmet());
+
+// Trust the first proxy (needed for correct req.ip on Render)
+app.set("trust proxy", 1);
+
 // Enable CORS for browser REST requests from the Vite dev server
 app.use(cors({
   origin: ALLOWED_ORIGINS,
   credentials: true,
 }));
 
-// Parse incoming JSON request bodies
-app.use(express.json());
+// Block banned IPs on every request
+app.use(checkIpBanned);
+
+// Global rate limit — 200 requests per minute per IP
+app.use(rateLimit({
+  windowMs: 60 * 1000,
+  max: 200,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    const { getDb } = require("./src/db/database");
+    logSecurityEvent(getDb(), {
+      event: "rate_limited",
+      ip: req.ip,
+      detail: `${req.method} ${req.path} — global limit`,
+    });
+    res.status(429).json({ error: "Too many requests. Please slow down." });
+  },
+}));
+
+// Strict rate limit on auth endpoints — 15 requests per 15 minutes per IP
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 15,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    const { getDb } = require("./src/db/database");
+    logSecurityEvent(getDb(), {
+      event: "rate_limited",
+      ip: req.ip,
+      detail: `${req.method} ${req.path} — auth limit`,
+    });
+    res.status(429).json({ error: "Too many attempts. Try again in 15 minutes." });
+  },
+});
+
+// Parse incoming JSON request bodies (max 50 KB to prevent payload attacks)
+app.use(express.json({ limit: "50kb" }));
 
 // Serve uploaded files statically.
 // The uploads/ directory lives at the monorepo root, not inside backend/,
@@ -88,12 +135,13 @@ app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 // -----------------------------------------------------------
 // REST route mounting
 // -----------------------------------------------------------
-app.use("/api/auth",     authRoutes);    // Registration, login, user management
-app.use("/api/channels", channelRoutes); // Channel CRUD, members, permissions, invites
-app.use("/api/messages", messageRoutes); // Channel message history and search
-app.use("/api/dm",       dmRoutes);      // Direct message history and conversations
-app.use("/api/upload",   uploadRoutes);  // File upload endpoint
-app.use("/api/invite",   inviteRoutes);  // Public invite-link preview and join
+app.use("/api/auth",     authLimiter, authRoutes); // auth routes get the strict limiter
+app.use("/api/channels", channelRoutes);
+app.use("/api/messages", messageRoutes);
+app.use("/api/dm",       dmRoutes);
+app.use("/api/upload",   uploadRoutes);
+app.use("/api/invite",   inviteRoutes);
+app.use("/api/admin",    adminRoutes);  // admin: security logs, ban/unban
 
 /**
  * GET /api/health

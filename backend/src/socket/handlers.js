@@ -49,6 +49,7 @@
 const jwt = require("jsonwebtoken");
 const { getDb } = require("../db/database");
 const { getUserRole, getPerms } = require("../routes/channels");
+const { logSecurityEvent, isUserBanned, isSocketRateLimited, RATE_BAN } = require("../middleware/security");
 
 // JWT secret must match the one used in middleware/auth.js
 const JWT_SECRET = process.env.JWT_SECRET || "super-secret-dev-key-change-in-prod";
@@ -252,6 +253,17 @@ function registerSocketHandlers(io) {
     if (!token) return next(new Error("Token required"));
     try {
       socket.user = jwt.verify(token, JWT_SECRET);
+      // Reject banned users at connection time
+      const db = getDb();
+      if (isUserBanned(db, socket.user.id)) {
+        logSecurityEvent(db, {
+          event: "banned_socket_attempt",
+          userId: socket.user.id,
+          username: socket.user.username,
+          detail: "blocked at socket connect",
+        });
+        return next(new Error("Account suspended"));
+      }
       next();
     } catch {
       next(new Error("Invalid token"));
@@ -303,7 +315,32 @@ function registerSocketHandlers(io) {
       if (!text && !fileUrl) return ack(callback, { error: "Message cannot be empty" });
       if (text.length > 2000) return ack(callback, { error: "Message is too long (max 2000 characters)" });
 
-      const db   = getDb();
+      const db = getDb();
+
+      // Rate-limit: warn at 20 msg/10s, auto-ban at 50 msg/10s
+      const { limited, count } = isSocketRateLimited(user.id);
+      if (count >= RATE_BAN) {
+        db.prepare("UPDATE users SET is_banned = 1, ban_reason = ? WHERE id = ?")
+          .run("Auto-banned: message flooding", user.id);
+        logSecurityEvent(db, {
+          event: "msg_flood_ban",
+          userId: user.id,
+          username: user.username,
+          detail: `${count} messages in 10s — auto-banned`,
+        });
+        socket.emit("error", { message: "You have been banned for flooding." });
+        socket.disconnect(true);
+        return;
+      }
+      if (limited) {
+        logSecurityEvent(db, {
+          event: "msg_flood_warn",
+          userId: user.id,
+          username: user.username,
+          detail: `${count} messages in 10s`,
+        });
+        return ack(callback, { error: "You are sending messages too fast. Please slow down." });
+      }
       const role = getUserRole(db, user.id, channelId);
       const perms = role ? getPerms(db, channelId, role) : null;
       if (!perms?.can_write) return ack(callback, { error: "You do not have permission to write in this channel" });
@@ -481,7 +518,27 @@ function registerSocketHandlers(io) {
       const text = (content || "").trim();
       if (!text && !fileUrl) return ack(callback, { error: "Message cannot be empty" });
 
-      const db       = getDb();
+      const db = getDb();
+
+      // Shared rate limit with channel messages — same 20/10s window
+      const { limited, count } = isSocketRateLimited(user.id);
+      if (count >= RATE_BAN) {
+        db.prepare("UPDATE users SET is_banned = 1, ban_reason = ? WHERE id = ?")
+          .run("Auto-banned: message flooding", user.id);
+        logSecurityEvent(db, {
+          event: "msg_flood_ban",
+          userId: user.id,
+          username: user.username,
+          detail: `${count} DMs in 10s — auto-banned`,
+        });
+        socket.emit("error", { message: "You have been banned for flooding." });
+        socket.disconnect(true);
+        return;
+      }
+      if (limited) {
+        return ack(callback, { error: "You are sending messages too fast. Please slow down." });
+      }
+
       const receiver = db.prepare("SELECT id FROM users WHERE id = ?").get(receiverId);
       if (!receiver) return ack(callback, { error: "Recipient not found" });
 

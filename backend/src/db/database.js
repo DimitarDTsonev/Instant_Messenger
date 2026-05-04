@@ -216,13 +216,36 @@ function initDatabase() {
     }
   }
 
-  // Add global role and guest flag to users
+  // Add global role, guest flag, and ban fields to users
   if (!userCols.includes("role")) {
     db.exec("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'member'");
   }
   if (!userCols.includes("is_guest")) {
     db.exec("ALTER TABLE users ADD COLUMN is_guest INTEGER DEFAULT 0");
   }
+  if (!userCols.includes("is_banned")) {
+    db.exec("ALTER TABLE users ADD COLUMN is_banned INTEGER DEFAULT 0");
+  }
+  if (!userCols.includes("ban_reason")) {
+    db.exec("ALTER TABLE users ADD COLUMN ban_reason TEXT");
+  }
+
+  // Security event log
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS security_logs (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      event      TEXT    NOT NULL,
+      ip         TEXT,
+      user_id    INTEGER,
+      username   TEXT,
+      detail     TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_sec_event   ON security_logs(event);
+    CREATE INDEX IF NOT EXISTS idx_sec_ip      ON security_logs(ip);
+    CREATE INDEX IF NOT EXISTS idx_sec_user    ON security_logs(user_id);
+    CREATE INDEX IF NOT EXISTS idx_sec_created ON security_logs(created_at);
+  `);
 
   // Migration: add is_private flag to channels
   const chCols = db.pragma("table_info(channels)").map((c) => c.name);

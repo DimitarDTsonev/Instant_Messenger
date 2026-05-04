@@ -24,6 +24,7 @@ const bcrypt  = require("bcryptjs");
 const crypto  = require("crypto");
 const { getDb } = require("../db/database");
 const { authMiddleware, signToken } = require("../middleware/auth");
+const { logSecurityEvent, recordLoginFail, isUserBanned } = require("../middleware/security");
 
 // Express router for all /api/auth sub-routes
 const router = express.Router();
@@ -137,10 +138,24 @@ router.post("/login", (req, res) => {
 
   const db   = getDb();
   const user = db.prepare("SELECT * FROM users WHERE email = ?").get(email);
+  const ip   = req.ip;
 
   // Reject if user not found or password hash does not match
   if (!user || !bcrypt.compareSync(password, user.password)) {
+    recordLoginFail(db, ip, email);
     return res.status(401).json({ error: "Invalid email or password" });
+  }
+
+  // Reject banned accounts
+  if (user.is_banned) {
+    logSecurityEvent(db, {
+      event: "banned_login_attempt",
+      ip,
+      userId: user.id,
+      username: user.username,
+      detail: `ban reason: ${user.ban_reason || "none"}`,
+    });
+    return res.status(403).json({ error: "This account has been suspended." });
   }
 
   const token = signToken(user);
