@@ -197,7 +197,7 @@ export default function LoginPage() {
 
   return (
     <div style={styles.page}>
-      <div style={styles.card}>
+      <div style={styles.card} className="login-card">
         {/* Logo / branding */}
         <div style={styles.logo}>
           <span style={styles.logoIcon}>💬</span>

@@ -249,6 +249,7 @@ export default function Sidebar({
   conversations, activeDm, onSelectDm,
   unreadChannels = {},
   onViewProfile, onSearchUsers,
+  open, onClose,
 }) {
   const { user, logout } = useAuth();
   const { isConnected, onlineUserIds } = useSocket();
@@ -306,7 +307,7 @@ export default function Sidebar({
   const totalUnread = conversations?.reduce((sum, c) => sum + (c.unread_count || 0), 0) || 0;
 
   return (
-    <div style={s.sidebar}>
+    <div style={s.sidebar} className={`sidebar${open ? " open" : ""}`}>
       {/* Header */}
       <div style={s.header}>
         <span style={s.workspaceName}>💬 Messenger</span>

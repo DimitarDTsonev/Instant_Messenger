@@ -366,3 +366,24 @@ describe("logout button", () => {
     expect(LOGOUT).toHaveBeenCalledTimes(1);
   });
 });
+
+// ─────────────────────────────────────────────────────────
+//  16. Mobile open prop
+// ─────────────────────────────────────────────────────────
+describe("mobile open prop", () => {
+  test("sidebar element has class 'sidebar' by default", () => {
+    const { container } = render(<Sidebar {...buildProps()} />);
+    expect(container.querySelector(".sidebar")).toBeInTheDocument();
+    expect(container.querySelector(".sidebar.open")).not.toBeInTheDocument();
+  });
+
+  test("sidebar element has class 'sidebar open' when open=true", () => {
+    const { container } = render(<Sidebar {...buildProps({ open: true })} />);
+    expect(container.querySelector(".sidebar.open")).toBeInTheDocument();
+  });
+
+  test("sidebar element does not have class 'open' when open=false", () => {
+    const { container } = render(<Sidebar {...buildProps({ open: false })} />);
+    expect(container.querySelector(".sidebar.open")).not.toBeInTheDocument();
+  });
+});

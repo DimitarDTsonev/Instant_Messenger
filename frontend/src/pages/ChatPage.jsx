@@ -100,6 +100,7 @@ export default function ChatPage() {
   const [unreadChannels, setUnreadChannels]   = useState({});
   const [replyTo, setReplyTo]                 = useState(null);
   const [showSettings, setShowSettings]       = useState(false);
+  const [sidebarOpen, setSidebarOpen]         = useState(false);
 
   // Stable refs for active channel/DM — used inside socket event handlers
   // to avoid stale closure values without adding them to dependency arrays.
@@ -322,7 +323,7 @@ export default function ChatPage() {
     setTypingUsers([]);
     setReplyTo(null);
     setShowSettings(false);
-    // Clear the unread badge for this channel now that the user is viewing it
+    setSidebarOpen(false);
     setUnreadChannels((prev) => { const next = { ...prev }; delete next[ch.id]; return next; });
   }
 
@@ -336,6 +337,7 @@ export default function ChatPage() {
     setActiveChannel(null);
     setTypingUsers([]);
     setReplyTo(null);
+    setSidebarOpen(false);
     markRead(u.id);
   }
 
@@ -445,6 +447,13 @@ export default function ChatPage() {
 
   return (
     <div style={s.page}>
+      {/* Backdrop that closes the sidebar when tapped on mobile */}
+      <div
+        data-testid="sidebar-overlay"
+        className={`sidebar-overlay${sidebarOpen ? " open" : ""}`}
+        onClick={() => setSidebarOpen(false)}
+      />
+
       <Sidebar
         channels={channels}
         activeChannel={activeChannel}
@@ -459,11 +468,22 @@ export default function ChatPage() {
         unreadChannels={unreadChannels}
         onViewProfile={setProfileUserId}
         onSearchUsers={() => setShowUserSearch(true)}
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
       />
 
       <div style={s.main}>
         {/* Topbar: shows channel name/description or DM partner name */}
         <div style={s.topbar}>
+          {/* Hamburger — only visible on mobile via CSS */}
+          <button
+            className="hamburger-btn"
+            onClick={() => setSidebarOpen((v) => !v)}
+            title="Menu"
+          >
+            ☰
+          </button>
+
           {activeChannel && !isDmMode ? (
             <>
               <div style={s.topbarTitle}>
@@ -471,14 +491,14 @@ export default function ChatPage() {
                 {activeChannel.name}
               </div>
               {activeChannel.description && (
-                <><span style={{ color: "#2d2d3f" }}>|</span><span style={s.topbarDesc}>{activeChannel.description}</span></>
+                <><span style={{ color: "#2d2d3f" }}>|</span><span style={s.topbarDesc} className="topbar-desc">{activeChannel.description}</span></>
               )}
             </>
           ) : isDmMode ? (
             <div style={s.topbarTitle}>
               <span>{activeDm.avatar || "👤"}</span>
               <span>{activeDm.username}</span>
-              <span style={s.dmBadge}>💬 Direct message</span>
+              <span style={s.dmBadge}>💬 DM</span>
             </div>
           ) : (
             <span style={{ color: "#5c6068", fontSize: "14px" }}>Loading...</span>

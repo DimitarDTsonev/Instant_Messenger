@@ -40,7 +40,7 @@ vi.mock("../../hooks/useApi", () => ({
 // page-level behaviour without replicating component internals.
 vi.mock("../../components/Sidebar", () => ({
   default: (props) => (
-    <div data-testid="sidebar">
+    <div data-testid="sidebar" data-open={props.open ? "true" : "false"}>
       <button data-testid="sidebar-select-channel" onClick={() => props.onSelectChannel?.(props.channels?.[0])} />
       <button data-testid="sidebar-select-dm"      onClick={() => props.onSelectDm?.(props.users?.[1])} />
       <button data-testid="sidebar-view-profile"   onClick={() => props.onViewProfile?.(2)} />
@@ -319,11 +319,11 @@ describe("DM view", () => {
     });
   });
 
-  test("shows 'Direct message' badge in topbar for DMs", async () => {
+  test("shows DM badge in topbar for DMs", async () => {
     render(<ChatPage />);
     fireEvent.click(screen.getByTestId("sidebar-select-dm"));
     await waitFor(() => {
-      expect(screen.getByText(/Direct message/i)).toBeInTheDocument();
+      expect(screen.getByText(/💬 DM/i)).toBeInTheDocument();
     });
   });
 
@@ -671,5 +671,60 @@ describe("handler coverage", () => {
     await waitFor(() => screen.getByTestId("user-profile-modal"));
     fireEvent.click(screen.getByTestId("profile-start-dm"));
     await waitFor(() => expect(screen.getByTestId("chat-area")).toBeInTheDocument());
+  });
+});
+
+// ─────────────────────────────────────────────────────────
+//  17. Mobile sidebar toggle
+// ─────────────────────────────────────────────────────────
+describe("mobile sidebar", () => {
+  test("sidebar starts closed (open=false)", () => {
+    render(<ChatPage />);
+    expect(screen.getByTestId("sidebar")).toHaveAttribute("data-open", "false");
+  });
+
+  test("overlay starts without open class", () => {
+    render(<ChatPage />);
+    expect(screen.getByTestId("sidebar-overlay")).not.toHaveClass("open");
+  });
+
+  test("hamburger button is present", () => {
+    render(<ChatPage />);
+    expect(screen.getByTitle("Menu")).toBeInTheDocument();
+  });
+
+  test("clicking hamburger opens the sidebar", () => {
+    render(<ChatPage />);
+    fireEvent.click(screen.getByTitle("Menu"));
+    expect(screen.getByTestId("sidebar")).toHaveAttribute("data-open", "true");
+    expect(screen.getByTestId("sidebar-overlay")).toHaveClass("open");
+  });
+
+  test("clicking the overlay closes the sidebar", () => {
+    render(<ChatPage />);
+    fireEvent.click(screen.getByTitle("Menu"));
+    fireEvent.click(screen.getByTestId("sidebar-overlay"));
+    expect(screen.getByTestId("sidebar")).toHaveAttribute("data-open", "false");
+    expect(screen.getByTestId("sidebar-overlay")).not.toHaveClass("open");
+  });
+
+  test("selecting a channel closes the sidebar", async () => {
+    render(<ChatPage />);
+    fireEvent.click(screen.getByTitle("Menu"));
+    expect(screen.getByTestId("sidebar")).toHaveAttribute("data-open", "true");
+    fireEvent.click(screen.getByTestId("sidebar-select-channel"));
+    await waitFor(() =>
+      expect(screen.getByTestId("sidebar")).toHaveAttribute("data-open", "false")
+    );
+  });
+
+  test("selecting a DM closes the sidebar", async () => {
+    render(<ChatPage />);
+    fireEvent.click(screen.getByTitle("Menu"));
+    expect(screen.getByTestId("sidebar")).toHaveAttribute("data-open", "true");
+    fireEvent.click(screen.getByTestId("sidebar-select-dm"));
+    await waitFor(() =>
+      expect(screen.getByTestId("sidebar")).toHaveAttribute("data-open", "false")
+    );
   });
 });

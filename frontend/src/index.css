@@ -78,3 +78,58 @@ input, textarea {
 /* Links */
 a { color: var(--accent-light); text-decoration: none; }
 a:hover { text-decoration: underline; }
+
+/* ── Mobile ─────────────────────────────────────────────── */
+.hamburger-btn { display: none; }
+
+@media (max-width: 640px) {
+  /* Sidebar becomes a slide-in overlay */
+  .sidebar {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    z-index: 200;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    width: 280px !important;
+  }
+  .sidebar.open {
+    transform: translateX(0);
+    box-shadow: 4px 0 24px rgba(0,0,0,0.6);
+  }
+
+  /* Dark backdrop behind the open sidebar */
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    z-index: 199;
+  }
+  .sidebar-overlay.open { display: block; }
+
+  /* Hamburger visible only on mobile */
+  .hamburger-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: transparent;
+    border: none;
+    color: #949ba4;
+    font-size: 20px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  /* Hide the long channel description in topbar — too cramped */
+  .topbar-desc { display: none !important; }
+
+  /* Tighten login card padding */
+  .login-card {
+    padding: 24px 16px !important;
+    margin: 0 12px;
+  }
+}
