@@ -1,0 +1,19 @@
+{
+  "name": "Instant Messenger",
+  "short_name": "Messenger",
+  "description": "Real-time chat — channels, direct messages, and file sharing.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#1e1e2e",
+  "background_color": "#0f0f0f",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
