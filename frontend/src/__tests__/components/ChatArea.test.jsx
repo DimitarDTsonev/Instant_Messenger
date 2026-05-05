@@ -6,7 +6,7 @@
  * DM empty state, typing indicator, and grouped messages.
  */
 
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { useAuth } from "../../context/AuthContext";
 import { useSocket } from "../../context/SocketContext";
 import ChatArea from "../../components/ChatArea";
@@ -682,5 +682,149 @@ describe("file size display", () => {
     renderChatArea({ messages: [msg] });
     // formatBytes(2048) = "2 KB"
     expect(screen.getByText(/KB/i)).toBeInTheDocument();
+  });
+});
+
+// ─────────────────────────────────────────────────────────
+//  23. Touch action sheet (long-press)
+// ─────────────────────────────────────────────────────────
+describe("touch action sheet", () => {
+  beforeEach(() => { vi.useFakeTimers(); });
+  afterEach(() => { vi.useRealTimers(); });
+
+  /** Fire a long-press (touchstart → advance 600ms) on a message row. */
+  function longPress(username) {
+    const row = getMessageRow(username);
+    fireEvent.touchStart(row);
+    act(() => { vi.advanceTimersByTime(600); });
+  }
+
+  test("long-press opens the touch action sheet", () => {
+    renderChatArea({ messages: [makeMsg()] });
+    longPress("bob");
+    expect(screen.getByTestId("touch-sheet")).toBeInTheDocument();
+  });
+
+  test("short tap does not open the sheet", () => {
+    renderChatArea({ messages: [makeMsg()] });
+    const row = getMessageRow("bob");
+    fireEvent.touchStart(row);
+    fireEvent.touchEnd(row);
+    act(() => { vi.advanceTimersByTime(600); });
+    expect(screen.queryByTestId("touch-sheet")).not.toBeInTheDocument();
+  });
+
+  test("touch move cancels the long-press timer", () => {
+    renderChatArea({ messages: [makeMsg()] });
+    const row = getMessageRow("bob");
+    fireEvent.touchStart(row);
+    fireEvent.touchMove(row);
+    act(() => { vi.advanceTimersByTime(600); });
+    expect(screen.queryByTestId("touch-sheet")).not.toBeInTheDocument();
+  });
+
+  test("tapping the overlay closes the sheet", () => {
+    renderChatArea({ messages: [makeMsg()] });
+    longPress("bob");
+    fireEvent.click(screen.getByTestId("touch-overlay"));
+    expect(screen.queryByTestId("touch-sheet")).not.toBeInTheDocument();
+  });
+
+  test("sheet always shows React and Reply buttons", () => {
+    renderChatArea({ messages: [makeMsg()] });
+    longPress("bob");
+    expect(screen.getByTestId("touch-react-btn")).toBeInTheDocument();
+    expect(screen.getByTestId("touch-reply-btn")).toBeInTheDocument();
+  });
+
+  test("clicking Reply calls onReply and closes sheet", () => {
+    const onReply = vi.fn();
+    renderChatArea({ messages: [makeMsg()], onReply });
+    longPress("bob");
+    fireEvent.click(screen.getByTestId("touch-reply-btn"));
+    expect(onReply).toHaveBeenCalledWith(expect.objectContaining({ id: 1 }));
+    expect(screen.queryByTestId("touch-sheet")).not.toBeInTheDocument();
+  });
+
+  test("sheet does not show Edit or Delete for another user's message", () => {
+    renderChatArea({ messages: [makeMsg({ user_id: 2, username: "bob" })] });
+    longPress("bob");
+    expect(screen.queryByTestId("touch-edit-btn")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("touch-delete-btn")).not.toBeInTheDocument();
+  });
+
+  test("sheet shows Edit and Delete for own messages", () => {
+    renderChatArea({ messages: [makeMsg({ user_id: 1, username: "alice" })] });
+    longPress("alice");
+    expect(screen.getByTestId("touch-edit-btn")).toBeInTheDocument();
+    expect(screen.getByTestId("touch-delete-btn")).toBeInTheDocument();
+  });
+
+  test("clicking Edit in sheet enters edit mode", () => {
+    renderChatArea({ messages: [makeMsg({ user_id: 1, username: "alice", content: "My msg" })] });
+    longPress("alice");
+    fireEvent.click(screen.getByTestId("touch-edit-btn"));
+    expect(screen.getByRole("textbox")).toBeInTheDocument();
+  });
+
+  test("clicking Delete in sheet calls deleteMessage after confirm", () => {
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    const deleteMessage = vi.fn();
+    useSocket.mockReturnValue({ ...DEFAULT_SOCKET, deleteMessage });
+    renderChatArea({ messages: [makeMsg({ user_id: 1, username: "alice" })] });
+    longPress("alice");
+    fireEvent.click(screen.getByTestId("touch-delete-btn"));
+    expect(deleteMessage).toHaveBeenCalledWith(1, expect.any(Function));
+    vi.restoreAllMocks();
+  });
+
+  test("sheet shows Pin button when canPin=true and not DM", () => {
+    renderChatArea({ messages: [makeMsg()], canPin: true });
+    longPress("bob");
+    expect(screen.getByTestId("touch-pin-btn")).toBeInTheDocument();
+  });
+
+  test("sheet hides Pin button in DM context", () => {
+    renderChatArea({ messages: [makeMsg()], canPin: true, isDm: true });
+    longPress("bob");
+    expect(screen.queryByTestId("touch-pin-btn")).not.toBeInTheDocument();
+  });
+
+  test("clicking Pin in sheet calls onPin and closes sheet", () => {
+    const onPin = vi.fn();
+    renderChatArea({ messages: [makeMsg()], canPin: true, onPin });
+    longPress("bob");
+    fireEvent.click(screen.getByTestId("touch-pin-btn"));
+    expect(onPin).toHaveBeenCalledWith(1, false);
+    expect(screen.queryByTestId("touch-sheet")).not.toBeInTheDocument();
+  });
+
+  test("clicking React switches to emoji picker view", () => {
+    renderChatArea({ messages: [makeMsg()] });
+    longPress("bob");
+    fireEvent.click(screen.getByTestId("touch-react-btn"));
+    expect(screen.getByText("React to message")).toBeInTheDocument();
+    expect(screen.getByTestId("touch-back-btn")).toBeInTheDocument();
+  });
+
+  test("Back button returns from emoji view to main sheet", () => {
+    renderChatArea({ messages: [makeMsg()] });
+    longPress("bob");
+    fireEvent.click(screen.getByTestId("touch-react-btn"));
+    fireEvent.click(screen.getByTestId("touch-back-btn"));
+    expect(screen.getByTestId("touch-reply-btn")).toBeInTheDocument();
+  });
+
+  test("clicking an emoji in the sheet calls reactToMessage and closes sheet", () => {
+    const reactToMessage = vi.fn();
+    useSocket.mockReturnValue({ ...DEFAULT_SOCKET, reactToMessage });
+    renderChatArea({ messages: [makeMsg()] });
+    longPress("bob");
+    fireEvent.click(screen.getByTestId("touch-react-btn"));
+    // All EMOJI_SET buttons are rendered; click the first one (👍)
+    const emojiBtns = document.querySelectorAll(".touch-emoji-btn");
+    fireEvent.click(emojiBtns[0]);
+    expect(reactToMessage).toHaveBeenCalledWith(1, "👍", expect.any(Function));
+    expect(screen.queryByTestId("touch-sheet")).not.toBeInTheDocument();
   });
 });

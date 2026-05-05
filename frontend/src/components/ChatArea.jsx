@@ -371,8 +371,11 @@ function MessageRow({ msg, isGroupFirst, avatar, username, role, onReply, onPin,
   const [editText, setEditText]   = useState(msg.content || "");
   // preview holds file props for the FilePreviewModal; null when closed
   const [preview, setPreview]     = useState(null);
-  const editRef = useRef(null);
-  const rowRef  = useRef(null);
+  // touchMenu: null | "main" | "emoji" — drives the long-press bottom sheet
+  const [touchMenu, setTouchMenu] = useState(null);
+  const editRef       = useRef(null);
+  const rowRef        = useRef(null);
+  const touchTimerRef = useRef(null);
 
   const isOwn   = msg.user_id === user?.id;
   const isAdmin = role === "admin";
@@ -404,6 +407,17 @@ function MessageRow({ msg, isGroupFirst, avatar, username, role, onReply, onPin,
       editRef.current.setSelectionRange(len, len);
     }
   }, [editing]);
+
+  // ── Long-press detection ─────────────────────────────────
+  function handleTouchStart() {
+    touchTimerRef.current = setTimeout(() => {
+      if (navigator.vibrate) navigator.vibrate(50);
+      setTouchMenu("main");
+    }, 500);
+  }
+  function handleTouchEnd()  { clearTimeout(touchTimerRef.current); }
+  function handleTouchMove() { clearTimeout(touchTimerRef.current); }
+  function closeTouchMenu()  { setTouchMenu(null); }
 
   /** Saves the edited content if it changed; exits edit mode. */
   function saveEdit() {
@@ -466,6 +480,9 @@ function MessageRow({ msg, isGroupFirst, avatar, username, role, onReply, onPin,
         style={{ ...s.msgRow, background: hovered ? "#ffffff08" : "transparent" }}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => { setHovered(false); setShowEmoji(false); }}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        onTouchMove={handleTouchMove}
       >
         {/* Avatar column — shows avatar emoji for the group leader, or a faint timestamp for followers */}
         <div style={s.avatarCol}>
@@ -618,6 +635,67 @@ function MessageRow({ msg, isGroupFirst, avatar, username, role, onReply, onPin,
           fileName={preview.fileName}
           onClose={() => setPreview(null)}
         />
+      )}
+
+      {/* Long-press bottom sheet — touch-only action menu */}
+      {touchMenu && (
+        <>
+          <div data-testid="touch-overlay" className="touch-overlay" onClick={closeTouchMenu} />
+          <div data-testid="touch-sheet" className="touch-sheet">
+            <div className="touch-sheet-handle" />
+            {touchMenu === "main" ? (
+              <>
+                <div className="touch-sheet-title">
+                  {(msg.content || (msg.file_url ? "📎 Attachment" : "")).slice(0, 60)}
+                </div>
+                <div className="touch-sheet-actions">
+                  <button data-testid="touch-react-btn" onClick={() => setTouchMenu("emoji")}>
+                    <span>😊</span> React
+                  </button>
+                  <button data-testid="touch-reply-btn" onClick={() => { onReply?.(msg); closeTouchMenu(); }}>
+                    <span>↩</span> Reply
+                  </button>
+                  {canPin && !isDm && (
+                    <button data-testid="touch-pin-btn" onClick={() => { onPin?.(msg.id, isPinned); closeTouchMenu(); }}>
+                      <span>📌</span> {isPinned ? "Unpin" : "Pin"}
+                    </button>
+                  )}
+                  {isOwn && (
+                    <button data-testid="touch-edit-btn" onClick={() => { setEditing(true); closeTouchMenu(); }}>
+                      <span>✏️</span> Edit
+                    </button>
+                  )}
+                  {isOwn && (
+                    <button data-testid="touch-delete-btn" className="danger" onClick={() => { closeTouchMenu(); handleDelete(); }}>
+                      <span>🗑️</span> Delete
+                    </button>
+                  )}
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="touch-sheet-title">React to message</div>
+                <div className="touch-sheet-emoji">
+                  {EMOJI_SET.map((emoji) => {
+                    const isMine = (reactions[emoji] || []).includes(user?.id);
+                    return (
+                      <button
+                        key={emoji}
+                        className={`touch-emoji-btn${isMine ? " active" : ""}`}
+                        onClick={() => { handleReact(emoji); closeTouchMenu(); }}
+                      >
+                        {emoji}
+                      </button>
+                    );
+                  })}
+                </div>
+                <button data-testid="touch-back-btn" className="touch-sheet-back" onClick={() => setTouchMenu("main")}>
+                  ← Back
+                </button>
+              </>
+            )}
+          </div>
+        </>
       )}
     </>
   );
