@@ -731,7 +731,8 @@ function MessageRow({ msg, isGroupFirst, avatar, username, role, onReply, onPin,
  * @param {boolean}   [props.isDm=false]      - Routes MessageRow socket calls to DM events.
  * @returns {JSX.Element}
  */
-export default function ChatArea({ messages, loading, hasMore, onLoadMore, typingUsers = [], onReply, onPin, canPin, users = [], isDm = false }) {
+export default function ChatArea({ messages, loading, hasMore, onLoadMore, typingUsers = [], onReply, onPin, canPin, users = [], isDm = false, seenByPartner = false }) {
+  const { user } = useAuth();
   const bottomRef = useRef(null);
   const scrollRef = useRef(null);
 
@@ -744,6 +745,11 @@ export default function ChatArea({ messages, loading, hasMore, onLoadMore, typin
   }, [messages]);
 
   const groups = groupMessages(messages);
+
+  // Last outgoing DM message id — used to place the "Seen" indicator
+  const lastOutgoingId = isDm && seenByPartner
+    ? [...messages].reverse().find((m) => m.user_id === user?.id || m.sender_id === user?.id)?.id
+    : null;
 
   if (loading) {
     return (
@@ -783,19 +789,25 @@ export default function ChatArea({ messages, loading, hasMore, onLoadMore, typin
         return (
           <div key={item.key} style={s.msgGroup}>
             {item.messages.map((msg, idx) => (
-              <MessageRow
-                key={msg.id}
-                msg={msg}
-                isGroupFirst={idx === 0}
-                avatar={item.avatar}
-                username={item.username}
-                role={item.role}
-                onReply={onReply}
-                onPin={onPin}
-                canPin={canPin}
-                users={users}
-                isDm={isDm}
-              />
+              <div key={msg.id}>
+                <MessageRow
+                  msg={msg}
+                  isGroupFirst={idx === 0}
+                  avatar={item.avatar}
+                  username={item.username}
+                  role={item.role}
+                  onReply={onReply}
+                  onPin={onPin}
+                  canPin={canPin}
+                  users={users}
+                  isDm={isDm}
+                />
+                {lastOutgoingId === msg.id && (
+                  <div style={{ textAlign: "right", fontSize: "11px", color: "#5865f2", paddingRight: "16px", paddingBottom: "2px" }} data-testid="seen-indicator">
+                    Seen
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         );

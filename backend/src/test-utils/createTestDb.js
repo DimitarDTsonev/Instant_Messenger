@@ -61,6 +61,7 @@ const SCHEMA = `
     sender_id   INTEGER NOT NULL REFERENCES users(id),
     receiver_id INTEGER NOT NULL REFERENCES users(id),
     is_read     INTEGER DEFAULT 0,
+    read_at     DATETIME,
     reply_to_id INTEGER,
     file_url    TEXT,
     file_type   TEXT,
@@ -116,6 +117,15 @@ const SCHEMA = `
     expires_at DATETIME DEFAULT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
+
+  CREATE TABLE IF NOT EXISTS password_reset_tokens (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token      TEXT    NOT NULL UNIQUE,
+    expires_at DATETIME NOT NULL,
+    used       INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
 `;
 
 /**
@@ -149,6 +159,7 @@ function clearDb(db) {
     DELETE FROM channel_members;
     DELETE FROM channels;
     DELETE FROM security_logs;
+    DELETE FROM password_reset_tokens;
     DELETE FROM users;
   `);
 }

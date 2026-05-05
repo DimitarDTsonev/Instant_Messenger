@@ -132,8 +132,21 @@ describe("connection and disconnect events", () => {
   test("emits users:online on connect", (done) => {
     const user   = seedUser("online1");
     const client = connect(signToken(user));
-    client.on("users:online", (ids) => {
+    client.on("users:online", (payload) => {
+      const ids = payload.map((u) => u.id);
       expect(ids).toContain(user.id);
+      client.disconnect();
+      done();
+    });
+  });
+
+  test("users:online payload contains status field", (done) => {
+    const user   = seedUser("online3");
+    const client = connect(signToken(user));
+    client.on("users:online", (payload) => {
+      const entry = payload.find((u) => u.id === user.id);
+      expect(entry).toBeDefined();
+      expect(entry.status).toBe("online");
       client.disconnect();
       done();
     });
@@ -152,7 +165,8 @@ describe("connection and disconnect events", () => {
     });
 
     let sawUserOnline = false;
-    watcher.on("users:online", (ids) => {
+    watcher.on("users:online", (payload) => {
+      const ids = payload.map((u) => u.id);
       if (ids.includes(user.id)) sawUserOnline = true;
       if (sawUserOnline && !ids.includes(user.id)) {
         watcher.disconnect();
@@ -723,6 +737,82 @@ describe("dm:react", () => {
         client.disconnect();
         done();
       });
+    });
+  });
+});
+
+// ─── dm:read ──────────────────────────────────────────────────────────────────
+
+describe("dm:read", () => {
+  function seedDm(senderId, receiverId, content = "hi") {
+    const { lastInsertRowid } = db.prepare(
+      "INSERT INTO direct_messages (sender_id, receiver_id, content) VALUES (?, ?, ?)"
+    ).run(senderId, receiverId, content);
+    return lastInsertRowid;
+  }
+
+  test("marks messages as read and notifies sender", (done) => {
+    const sender   = seedUser("dmsender");
+    const receiver = seedUser("dmrecvr");
+    const dmId     = seedDm(sender.id, receiver.id, "hello");
+
+    const senderClient   = connect(signToken(sender));
+    const receiverClient = connect(signToken(receiver));
+
+    senderClient.on("connect", () => {
+      receiverClient.on("connect", () => {
+        receiverClient.emit("dm:read", { partnerId: sender.id });
+      });
+    });
+
+    senderClient.once("dm:read", ({ readBy }) => {
+      expect(readBy).toBe(receiver.id);
+      const msg = db.prepare("SELECT is_read, read_at FROM direct_messages WHERE id = ?").get(dmId);
+      expect(msg.is_read).toBe(1);
+      expect(msg.read_at).not.toBeNull();
+      senderClient.disconnect();
+      receiverClient.disconnect();
+      done();
+    });
+  });
+
+  test("does nothing when no partnerId provided", (done) => {
+    const user = seedUser("dmnoop");
+    const client = connect(signToken(user));
+    client.on("connect", () => {
+      client.emit("dm:read", {});
+      setTimeout(() => { client.disconnect(); done(); }, 100);
+    });
+  });
+});
+
+// ─── status:set ───────────────────────────────────────────────────────────────
+
+describe("status:set", () => {
+  test("setting a valid status emits updated users:online", (done) => {
+    const user   = seedUser("statususer");
+    const client = connect(signToken(user));
+
+    let connected = false;
+    client.on("users:online", (payload) => {
+      if (!connected) { connected = true; return; }
+      const entry = payload.find((u) => u.id === user.id);
+      if (entry?.status === "away") {
+        client.disconnect();
+        done();
+      }
+    });
+    client.on("connect", () => {
+      client.emit("status:set", { status: "away" });
+    });
+  });
+
+  test("ignores invalid status values", (done) => {
+    const user   = seedUser("statusbad");
+    const client = connect(signToken(user));
+    client.on("connect", () => {
+      client.emit("status:set", { status: "invisible" });
+      setTimeout(() => { client.disconnect(); done(); }, 100);
     });
   });
 });

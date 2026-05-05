@@ -26,6 +26,18 @@ router.use((req, res, next) => {
 });
 
 /**
+ * GET /api/admin/users
+ * Returns all users with ban status. Admin-only.
+ */
+router.get("/users", (req, res) => {
+  const db = getDb();
+  const users = db
+    .prepare("SELECT id, username, email, avatar, role, is_banned, ban_reason, created_at FROM users ORDER BY username")
+    .all();
+  return res.json({ users });
+});
+
+/**
  * GET /api/admin/security-logs?limit=100&event=
  * Returns the most recent security log entries, newest first.
  */

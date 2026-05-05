@@ -69,6 +69,8 @@ export function SocketProvider({ children }) {
   const socketRef = useRef(null);
   const [isConnected, setIsConnected] = useState(false);
   const [onlineUserIds, setOnlineUserIds] = useState([]);
+  // Map of userId → "online" | "away" | "dnd"
+  const [userStatuses, setUserStatuses] = useState({});
 
   // Stable handler refs — updated without re-registering socket listeners.
   // Storing handlers in refs means socket.on() is only called once per connection
@@ -87,6 +89,7 @@ export function SocketProvider({ children }) {
   const dmEditHandlerRef   = useRef(null);
   const dmDeleteHandlerRef = useRef(null);
   const dmReactHandlerRef  = useRef(null);
+  const dmReadHandlerRef   = useRef(null);
 
   const userId = user?.id ?? null;
 
@@ -110,7 +113,18 @@ export function SocketProvider({ children }) {
     socket.on("connect",       ()    => setIsConnected(true));
     socket.on("disconnect",    ()    => setIsConnected(false));
     socket.on("connect_error", (err) => console.error("Socket error:", err.message));
-    socket.on("users:online",  (ids) => setOnlineUserIds(ids));
+    socket.on("users:online", (payload) => {
+      // payload is [{id, status}] (new) or [id, id, ...] (legacy fallback)
+      if (Array.isArray(payload) && payload.length > 0 && typeof payload[0] === "object") {
+        setOnlineUserIds(payload.map((u) => u.id));
+        const map = {};
+        payload.forEach((u) => { map[u.id] = u.status || "online"; });
+        setUserStatuses(map);
+      } else {
+        setOnlineUserIds(payload);
+        setUserStatuses({});
+      }
+    });
 
     // Channel events — delegate to the current handler ref so callers
     // do not need to re-register when their component state changes
@@ -129,6 +143,7 @@ export function SocketProvider({ children }) {
     socket.on("dm:edited",  (msg)  => dmEditHandlerRef.current?.(msg));
     socket.on("dm:deleted", (data) => dmDeleteHandlerRef.current?.(data));
     socket.on("dm:reacted", (data) => dmReactHandlerRef.current?.(data));
+    socket.on("dm:read",    (data) => dmReadHandlerRef.current?.(data));
 
     return () => {
       socket.disconnect();
@@ -320,12 +335,24 @@ export function SocketProvider({ children }) {
   const onDmDeleted = useCallback((h) => { dmDeleteHandlerRef.current = h; return () => { dmDeleteHandlerRef.current = null; }; }, []);
   /** @param {Function} h - Called with { messageId, reactions } when "dm:reacted" fires. */
   const onDmReacted = useCallback((h) => { dmReactHandlerRef.current  = h; return () => { dmReactHandlerRef.current  = null; }; }, []);
+  /** @param {Function} h - Called with { readBy: userId } when "dm:read" fires. */
+  const onDmRead    = useCallback((h) => { dmReadHandlerRef.current   = h; return () => { dmReadHandlerRef.current   = null; }; }, []);
+
+  const sendDmRead = useCallback((partnerId) => {
+    socketRef.current?.emit("dm:read", { partnerId });
+  }, []);
+
+  const setStatus = useCallback((status) => {
+    socketRef.current?.emit("status:set", { status });
+  }, []);
 
   return (
     <SocketContext.Provider value={{
       socket: socketRef.current,
       isConnected,
       onlineUserIds,
+      userStatuses,
+      setStatus,
       // Channel emitters
       joinChannel,
       sendMessage,
@@ -339,6 +366,7 @@ export function SocketProvider({ children }) {
       editDmMessage,
       deleteDmMessage,
       reactToDmMessage,
+      sendDmRead,
       // Typing
       emitTypingStart,
       emitTypingStop,
@@ -357,6 +385,7 @@ export function SocketProvider({ children }) {
       onDmEdited,
       onDmDeleted,
       onDmReacted,
+      onDmRead,
     }}>
       {children}
     </SocketContext.Provider>

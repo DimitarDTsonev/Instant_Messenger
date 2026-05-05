@@ -194,6 +194,20 @@ function initDatabase() {
 
     CREATE INDEX IF NOT EXISTS idx_invites_code    ON channel_invites(code);
     CREATE INDEX IF NOT EXISTS idx_invites_channel ON channel_invites(channel_id);
+
+    -- -------------------------------------------------------
+    -- Password reset tokens (single-use, 1-hour TTL)
+    -- -------------------------------------------------------
+    CREATE TABLE IF NOT EXISTS password_reset_tokens (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      token      TEXT    NOT NULL UNIQUE,
+      expires_at DATETIME NOT NULL,
+      used       INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_prt_token ON password_reset_tokens(token);
   `);
 
   // Migration: add new columns to existing tables if they do not yet exist
@@ -278,6 +292,7 @@ function initDatabase() {
     ["reply_to_id", "INTEGER"],
     ["is_edited",   "INTEGER DEFAULT 0"],
     ["edited_at",   "DATETIME"],
+    ["read_at",     "DATETIME"],
   ];
   for (const [col, def] of dmMigrations) {
     if (!dmCols.includes(col)) {

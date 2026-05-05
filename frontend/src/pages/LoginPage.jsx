@@ -14,6 +14,7 @@
 
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import ForgotPasswordPage from "./ForgotPasswordPage";
 
 /**
  * Inline style map for the login/register card UI.
@@ -143,6 +144,8 @@ export default function LoginPage() {
   /** @type {{ login: Function, register: Function }} */
   const { login, register } = useAuth();
 
+  const [showForgot, setShowForgot] = useState(false);
+
   /** @type {["login"|"register", Function]} Current tab mode */
   const [mode, setMode] = useState("login");
 
@@ -194,6 +197,8 @@ export default function LoginPage() {
       setLoading(false);
     }
   }
+
+  if (showForgot) return <ForgotPasswordPage onBack={() => setShowForgot(false)} />;
 
   return (
     <div style={styles.page}>
@@ -269,6 +274,20 @@ export default function LoginPage() {
             {loading ? "⏳ Loading..." : mode === "login" ? "Sign in →" : "Create account →"}
           </button>
         </form>
+
+        {/* Forgot password link — only shown on the login tab */}
+        {mode === "login" && (
+          <div style={{ ...styles.hint, marginTop: "12px" }}>
+            <button
+              type="button"
+              style={{ background: "transparent", border: "none", color: "#5865f2", fontSize: "12px", cursor: "pointer", textDecoration: "underline" }}
+              onClick={() => setShowForgot(true)}
+              data-testid="forgot-password-link"
+            >
+              Forgot password?
+            </button>
+          </div>
+        )}
 
         {/* Demo credentials hint — only shown on the login tab */}
         {mode === "login" && (

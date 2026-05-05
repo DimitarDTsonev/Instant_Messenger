@@ -17,6 +17,7 @@ import PinnedBanner         from "../components/PinnedBanner";
 import UserProfileModal     from "../components/UserProfileModal";
 import UserSearchModal      from "../components/UserSearchModal";
 import ChannelSettingsModal from "../components/ChannelSettingsModal";
+import { playNotificationSound } from "../utils/notificationSound";
 
 /** Inline style map used throughout ChatPage. */
 const s = {
@@ -83,6 +84,7 @@ export default function ChatPage() {
     onChannelNotify, onMessagePinned, onMessageUnpinned,
     onUserMentioned, pinMessage, unpinMessage,
     onDmEdited, onDmDeleted, onDmReacted,
+    sendDmRead, onDmRead,
   } = useSocket();
 
   const { channels, createChannel, updateChannel, deleteChannel } = useChannels();
@@ -102,6 +104,8 @@ export default function ChatPage() {
   const [replyTo, setReplyTo]                 = useState(null);
   const [showSettings, setShowSettings]       = useState(false);
   const [sidebarOpen, setSidebarOpen]         = useState(false);
+  // Tracks whether the active DM partner has seen our last message
+  const [seenByPartner, setSeenByPartner]     = useState(false);
 
   // Stable refs for active channel/DM — used inside socket event handlers
   // to avoid stale closure values without adding them to dependency arrays.
@@ -236,6 +240,7 @@ export default function ChatPage() {
     return onChannelNotify(({ channelId }) => {
       if (activeChannelRef.current?.id === channelId) return;
       setUnreadChannels((prev) => ({ ...prev, [channelId]: (prev[channelId] || 0) + 1 }));
+      playNotificationSound();
     });
   }, [onChannelNotify]);
 
@@ -253,6 +258,7 @@ export default function ChatPage() {
       }
       const sender = users.find((u) => u.id === fromId);
       upsertConversation(msg, fromId, sender?.username || "?", sender?.avatar || "👤", !isSelf);
+      if (!isSelf) playNotificationSound();
     });
   }, [onNewDm, addDmMsg, users, upsertConversation, user]);
 
@@ -282,6 +288,20 @@ export default function ChatPage() {
       updateDmMsg({ id: messageId, reactions });
     });
   }, [onDmReacted, updateDmMsg]);
+
+  // When we open a DM, mark the partner's messages as read and reset seen state
+  useEffect(() => {
+    if (!activeDm) return;
+    setSeenByPartner(false);
+    sendDmRead(activeDm.id);
+  }, [activeDm, sendDmRead]);
+
+  // When the partner reads our messages, show the "Seen" indicator
+  useEffect(() => {
+    return onDmRead(({ readBy }) => {
+      if (activeDmRef.current?.id === readBy) setSeenByPartner(true);
+    });
+  }, [onDmRead]);
 
   // -----------------------------------------------------------
   // Typing indicators
@@ -538,6 +558,7 @@ export default function ChatPage() {
               canPin={canPin}
               users={users}
               isDm={isDmMode}
+              seenByPartner={isDmMode ? seenByPartner : false}
             />
             <MessageInput
               channelId={activeChannel?.id}

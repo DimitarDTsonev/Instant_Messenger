@@ -366,7 +366,7 @@ export default function MessageInput({
     : `Send to #${channelName || "channel"}`;
 
   return (
-    <div style={s.container}>
+    <div style={s.container} className="message-input-container">
       {/* @mention dropdown — rendered above the input */}
       {mentionList.length > 0 && (
         <div style={s.mentionDropdown}>

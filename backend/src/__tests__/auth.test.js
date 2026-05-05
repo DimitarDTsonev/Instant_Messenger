@@ -306,3 +306,94 @@ describe("PATCH /api/auth/users/:id/role", () => {
     expect(res.status).toBe(404);
   });
 });
+
+// ─── POST /api/auth/forgot-password ───────────────────────────────────────────
+
+describe("POST /api/auth/forgot-password", () => {
+  test("returns 200 even for unknown email (no enumeration)", async () => {
+    const res = await request(app)
+      .post("/api/auth/forgot-password")
+      .send({ email: "nobody@example.com" });
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+  });
+
+  test("creates a reset token for a known email", async () => {
+    const user = seedUser("resetuser");
+    const res = await request(app)
+      .post("/api/auth/forgot-password")
+      .send({ email: user.email });
+    expect(res.status).toBe(200);
+    const token = db.prepare("SELECT * FROM password_reset_tokens WHERE user_id = ?").get(user.id);
+    expect(token).toBeDefined();
+    expect(token.used).toBe(0);
+  });
+
+  test("returns 200 with no body when email is missing", async () => {
+    const res = await request(app)
+      .post("/api/auth/forgot-password")
+      .send({});
+    expect(res.status).toBe(200);
+  });
+});
+
+// ─── POST /api/auth/reset-password ────────────────────────────────────────────
+
+describe("POST /api/auth/reset-password", () => {
+  function seedResetToken(userId, opts = {}) {
+    const token = "testtoken123";
+    const expiresAt = opts.expired
+      ? "2000-01-01 00:00:00"
+      : new Date(Date.now() + 60 * 60 * 1000).toISOString().replace("T", " ").slice(0, 19);
+    db.prepare("INSERT INTO password_reset_tokens (user_id, token, expires_at, used) VALUES (?, ?, ?, ?)")
+      .run(userId, token, expiresAt, opts.used ? 1 : 0);
+    return token;
+  }
+
+  test("resets the password with a valid token", async () => {
+    const user  = seedUser("pwreset");
+    const token = seedResetToken(user.id);
+    const res = await request(app)
+      .post("/api/auth/reset-password")
+      .send({ token, password: "newpassword" });
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    // Token should be marked as used
+    const row = db.prepare("SELECT used FROM password_reset_tokens WHERE token = ?").get(token);
+    expect(row.used).toBe(1);
+  });
+
+  test("returns 400 for an expired token", async () => {
+    const user  = seedUser("pwexpired");
+    const token = seedResetToken(user.id, { expired: true });
+    const res = await request(app)
+      .post("/api/auth/reset-password")
+      .send({ token, password: "newpassword" });
+    expect(res.status).toBe(400);
+  });
+
+  test("returns 400 for an already-used token", async () => {
+    const user  = seedUser("pwused");
+    const token = seedResetToken(user.id, { used: true });
+    const res = await request(app)
+      .post("/api/auth/reset-password")
+      .send({ token, password: "newpassword" });
+    expect(res.status).toBe(400);
+  });
+
+  test("returns 400 when password is too short", async () => {
+    const user  = seedUser("pwshort");
+    const token = seedResetToken(user.id);
+    const res = await request(app)
+      .post("/api/auth/reset-password")
+      .send({ token, password: "abc" });
+    expect(res.status).toBe(400);
+  });
+
+  test("returns 400 when token is missing", async () => {
+    const res = await request(app)
+      .post("/api/auth/reset-password")
+      .send({ password: "newpassword" });
+    expect(res.status).toBe(400);
+  });
+});

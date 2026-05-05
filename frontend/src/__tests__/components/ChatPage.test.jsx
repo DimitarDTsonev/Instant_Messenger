@@ -163,6 +163,10 @@ const DEFAULT_SOCKET = {
   onDmEdited:        vi.fn(() => vi.fn()),
   onDmDeleted:       vi.fn(() => vi.fn()),
   onDmReacted:       vi.fn(() => vi.fn()),
+  onDmRead:          vi.fn(() => vi.fn()),
+  sendDmRead:        vi.fn(),
+  userStatuses:      {},
+  setStatus:         vi.fn(),
 };
 
 const DEFAULT_AUTH = {

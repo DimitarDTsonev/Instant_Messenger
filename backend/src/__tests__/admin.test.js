@@ -46,6 +46,38 @@ function seedLog(event, ip = "1.2.3.4") {
   db.prepare("INSERT INTO security_logs (event, ip, username) VALUES (?, ?, 'test')").run(event, ip);
 }
 
+// ── GET /api/admin/users ──────────────────────────────────────
+
+describe("GET /api/admin/users", () => {
+  test("returns 401 without token", async () => {
+    const res = await request(app).get("/api/admin/users");
+    expect(res.status).toBe(401);
+  });
+
+  test("returns 403 for non-admin", async () => {
+    const token = memberToken();
+    const res = await request(app)
+      .get("/api/admin/users")
+      .set("Authorization", `Bearer ${token}`);
+    expect(res.status).toBe(403);
+  });
+
+  test("returns user list with ban info for admin", async () => {
+    const member = seedUser("memberx");
+    db.prepare("UPDATE users SET is_banned = 1, ban_reason = 'test' WHERE id = ?").run(member.id);
+    const { token } = adminToken();
+    const res = await request(app)
+      .get("/api/admin/users")
+      .set("Authorization", `Bearer ${token}`);
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body.users)).toBe(true);
+    const found = res.body.users.find((u) => u.id === member.id);
+    expect(found).toBeDefined();
+    expect(found.is_banned).toBe(1);
+    expect(found.ban_reason).toBe("test");
+  });
+});
+
 // ── GET /api/admin/security-logs ──────────────────────────────
 
 describe("GET /api/admin/security-logs", () => {

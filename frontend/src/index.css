@@ -85,6 +85,16 @@ input, textarea {
 a { color: var(--accent-light); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
+/* ── iOS keyboard safe area ─────────────────────────────── */
+/* On iOS, when the virtual keyboard opens, env(safe-area-inset-bottom)
+   can shrink to 0 while the keyboard covers the input. The
+   interactive-widget=resizes-content viewport hint shrinks the visual
+   viewport so the layout recalculates, but we still need bottom padding
+   on the input so it clears the home indicator on notchless iPhones. */
+.message-input-container {
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
+}
+
 /* ── Touch long-press action sheet ─────────────────────── */
 .touch-overlay {
   position: fixed;

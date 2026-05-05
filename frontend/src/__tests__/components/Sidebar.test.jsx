@@ -26,6 +26,8 @@ const DEFAULT_AUTH = {
 const DEFAULT_SOCKET = {
   isConnected: true,
   onlineUserIds: [1, 2],
+  userStatuses: {},
+  setStatus: vi.fn(),
 };
 
 /** Sample channels */
@@ -435,5 +437,42 @@ describe("mobile open prop", () => {
   test("sidebar element does not have class 'open' when open=false", () => {
     const { container } = render(<Sidebar {...buildProps({ open: false })} />);
     expect(container.querySelector(".sidebar.open")).not.toBeInTheDocument();
+  });
+});
+
+// ─────────────────────────────────────────────────────────
+//  18. Status picker
+// ─────────────────────────────────────────────────────────
+describe("status picker", () => {
+  test("avatar button shows current status in title", () => {
+    useSocket.mockReturnValue({ ...DEFAULT_SOCKET, userStatuses: { 1: "away" } });
+    render(<Sidebar {...buildProps()} />);
+    expect(screen.getByTitle("Status: Away")).toBeInTheDocument();
+  });
+
+  test("clicking avatar button reveals status option buttons", () => {
+    render(<Sidebar {...buildProps()} />);
+    fireEvent.click(screen.getByTitle("Status: Online"));
+    // Picker renders 3 buttons with STATUS_LABELS as titles
+    expect(screen.getAllByTitle("Online").some((el) => el.tagName === "BUTTON")).toBe(true);
+    expect(screen.getByTitle("Away")).toBeInTheDocument();
+    expect(screen.getByTitle("Do not disturb")).toBeInTheDocument();
+  });
+
+  test("clicking a status option calls setStatus and hides picker", () => {
+    const setStatus = vi.fn();
+    useSocket.mockReturnValue({ ...DEFAULT_SOCKET, setStatus });
+    render(<Sidebar {...buildProps()} />);
+    fireEvent.click(screen.getByTitle("Status: Online"));
+    fireEvent.click(screen.getByTitle("Away"));
+    expect(setStatus).toHaveBeenCalledWith("away");
+    expect(screen.queryByTitle("Away")).not.toBeInTheDocument();
+  });
+
+  test("status dot reflects userStatuses for DM users", () => {
+    useSocket.mockReturnValue({ ...DEFAULT_SOCKET, userStatuses: { 2: "dnd" } });
+    render(<Sidebar {...buildProps()} />);
+    const dots = document.querySelectorAll("[title='Do not disturb']");
+    expect(dots.length).toBeGreaterThan(0);
   });
 });

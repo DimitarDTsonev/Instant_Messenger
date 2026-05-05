@@ -57,6 +57,11 @@ const JWT_SECRET = process.env.JWT_SECRET || "super-secret-dev-key-change-in-pro
 // In-memory map of currently connected users: userId -> { socketId, username }
 const onlineUsers = new Map();
 
+// Returns [{ id, status }] — what clients receive as users:online payload
+function buildOnlinePayload() {
+  return Array.from(onlineUsers.entries()).map(([id, u]) => ({ id, status: u.status || "online" }));
+}
+
 /**
  * Safely calls an acknowledgement callback if it is a function.
  * Socket.io event handlers receive an optional callback as the last
@@ -275,8 +280,8 @@ function registerSocketHandlers(io) {
     console.log(`Connected: ${user.username} (${socket.id})`);
 
     // Track the user as online and broadcast the updated online list
-    onlineUsers.set(user.id, { socketId: socket.id, username: user.username });
-    io.emit("users:online", Array.from(onlineUsers.keys()));
+    onlineUsers.set(user.id, { socketId: socket.id, username: user.username, status: "online" });
+    io.emit("users:online", buildOnlinePayload());
     // Join the personal notification room so DMs and mentions reach this socket
     socket.join(`notifications:${user.id}`);
 
@@ -638,6 +643,26 @@ function registerSocketHandlers(io) {
     });
 
     // -----------------------------------------------------------
+    // Event: dm:read
+    // Payload: { partnerId }
+    //
+    // Marks all unread DMs from partnerId → current user as read,
+    // then notifies the partner so they can show a "Seen" indicator.
+    //
+    // Emits: dm:read → notifications:<partnerId>
+    //   Payload: { readBy: userId }
+    // -----------------------------------------------------------
+    socket.on("dm:read", ({ partnerId } = {}) => {
+      if (!partnerId) return;
+      const db = getDb();
+      const now = new Date().toISOString().replace("T", " ").slice(0, 19);
+      db.prepare(
+        "UPDATE direct_messages SET is_read = 1, read_at = ? WHERE sender_id = ? AND receiver_id = ? AND is_read = 0"
+      ).run(now, partnerId, user.id);
+      io.to(`notifications:${partnerId}`).emit("dm:read", { readBy: user.id });
+    });
+
+    // -----------------------------------------------------------
     // Event: typing:start
     // Payload: { channelId }
     //
@@ -673,10 +698,20 @@ function registerSocketHandlers(io) {
     // Removes the user from the online-users map and broadcasts the
     // updated list to all connected clients.
     // -----------------------------------------------------------
+    // Event: status:set
+    // Payload: { status: "online" | "away" | "dnd" }
+    socket.on("status:set", ({ status } = {}) => {
+      const valid = ["online", "away", "dnd"];
+      if (!valid.includes(status)) return;
+      const entry = onlineUsers.get(user.id);
+      if (entry) { entry.status = status; onlineUsers.set(user.id, entry); }
+      io.emit("users:online", buildOnlinePayload());
+    });
+
     socket.on("disconnect", () => {
       console.log(`Disconnected: ${user.username}`);
       onlineUsers.delete(user.id);
-      io.emit("users:online", Array.from(onlineUsers.keys()));
+      io.emit("users:online", buildOnlinePayload());
     });
   });
 }

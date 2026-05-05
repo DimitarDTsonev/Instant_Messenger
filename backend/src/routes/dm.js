@@ -158,8 +158,9 @@ router.get("/:userId", (req, res) => {
   const hasMore = messages.length === limit;
 
   // Side-effect: mark all incoming unread messages from the partner as read
-  db.prepare("UPDATE direct_messages SET is_read = 1 WHERE sender_id = ? AND receiver_id = ? AND is_read = 0")
-    .run(other, me);
+  const now = new Date().toISOString().replace("T", " ").slice(0, 19);
+  db.prepare("UPDATE direct_messages SET is_read = 1, read_at = ? WHERE sender_id = ? AND receiver_id = ? AND is_read = 0")
+    .run(now, other, me);
 
   res.json({ messages, hasMore, partner });
 });
@@ -180,8 +181,9 @@ router.post("/:userId/read", (req, res) => {
   const me    = req.user.id; // Authenticated user receiving the messages
   const other = parseInt(req.params.userId); // Sender whose messages to mark read
 
-  db.prepare("UPDATE direct_messages SET is_read = 1 WHERE sender_id = ? AND receiver_id = ? AND is_read = 0")
-    .run(other, me);
+  const now2 = new Date().toISOString().replace("T", " ").slice(0, 19);
+  db.prepare("UPDATE direct_messages SET is_read = 1, read_at = ? WHERE sender_id = ? AND receiver_id = ? AND is_read = 0")
+    .run(now2, other, me);
 
   res.json({ success: true });
 });

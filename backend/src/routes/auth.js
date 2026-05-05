@@ -290,4 +290,71 @@ router.patch("/users/:id/role", authMiddleware, (req, res) => {
   return res.json({ success: true, role });
 });
 
+/**
+ * POST /api/auth/forgot-password
+ * Body: { email }
+ * Creates a single-use password reset token (valid 1 hour) and logs it.
+ * Always returns 200 to avoid user enumeration.
+ *
+ * In production, this token would be emailed; here it is also logged to the
+ * console so local testing works without an email service.
+ *
+ * @route   POST /api/auth/forgot-password
+ * @access  Public
+ * @returns {200} { success: true }
+ */
+router.post("/forgot-password", (req, res) => {
+  const { email } = req.body;
+  if (!email?.trim()) return res.json({ success: true });
+
+  const db   = getDb();
+  const user = db.prepare("SELECT id, username FROM users WHERE LOWER(email) = LOWER(?) AND is_guest = 0").get(email.trim());
+  if (!user) return res.json({ success: true });
+
+  const token     = crypto.randomBytes(32).toString("hex");
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString().replace("T", " ").slice(0, 19);
+
+  // Invalidate any existing tokens for this user
+  db.prepare("DELETE FROM password_reset_tokens WHERE user_id = ?").run(user.id);
+  db.prepare("INSERT INTO password_reset_tokens (user_id, token, expires_at) VALUES (?, ?, ?)").run(user.id, token, expiresAt);
+
+  // In production, send an email. For now, log to console for local testing.
+  console.log(`[PASSWORD RESET] token for ${user.username}: ${token}`);
+
+  return res.json({ success: true });
+});
+
+/**
+ * POST /api/auth/reset-password
+ * Body: { token, password }
+ * Validates the token, updates the password, and marks the token as used.
+ *
+ * @route   POST /api/auth/reset-password
+ * @access  Public
+ * @returns {200} { success: true }
+ */
+router.post("/reset-password", async (req, res) => {
+  const { token, password } = req.body;
+  if (!token?.trim() || !password?.trim()) {
+    return res.status(400).json({ error: "Token and password are required" });
+  }
+  if (password.length < 6) {
+    return res.status(400).json({ error: "Password must be at least 6 characters" });
+  }
+
+  const db   = getDb();
+  const now  = new Date().toISOString().replace("T", " ").slice(0, 19);
+  const row  = db.prepare(
+    "SELECT * FROM password_reset_tokens WHERE token = ? AND used = 0 AND expires_at > ?"
+  ).get(token.trim(), now);
+
+  if (!row) return res.status(400).json({ error: "Invalid or expired reset token" });
+
+  const hash = await bcrypt.hash(password, 10);
+  db.prepare("UPDATE users SET password = ? WHERE id = ?").run(hash, row.user_id);
+  db.prepare("UPDATE password_reset_tokens SET used = 1 WHERE id = ?").run(row.id);
+
+  return res.json({ success: true });
+});
+
 module.exports = router;

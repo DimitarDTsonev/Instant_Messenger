@@ -6,6 +6,14 @@ import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useSocket } from "../context/SocketContext";
 
+const STATUS_COLORS = { online: "#23a55a", away: "#f0a500", dnd: "#f23f42", offline: "#5c6068" };
+const STATUS_LABELS = { online: "Online", away: "Away", dnd: "Do not disturb" };
+
+function statusColor(userId, onlineUserIds, userStatuses) {
+  if (!onlineUserIds.includes(userId)) return STATUS_COLORS.offline;
+  return STATUS_COLORS[userStatuses[userId] || "online"] || STATUS_COLORS.online;
+}
+
 /** Inline style map used throughout Sidebar. */
 const s = {
   sidebar: {
@@ -130,14 +138,14 @@ const s = {
     alignItems: "center",
     justifyContent: "center",
   },
-  onlineDot: (online) => ({
+  onlineDot: (color) => ({
     position: "absolute",
     bottom: -2,
     right: -2,
     width: "8px",
     height: "8px",
     borderRadius: "50%",
-    background: online ? "#23a55a" : "#5c6068",
+    background: color,
     border: "2px solid #1e1e2e",
   }),
   footer: {
@@ -252,7 +260,10 @@ export default function Sidebar({
   open, onClose,
 }) {
   const { user, logout } = useAuth();
-  const { isConnected, onlineUserIds } = useSocket();
+  const { isConnected, onlineUserIds, userStatuses = {}, setStatus } = useSocket();
+
+  const [showStatusPicker, setShowStatusPicker] = useState(false);
+  const myStatus = userStatuses[user?.id] || "online";
 
   // New-channel form visibility and field state
   const [showNewChannel, setShowNewChannel] = useState(false);
@@ -444,10 +455,12 @@ export default function Sidebar({
           {showDms && users
             .filter((u) => u.id !== user?.id) // Exclude the current user from the DM list
             .map((u) => {
-              const online  = onlineUserIds.includes(u.id);
-              const convo   = conversations?.find((c) => c.partner_id === u.id);
-              const unread  = convo?.unread_count || 0;
+              const online   = onlineUserIds.includes(u.id);
+              const dotColor = statusColor(u.id, onlineUserIds, userStatuses);
+              const convo    = conversations?.find((c) => c.partner_id === u.id);
+              const unread   = convo?.unread_count || 0;
               const isActive = activeDm?.id === u.id;
+              const statusLabel = online ? STATUS_LABELS[userStatuses[u.id] || "online"] : "Offline";
 
               return (
                 <div
@@ -457,7 +470,7 @@ export default function Sidebar({
                 >
                   <div style={s.avatarWrap(online)}>
                     <span style={s.avatar}>{u.avatar || "👤"}</span>
-                    <div style={s.onlineDot(online)} />
+                    <div style={s.onlineDot(dotColor)} title={statusLabel} />
                   </div>
                   <span style={{ color: isActive ? "#f2f3f5" : online ? "#dbdee1" : "#5c6068", fontSize: "13px", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {u.username}{u.role === "admin" && <span title="Admin" style={{ marginLeft: "4px" }}>👑</span>}
@@ -481,7 +494,9 @@ export default function Sidebar({
           </div>
 
           {showUsers && users.map((u) => {
-            const online = onlineUserIds.includes(u.id);
+            const online   = onlineUserIds.includes(u.id);
+            const dotColor = statusColor(u.id, onlineUserIds, userStatuses);
+            const statusLabel = online ? STATUS_LABELS[userStatuses[u.id] || "online"] : "Offline";
             return (
               <div
                 key={u.id}
@@ -491,7 +506,7 @@ export default function Sidebar({
               >
                 <div style={s.avatarWrap(online)}>
                   <span style={s.avatar}>{u.avatar || "👤"}</span>
-                  <div style={s.onlineDot(online)} />
+                  <div style={s.onlineDot(dotColor)} title={statusLabel} />
                 </div>
                 <span style={{ color: online ? "#f2f3f5" : "#5c6068", fontSize: "13px", flex: 1 }}>
                   {u.username}{u.role === "admin" && <span title="Admin" style={{ marginLeft: "4px" }}>👑</span>}
@@ -503,18 +518,70 @@ export default function Sidebar({
       </div>
 
       {/* Footer: current user info and logout button */}
-      <div style={s.footer}>
-        <span style={{ fontSize: "24px" }}>{user?.avatar || "👤"}</span>
-        <div style={s.footerUser}>
-          <div style={s.footerUsername}>
-            {user?.username}
-            {/* Guest label shown for temporary accounts */}
-            {user?.is_guest && <span style={{ fontSize: "10px", color: "#f0a500", marginLeft: "6px" }}>guest</span>}
+      <div style={{ ...s.footer, flexDirection: "column", alignItems: "stretch", gap: "8px" }}>
+        {showStatusPicker && (
+          <div style={{ display: "flex", gap: "4px", justifyContent: "center" }}>
+            {["online", "away", "dnd"].map((st) => (
+              <button
+                key={st}
+                onClick={() => { setStatus(st); setShowStatusPicker(false); }}
+                title={STATUS_LABELS[st]}
+                style={{
+                  flex: 1,
+                  padding: "5px 4px",
+                  background: myStatus === st ? STATUS_COLORS[st] + "33" : "transparent",
+                  border: `1px solid ${myStatus === st ? STATUS_COLORS[st] : "#2d2d3f"}`,
+                  borderRadius: "6px",
+                  color: STATUS_COLORS[st],
+                  fontSize: "11px",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "4px",
+                }}
+              >
+                <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: STATUS_COLORS[st], flexShrink: 0, display: "inline-block" }} />
+                {STATUS_LABELS[st]}
+              </button>
+            ))}
           </div>
-          {/* Hide the raw @guest.local address and show a friendlier label instead */}
-          <div style={s.footerEmail}>{user?.email?.endsWith("@guest.local") ? "Temporary account" : user?.email}</div>
+        )}
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <button
+            style={{ background: "transparent", border: "none", padding: 0, cursor: "pointer", position: "relative", flexShrink: 0 }}
+            onClick={() => setShowStatusPicker((v) => !v)}
+            title={`Status: ${STATUS_LABELS[myStatus]}`}
+          >
+            <span style={{ fontSize: "24px" }}>{user?.avatar || "👤"}</span>
+            <span style={{
+              position: "absolute", bottom: -1, right: -1,
+              width: "10px", height: "10px", borderRadius: "50%",
+              background: STATUS_COLORS[myStatus],
+              border: "2px solid #1e1e2e",
+              display: "block",
+            }} />
+          </button>
+          <div style={s.footerUser}>
+            <div style={s.footerUsername}>
+              {user?.username}
+              {user?.is_guest && <span style={{ fontSize: "10px", color: "#f0a500", marginLeft: "6px" }}>guest</span>}
+            </div>
+            <div style={s.footerEmail}>{user?.email?.endsWith("@guest.local") ? "Temporary account" : user?.email}</div>
+          </div>
+          {user?.role === "admin" && (
+            <button
+              style={{ ...s.logoutBtn, color: "#f0a500" }}
+              onClick={() => { window.history.pushState({}, "", "/admin"); window.location.reload(); }}
+              title="Admin dashboard"
+              data-testid="admin-link"
+            >
+              👑
+            </button>
+          )}
+          <button style={s.logoutBtn} onClick={logout} title="Sign out">⏻</button>
         </div>
-        <button style={s.logoutBtn} onClick={logout} title="Sign out">⏻</button>
       </div>
     </div>
   );
