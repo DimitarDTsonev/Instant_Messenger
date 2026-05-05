@@ -46,6 +46,12 @@
 html, body, #root {
   height: 100%;
   overflow: hidden;
+  overscroll-behavior: none;
+}
+
+/* Dynamic viewport height — fixes iOS Safari address-bar overlap */
+@supports (height: 100dvh) {
+  html, body, #root { height: 100dvh; }
 }
 
 /* Scrollbar */
@@ -192,23 +198,47 @@ a:hover { text-decoration: underline; }
 }
 
 /* ── Mobile ─────────────────────────────────────────────── */
-.hamburger-btn { display: none; }
+.hamburger-btn  { display: none; }
+.sidebar-close-btn { display: none; }
 
-@media (max-width: 640px) {
-  /* Sidebar becomes a slide-in overlay */
+@media (max-width: 768px) {
+  /* Sidebar becomes a full-height slide-in overlay */
   .sidebar {
     position: fixed !important;
     top: 0;
     left: 0;
-    height: 100vh;
+    /* 100dvh with 100% fallback so it never overflows on iOS */
+    height: 100%;
+    height: 100dvh;
     z-index: 200;
     transform: translateX(-100%);
     transition: transform 0.25s ease;
-    width: 280px !important;
+    /* Fit within the screen width, max 300px */
+    width: min(300px, 88vw) !important;
+    overflow-y: auto;
+    overflow-x: hidden;
+    /* iOS momentum scrolling inside sidebar */
+    -webkit-overflow-scrolling: touch;
   }
   .sidebar.open {
     transform: translateX(0);
-    box-shadow: 4px 0 24px rgba(0,0,0,0.6);
+    box-shadow: 6px 0 32px rgba(0,0,0,0.7);
+  }
+
+  /* X button visible inside the sidebar on mobile */
+  .sidebar-close-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: transparent;
+    border: none;
+    color: #949ba4;
+    font-size: 18px;
+    cursor: pointer;
+    flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
   }
 
   /* Dark backdrop behind the open sidebar */
@@ -216,8 +246,9 @@ a:hover { text-decoration: underline; }
     display: none;
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.55);
+    background: rgba(0,0,0,0.6);
     z-index: 199;
+    -webkit-tap-highlight-color: transparent;
   }
   .sidebar-overlay.open { display: block; }
 
@@ -234,14 +265,31 @@ a:hover { text-decoration: underline; }
     font-size: 20px;
     cursor: pointer;
     flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
   }
 
-  /* Hide the long channel description in topbar — too cramped */
+  /* Topbar: reduce padding, shrink buttons to fit small screens */
+  .topbar-mobile {
+    padding: 0 6px !important;
+    gap: 6px !important;
+  }
+
+  /* Hide the long channel description — too cramped */
   .topbar-desc { display: none !important; }
+
+  /* Search button: icon-only on mobile */
+  .search-btn-label { display: none; }
 
   /* Tighten login card padding */
   .login-card {
     padding: 24px 16px !important;
     margin: 0 12px;
+  }
+
+  /* Prevent chat area from overflowing the screen width */
+  .chat-main {
+    width: 100%;
+    min-width: 0;
+    overflow-x: hidden;
   }
 }

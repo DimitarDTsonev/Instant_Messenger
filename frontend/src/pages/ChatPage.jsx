@@ -20,11 +20,12 @@ import ChannelSettingsModal from "../components/ChannelSettingsModal";
 
 /** Inline style map used throughout ChatPage. */
 const s = {
-  page: { height: "100vh", display: "flex", overflow: "hidden", background: "#0f0f0f" },
-  main: { flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" },
+  // height: "100%" inherits from #root which uses 100dvh — avoids the iOS address-bar 100vh bug
+  page: { height: "100%", display: "flex", overflow: "hidden", background: "#0f0f0f" },
+  main: { flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 },
   topbar: {
     height: "48px", background: "#1e1e2e", borderBottom: "1px solid #2d2d3f",
-    display: "flex", alignItems: "center", padding: "0 20px", gap: "12px", flexShrink: 0,
+    display: "flex", alignItems: "center", padding: "0 16px", gap: "10px", flexShrink: 0,
   },
   topbarTitle: { fontWeight: 700, fontSize: "15px", color: "#f2f3f5", display: "flex", alignItems: "center", gap: "8px" },
   topbarDesc: { fontSize: "13px", color: "#5c6068", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 },
@@ -472,9 +473,9 @@ export default function ChatPage() {
         onClose={() => setSidebarOpen(false)}
       />
 
-      <div style={s.main}>
+      <div style={s.main} className="chat-main">
         {/* Topbar: shows channel name/description or DM partner name */}
-        <div style={s.topbar}>
+        <div style={s.topbar} className="topbar-mobile">
           {/* Hamburger — only visible on mobile via CSS */}
           <button
             className="hamburger-btn"
@@ -510,7 +511,7 @@ export default function ChatPage() {
               </button>
             )}
             <button style={s.searchBtn} onClick={() => setShowSearch(true)} title="Ctrl+F">
-              🔍 Search
+              🔍 <span className="search-btn-label">Search</span>
             </button>
           </div>
         </div>

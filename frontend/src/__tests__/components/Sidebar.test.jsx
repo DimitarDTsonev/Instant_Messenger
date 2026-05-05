@@ -143,10 +143,10 @@ describe("new channel form", () => {
     expect(screen.getByPlaceholderText("new-channel")).toBeInTheDocument();
   });
 
-  test("clicking ✕ hides the new-channel form", () => {
+  test("clicking cancel hides the new-channel form", () => {
     render(<Sidebar {...buildProps()} />);
     fireEvent.click(screen.getByTitle("New channel"));
-    fireEvent.click(screen.getByText("✕"));
+    fireEvent.click(screen.getByTitle("Cancel"));
     expect(screen.queryByPlaceholderText("new-channel")).not.toBeInTheDocument();
   });
 

@@ -321,6 +321,10 @@ export default function Sidebar({
           </button>
           {/* Green dot = connected, red dot = disconnected */}
           <div style={s.statusDot(isConnected)} title={isConnected ? "Connected" : "Disconnected"} />
+          {/* Close button — only visible on mobile via CSS */}
+          <button className="sidebar-close-btn" onClick={onClose} title="Close menu" aria-label="Close menu">
+            ✕
+          </button>
         </div>
       </div>
 
@@ -363,6 +367,7 @@ export default function Sidebar({
                 <button type="submit" style={{ ...s.newChannelSubmit, flex: 1 }}>Add</button>
                 <button
                   type="button"
+                  title="Cancel"
                   style={{ ...s.newChannelSubmit, background: "#2d2d3f" }}
                   onClick={() => setShowNewChannel(false)}
                 >✕</button>
