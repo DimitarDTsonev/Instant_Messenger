@@ -109,6 +109,21 @@ describe("Socket auth middleware", () => {
     });
     client.on("connect_error", done);
   });
+
+  test("rejects connection for a banned user", (done) => {
+    const user = seedUser("banned_sock");
+    db.prepare("UPDATE users SET is_banned = 1 WHERE id = ?").run(user.id);
+    const client = connect(signToken(user));
+    client.on("connect_error", (err) => {
+      expect(err.message).toMatch(/suspended/i);
+      client.disconnect();
+      done();
+    });
+    client.on("connect", () => {
+      client.disconnect();
+      done(new Error("Banned user should not connect"));
+    });
+  });
 });
 
 // ─── connection / disconnect ──────────────────────────────────────────────────
@@ -786,4 +801,35 @@ describe("@mention notifications", () => {
       done();
     });
   });
+});
+
+// ─── message flood protection ─────────────────────────────────────────────────
+
+describe("message flood protection", () => {
+  test("returns rate-limit error after exceeding 20 messages in 10s", (done) => {
+    const user  = seedUser("flooder");
+    const chId  = seedChannel("floodch", user.id);
+    const client = connect(signToken(user));
+
+    client.on("connect", () => {
+      client.emit("channel:join", chId);
+      let errorReceived = false;
+      let sent = 0;
+      const total = 22;
+      for (let i = 0; i < total; i++) {
+        client.emit("message:send", { channelId: chId, content: `msg ${i}` }, (ack) => {
+          sent++;
+          if (ack?.error && !errorReceived) {
+            errorReceived = true;
+            expect(ack.error).toMatch(/too fast/i);
+          }
+          if (sent === total) {
+            expect(errorReceived).toBe(true);
+            client.disconnect();
+            done();
+          }
+        });
+      }
+    });
+  }, 15000);
 });

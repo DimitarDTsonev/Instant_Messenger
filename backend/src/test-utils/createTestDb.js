@@ -16,6 +16,18 @@ const SCHEMA = `
     avatar     TEXT    DEFAULT NULL,
     role       TEXT    DEFAULT 'member',
     is_guest   INTEGER DEFAULT 0,
+    is_banned  INTEGER DEFAULT 0,
+    ban_reason TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE TABLE IF NOT EXISTS security_logs (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    event      TEXT    NOT NULL,
+    ip         TEXT,
+    user_id    INTEGER,
+    username   TEXT,
+    detail     TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
@@ -136,6 +148,7 @@ function clearDb(db) {
     DELETE FROM channel_permissions;
     DELETE FROM channel_members;
     DELETE FROM channels;
+    DELETE FROM security_logs;
     DELETE FROM users;
   `);
 }

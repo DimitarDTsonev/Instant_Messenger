@@ -112,8 +112,12 @@ function checkIpBanned(req, res, next) {
  * @returns {boolean}
  */
 function isUserBanned(db, userId) {
-  const row = db.prepare("SELECT is_banned FROM users WHERE id = ?").get(userId);
-  return row?.is_banned === 1;
+  try {
+    const row = db.prepare("SELECT is_banned FROM users WHERE id = ?").get(userId);
+    return row?.is_banned === 1;
+  } catch {
+    return false;
+  }
 }
 
 // ── Socket message rate limiting ──────────────────────────────

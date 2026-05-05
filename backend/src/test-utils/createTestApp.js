@@ -11,6 +11,7 @@ const channelRoutes = require("../routes/channels");
 const messageRoutes = require("../routes/messages");
 const dmRoutes      = require("../routes/dm");
 const inviteRoutes  = require("../routes/invites");
+const adminRoutes   = require("../routes/admin");
 
 /**
  * Returns a configured Express application with all REST routes mounted.
@@ -26,6 +27,7 @@ function createTestApp() {
   app.use("/api/messages", messageRoutes);
   app.use("/api/dm",       dmRoutes);
   app.use("/api/invite",   inviteRoutes);
+  app.use("/api/admin",    adminRoutes);
   return app;
 }
 
