@@ -110,6 +110,15 @@ describe("getPerms()", () => {
     expect(p.can_manage_members).toBe(0);
   });
 
+  test("viewer role has can_write=0 by default", () => {
+    const u   = seedUser("u2v");
+    const chId = seedChannel("ch3v", u.id);
+    const p = getPerms(db, chId, "viewer");
+    expect(p.can_write).toBe(0);
+    expect(p.can_invite).toBe(0);
+    expect(p.can_manage_members).toBe(0);
+  });
+
   test("uses stored override when present", () => {
     const u    = seedUser("u3");
     const chId = seedChannel("ch4", u.id);
@@ -142,6 +151,29 @@ describe("GET /api/channels", () => {
     const res = await request(app).get("/api/channels")
       .set("Authorization", `Bearer ${signToken(other)}`);
     expect(res.body.channels.some((c) => c.name === "secret")).toBe(false);
+  });
+
+  test("non-member gets user_role=member on a public channel", async () => {
+    const owner = seedUser("ch_owner");
+    const other = seedUser("ch_other");
+    seedChannel("public-ch", owner.id, 0);
+    const res = await request(app).get("/api/channels")
+      .set("Authorization", `Bearer ${signToken(other)}`);
+    expect(res.status).toBe(200);
+    const ch = res.body.channels.find((c) => c.name === "public-ch");
+    expect(ch).toBeDefined();
+    expect(ch.user_role).toBe("member");
+  });
+
+  test("viewer gets user_role=viewer on a public channel they are restricted on", async () => {
+    const owner = seedUser("ch_owner2");
+    const viewer = seedUser("ch_viewer");
+    const chId = seedChannel("public-ch2", owner.id, 0);
+    db.prepare("INSERT INTO channel_members (channel_id, user_id, role) VALUES (?, ?, 'viewer')").run(chId, viewer.id);
+    const res = await request(app).get("/api/channels")
+      .set("Authorization", `Bearer ${signToken(viewer)}`);
+    const ch = res.body.channels.find((c) => c.name === "public-ch2");
+    expect(ch.user_role).toBe("viewer");
   });
 });
 
@@ -315,6 +347,16 @@ describe("Channel member management", () => {
       .send({ role: "manager" });
     expect(res.status).toBe(200);
     expect(res.body.role).toBe("manager");
+  });
+
+  test("PATCH /:id/members/:userId can set role to viewer", async () => {
+    db.prepare("INSERT INTO channel_members (channel_id, user_id, role) VALUES (?, ?, 'member')")
+      .run(chId, member.id);
+    const res = await request(app).patch(`/api/channels/${chId}/members/${member.id}`)
+      .set("Authorization", `Bearer ${ownerToken}`)
+      .send({ role: "viewer" });
+    expect(res.status).toBe(200);
+    expect(res.body.role).toBe("viewer");
   });
 
   test("PATCH /:id/members/:userId returns 400 for invalid role", async () => {

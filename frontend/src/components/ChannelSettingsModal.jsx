@@ -79,8 +79,8 @@ const s = {
   memberName: { flex: 1, fontSize: "14px", color: "#f2f3f5", overflow: "hidden", textOverflow: "ellipsis" },
   roleBadge: (role) => ({
     padding: "2px 8px", borderRadius: "10px", fontSize: "11px", fontWeight: 600,
-    background: role === "owner" ? "#5865f220" : role === "manager" ? "#f0a50020" : "#2d2d3f",
-    color: role === "owner" ? "#7289da" : role === "manager" ? "#f0a500" : "#949ba4",
+    background: role === "owner" ? "#5865f220" : role === "manager" ? "#f0a50020" : role === "viewer" ? "#f23f4220" : "#2d2d3f",
+    color: role === "owner" ? "#7289da" : role === "manager" ? "#f0a500" : role === "viewer" ? "#f23f42" : "#949ba4",
   }),
   permRow: {
     display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -286,6 +286,7 @@ function MembersTab({ channelId, myRole, currentUserId }) {
                   value={m.channel_role}
                   onChange={(e) => handleRole(m.id, e.target.value)}
                 >
+                  <option value="viewer">viewer (read-only)</option>
                   <option value="member">member</option>
                   <option value="manager">manager</option>
                 </select>

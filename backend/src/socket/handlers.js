@@ -302,6 +302,19 @@ function registerSocketHandlers(io) {
     });
 
     // -----------------------------------------------------------
+    // Event: channel:leave
+    //
+    // Leaves all channel rooms without joining a new one.
+    // The client emits this when entering DM mode so channel
+    // typing:update events no longer reach this socket.
+    // -----------------------------------------------------------
+    socket.on("channel:leave", () => {
+      socket.rooms.forEach((room) => {
+        if (room !== socket.id && !room.startsWith("notifications:")) socket.leave(room);
+      });
+    });
+
+    // -----------------------------------------------------------
     // Event: message:send
     // Payload: { channelId, content, replyToId?, fileUrl?, fileType?, fileName? }
     // Callback: { success: true, message } | { error: string }
@@ -660,6 +673,30 @@ function registerSocketHandlers(io) {
         "UPDATE direct_messages SET is_read = 1, read_at = ? WHERE sender_id = ? AND receiver_id = ? AND is_read = 0"
       ).run(now, partnerId, user.id);
       io.to(`notifications:${partnerId}`).emit("dm:read", { readBy: user.id });
+    });
+
+    // -----------------------------------------------------------
+    // Event: dm:typing:start / dm:typing:stop
+    // Payload: { partnerId }
+    //
+    // Sends a typing indicator directly to the DM partner's
+    // personal notification room, bypassing channel rooms entirely.
+    //
+    // Emits: dm:typing:update → notifications:<partnerId>
+    //   Payload: { userId, username, isTyping: true|false }
+    // -----------------------------------------------------------
+    socket.on("dm:typing:start", ({ partnerId } = {}) => {
+      if (!partnerId) return;
+      socket.to(`notifications:${partnerId}`).emit("dm:typing:update", {
+        userId: user.id, username: user.username, isTyping: true,
+      });
+    });
+
+    socket.on("dm:typing:stop", ({ partnerId } = {}) => {
+      if (!partnerId) return;
+      socket.to(`notifications:${partnerId}`).emit("dm:typing:update", {
+        userId: user.id, username: user.username, isTyping: false,
+      });
     });
 
     // -----------------------------------------------------------

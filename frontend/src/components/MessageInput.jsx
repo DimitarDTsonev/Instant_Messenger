@@ -180,7 +180,7 @@ export default function MessageInput({
   channelId, channelName, dmUser, isDm, disabled, canWrite = true, onAddMessage,
   users = [], replyTo = null, onClearReply,
 }) {
-  const { sendMessage, sendDm, emitTypingStart, emitTypingStop } = useSocket();
+  const { sendMessage, sendDm, emitTypingStart, emitTypingStop, emitDmTypingStart, emitDmTypingStop } = useSocket();
   const { token } = useAuth();
 
   const [text, setText]           = useState("");
@@ -202,7 +202,8 @@ export default function MessageInput({
 
   // Debounced typing stop — fires 1.5 s after the user stops typing
   const stopTyping = useDebounce(() => {
-    if (channelId) emitTypingStop(channelId);
+    if (isDm && dmUser) emitDmTypingStop(dmUser.id);
+    else if (channelId) emitTypingStop(channelId);
   }, 1500);
 
   // Close the emoji panel when clicking anywhere outside it
@@ -227,7 +228,8 @@ export default function MessageInput({
     const ta = textareaRef.current;
     if (ta) { ta.style.height = "auto"; ta.style.height = Math.min(ta.scrollHeight, 160) + "px"; }
 
-    if (!isDm && channelId && val.trim()) { emitTypingStart(channelId); stopTyping(); }
+    if (isDm && dmUser && val.trim()) { emitDmTypingStart(dmUser.id); stopTyping(); }
+    else if (!isDm && channelId && val.trim()) { emitTypingStart(channelId); stopTyping(); }
 
     // Detect "@word" immediately before the cursor and populate the mention dropdown
     const cursor = e.target.selectionStart;
@@ -317,7 +319,8 @@ export default function MessageInput({
     setSending(true);
     setText("");
     if (textareaRef.current) textareaRef.current.style.height = "auto";
-    if (!isDm && channelId) emitTypingStop(channelId);
+    if (isDm && dmUser) emitDmTypingStop(dmUser.id);
+    else if (!isDm && channelId) emitTypingStop(channelId);
 
     const fileUrl  = fileData?.url  || null;
     const fileType = fileData?.type || null;

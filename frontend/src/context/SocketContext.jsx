@@ -86,10 +86,11 @@ export function SocketProvider({ children }) {
   const unpinHandlerRef    = useRef(null);
   const mentionHandlerRef  = useRef(null);
   // DM-specific handler refs
-  const dmEditHandlerRef   = useRef(null);
-  const dmDeleteHandlerRef = useRef(null);
-  const dmReactHandlerRef  = useRef(null);
-  const dmReadHandlerRef   = useRef(null);
+  const dmEditHandlerRef    = useRef(null);
+  const dmDeleteHandlerRef  = useRef(null);
+  const dmReactHandlerRef   = useRef(null);
+  const dmReadHandlerRef    = useRef(null);
+  const dmTypingHandlerRef  = useRef(null);
 
   const userId = user?.id ?? null;
 
@@ -143,7 +144,8 @@ export function SocketProvider({ children }) {
     socket.on("dm:edited",  (msg)  => dmEditHandlerRef.current?.(msg));
     socket.on("dm:deleted", (data) => dmDeleteHandlerRef.current?.(data));
     socket.on("dm:reacted", (data) => dmReactHandlerRef.current?.(data));
-    socket.on("dm:read",    (data) => dmReadHandlerRef.current?.(data));
+    socket.on("dm:read",           (data) => dmReadHandlerRef.current?.(data));
+    socket.on("dm:typing:update",  (data) => dmTypingHandlerRef.current?.(data));
 
     return () => {
       socket.disconnect();
@@ -302,6 +304,21 @@ export function SocketProvider({ children }) {
     socketRef.current?.emit("typing:stop", { channelId });
   }, []);
 
+  /** Leaves all channel rooms so channel typing events stop reaching this socket. */
+  const leaveAllChannels = useCallback(() => {
+    socketRef.current?.emit("channel:leave");
+  }, []);
+
+  /** Notifies a DM partner that the current user has started typing. */
+  const emitDmTypingStart = useCallback((partnerId) => {
+    socketRef.current?.emit("dm:typing:start", { partnerId });
+  }, []);
+
+  /** Notifies a DM partner that the current user has stopped typing. */
+  const emitDmTypingStop = useCallback((partnerId) => {
+    socketRef.current?.emit("dm:typing:stop", { partnerId });
+  }, []);
+
   // -----------------------------------------------------------
   // Handler registration (ref-based, stable identity)
   // Each function stores the provided handler in a ref and returns
@@ -336,7 +353,9 @@ export function SocketProvider({ children }) {
   /** @param {Function} h - Called with { messageId, reactions } when "dm:reacted" fires. */
   const onDmReacted = useCallback((h) => { dmReactHandlerRef.current  = h; return () => { dmReactHandlerRef.current  = null; }; }, []);
   /** @param {Function} h - Called with { readBy: userId } when "dm:read" fires. */
-  const onDmRead    = useCallback((h) => { dmReadHandlerRef.current   = h; return () => { dmReadHandlerRef.current   = null; }; }, []);
+  const onDmRead       = useCallback((h) => { dmReadHandlerRef.current    = h; return () => { dmReadHandlerRef.current    = null; }; }, []);
+  /** @param {Function} h - Called with { userId, username, isTyping } when "dm:typing:update" fires. */
+  const onDmTypingUpdate = useCallback((h) => { dmTypingHandlerRef.current  = h; return () => { dmTypingHandlerRef.current  = null; }; }, []);
 
   const sendDmRead = useCallback((partnerId) => {
     socketRef.current?.emit("dm:read", { partnerId });
@@ -370,6 +389,9 @@ export function SocketProvider({ children }) {
       // Typing
       emitTypingStart,
       emitTypingStop,
+      leaveAllChannels,
+      emitDmTypingStart,
+      emitDmTypingStop,
       // Channel event subscriptions
       onNewMessage,
       onTypingUpdate,
@@ -386,6 +408,7 @@ export function SocketProvider({ children }) {
       onDmDeleted,
       onDmReacted,
       onDmRead,
+      onDmTypingUpdate,
     }}>
       {children}
     </SocketContext.Provider>

@@ -78,13 +78,13 @@ function loadSession() {
 export default function ChatPage() {
   const { user } = useAuth();
   const {
-    isConnected, onlineUserIds, joinChannel,
+    isConnected, onlineUserIds, joinChannel, leaveAllChannels,
     onNewMessage, onTypingUpdate, onNewDm,
     onMessageEdited, onMessageDeleted, onMessageReacted,
     onChannelNotify, onMessagePinned, onMessageUnpinned,
     onUserMentioned, pinMessage, unpinMessage,
     onDmEdited, onDmDeleted, onDmReacted,
-    sendDmRead, onDmRead,
+    sendDmRead, onDmRead, onDmTypingUpdate,
   } = useSocket();
 
   const { channels, createChannel, updateChannel, deleteChannel } = useChannels();
@@ -98,6 +98,7 @@ export default function ChatPage() {
   const [showUserSearch, setShowUserSearch]   = useState(false);
   const [profileUserId, setProfileUserId]     = useState(null);
   const [typingUsers, setTypingUsers]         = useState([]);
+  const [dmTypingUsers, setDmTypingUsers]     = useState([]);
   const [sessionRestored, setSessionRestored] = useState(false);
   // Map of channelId → unread count for channels not currently active
   const [unreadChannels, setUnreadChannels]   = useState({});
@@ -303,6 +304,16 @@ export default function ChatPage() {
     });
   }, [onDmRead]);
 
+  // Initialize seenByPartner from loaded history — if the last outgoing message
+  // is already marked is_read we know the partner has seen it.
+  useEffect(() => {
+    if (!activeDm || dmLoading) return;
+    const lastOutgoing = [...dmMsgs].reverse().find(
+      (m) => (m.sender_id ?? m.user_id) === user?.id
+    );
+    if (lastOutgoing?.is_read) setSeenByPartner(true);
+  }, [dmMsgs, activeDm, dmLoading, user]);
+
   // -----------------------------------------------------------
   // Typing indicators
   // -----------------------------------------------------------
@@ -317,6 +328,17 @@ export default function ChatPage() {
       );
     });
   }, [onTypingUpdate]);
+
+  // Maintain the list of usernames currently typing in the active DM
+  useEffect(() => {
+    return onDmTypingUpdate(({ username, isTyping }) => {
+      setDmTypingUsers((prev) =>
+        isTyping
+          ? prev.includes(username) ? prev : [...prev, username]
+          : prev.filter((u) => u !== username)
+      );
+    });
+  }, [onDmTypingUpdate]);
 
   // -----------------------------------------------------------
   // Ctrl+F / Cmd+F — open in-app search modal
@@ -342,6 +364,7 @@ export default function ChatPage() {
     setActiveChannel(ch);
     setActiveDm(null);
     setTypingUsers([]);
+    setDmTypingUsers([]);
     setReplyTo(null);
     setShowSettings(false);
     setSidebarOpen(false);
@@ -357,9 +380,11 @@ export default function ChatPage() {
     setActiveDm(u);
     setActiveChannel(null);
     setTypingUsers([]);
+    setDmTypingUsers([]);
     setReplyTo(null);
     setSidebarOpen(false);
     markRead(u.id);
+    leaveAllChannels();
   }
 
   /**
@@ -370,6 +395,7 @@ export default function ChatPage() {
    */
   function handleDmSent(msg) {
     addDmMsg(msg);
+    setSeenByPartner(false);
     if (activeDm) {
       upsertConversation(msg, activeDm.id, activeDm.username, activeDm.avatar || "👤", false);
     }
@@ -454,8 +480,10 @@ export default function ChatPage() {
   // Compute write permission: owner always yes; manager/member check custom perms; default true
   const canWrite = isDmMode || (() => {
     const role = activeChannel?.user_role;
-    if (!role) return false;
+    // Public channels grant implicit member access even with no explicit role row
+    if (!role) return !activeChannel?.is_private;
     if (role === "owner") return true;
+    if (role === "viewer") return false;
     const p = channelPerms?.[role];
     return p ? !!p.can_write : true;
   })();
@@ -552,7 +580,7 @@ export default function ChatPage() {
               loading={loading}
               hasMore={hasMore}
               onLoadMore={loadMore}
-              typingUsers={typingUsers}
+              typingUsers={isDmMode ? dmTypingUsers : typingUsers}
               onReply={setReplyTo}
               onPin={handlePin}
               canPin={canPin}

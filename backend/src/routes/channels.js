@@ -44,7 +44,7 @@ router.use(authMiddleware);
  * Retrieves the calling user's effective role in a specific channel.
  *
  * Resolution order:
- *  1. Explicit `channel_members` row — returns the stored role.
+ *  1. Explicit `channel_members` row — returns the stored role (can be "viewer").
  *  2. If the user is the channel's `created_by` value — returns `"owner"`.
  *  3. If the channel is private and the user has no membership — returns `null`.
  *  4. Public channel with no explicit membership — falls back to `"member"`.
@@ -52,7 +52,7 @@ router.use(authMiddleware);
  * @param {import('better-sqlite3').Database} db - SQLite database instance
  * @param {number} userId    - ID of the user whose role is being resolved
  * @param {number} channelId - ID of the channel to check
- * @returns {'owner'|'manager'|'member'|null} The user's effective role,
+ * @returns {'owner'|'manager'|'member'|'viewer'|null} The user's effective role,
  *   or null if they have no access to a private channel
  */
 function getUserRole(db, userId, channelId) {
@@ -78,6 +78,7 @@ function getUserRole(db, userId, channelId) {
 const DEFAULT_PERMS = {
   manager: { can_write: 1, can_invite: 1, can_manage_members: 1, can_delete_messages: 1 },
   member:  { can_write: 1, can_invite: 0, can_manage_members: 0, can_delete_messages: 0 },
+  viewer:  { can_write: 0, can_invite: 0, can_manage_members: 0, can_delete_messages: 0 },
 };
 
 /**
@@ -125,7 +126,9 @@ router.get("/", (req, res) => {
       c.id, c.name, c.description, c.is_private, c.created_by, c.created_at,
       u.username AS created_by_username,
       COALESCE(cm.role,
-        CASE WHEN c.created_by = ? THEN 'owner' ELSE NULL END
+        CASE WHEN c.created_by = ? THEN 'owner'
+             WHEN c.is_private = 0 THEN 'member'
+             ELSE NULL END
       ) AS user_role,
       (SELECT COUNT(*) FROM messages m WHERE m.channel_id = c.id) AS message_count
     FROM channels c
@@ -341,8 +344,8 @@ router.patch("/:id/members/:userId", (req, res) => {
     return res.status(403).json({ error: "You do not have permission to change roles" });
 
   const { role: newRole } = req.body;
-  if (!["manager", "member"].includes(newRole))
-    return res.status(400).json({ error: "Invalid role (manager | member)" });
+  if (!["manager", "member", "viewer"].includes(newRole))
+    return res.status(400).json({ error: "Invalid role (manager | member | viewer)" });
 
   // Only owners can promote to manager
   if (newRole === "manager" && myRole !== "owner")

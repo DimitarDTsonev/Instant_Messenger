@@ -17,10 +17,12 @@ vi.mock("../../context/AuthContext", () => ({
 
 vi.mock("../../context/SocketContext", () => ({
   useSocket: vi.fn(() => ({
-    sendMessage:    vi.fn(),
-    sendDm:         vi.fn(),
-    emitTypingStart: vi.fn(),
-    emitTypingStop:  vi.fn(),
+    sendMessage:      vi.fn(),
+    sendDm:           vi.fn(),
+    emitTypingStart:   vi.fn(),
+    emitTypingStop:    vi.fn(),
+    emitDmTypingStart: vi.fn(),
+    emitDmTypingStop:  vi.fn(),
   })),
 }));
 
@@ -67,6 +69,7 @@ describe("MessageInput", () => {
     useSocket.mockReturnValue({
       sendMessage: mockSend, sendDm: vi.fn(),
       emitTypingStart: vi.fn(), emitTypingStop: vi.fn(),
+      emitDmTypingStart: vi.fn(), emitDmTypingStop: vi.fn(),
     });
 
     render(<MessageInput {...DEFAULT_PROPS} />);
@@ -81,6 +84,7 @@ describe("MessageInput", () => {
     useSocket.mockReturnValue({
       sendMessage: mockSend, sendDm: vi.fn(),
       emitTypingStart: vi.fn(), emitTypingStop: vi.fn(),
+      emitDmTypingStart: vi.fn(), emitDmTypingStop: vi.fn(),
     });
 
     render(<MessageInput {...DEFAULT_PROPS} />);
@@ -95,6 +99,7 @@ describe("MessageInput", () => {
     useSocket.mockReturnValue({
       sendMessage: mockSend, sendDm: vi.fn(),
       emitTypingStart: vi.fn(), emitTypingStop: vi.fn(),
+      emitDmTypingStart: vi.fn(), emitDmTypingStop: vi.fn(),
     });
 
     render(<MessageInput {...DEFAULT_PROPS} canWrite={false} />);
@@ -114,6 +119,7 @@ describe("MessageInput", () => {
     useSocket.mockReturnValue({
       sendMessage: vi.fn((_, __, ___, ____, _____, ______, cb) => cb?.({})),
       sendDm: vi.fn(), emitTypingStart: vi.fn(), emitTypingStop: vi.fn(),
+      emitDmTypingStart: vi.fn(), emitDmTypingStop: vi.fn(),
     });
 
     render(<MessageInput {...DEFAULT_PROPS} />);
