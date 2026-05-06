@@ -14,6 +14,10 @@ vi.mock("../../context/AuthContext", () => ({
   })),
 }));
 
+vi.mock("../../pages/ForgotPasswordPage", () => ({
+  default: ({ onBack }) => <div>Reset your password <button onClick={onBack}>Back</button></div>,
+}));
+
 import { useAuth } from "../../context/AuthContext";
 
 describe("LoginPage", () => {
@@ -151,5 +155,11 @@ describe("LoginPage", () => {
 
     await userEvent.type(screen.getByLabelText(/email/i), "x");
     expect(screen.queryByText(/Bad credentials/i)).not.toBeInTheDocument();
+  });
+
+  test("clicking forgot password link shows ForgotPasswordPage", () => {
+    render(<LoginPage />);
+    fireEvent.click(screen.getByTestId("forgot-password-link"));
+    expect(screen.getByText(/Reset your password/i)).toBeInTheDocument();
   });
 });

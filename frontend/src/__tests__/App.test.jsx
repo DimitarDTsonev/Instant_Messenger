@@ -10,6 +10,8 @@ import App from "../App";
 vi.mock("../pages/LoginPage",  () => ({ default: () => <div>LoginPage</div> }));
 vi.mock("../pages/ChatPage",   () => ({ default: () => <div>ChatPage</div> }));
 vi.mock("../pages/InvitePage", () => ({ default: ({ code }) => <div>InvitePage:{code}</div> }));
+vi.mock("../pages/AdminPage",  () => ({ default: () => <div>AdminPage</div> }));
+vi.mock("../pages/ResetPasswordPage", () => ({ default: () => <div>ResetPasswordPage</div> }));
 vi.mock("../context/SocketContext", () => ({
   SocketProvider: ({ children }) => <div>{children}</div>,
 }));
@@ -58,6 +60,38 @@ describe("App routing", () => {
     expect(screen.getByText("InvitePage:abc123")).toBeInTheDocument();
 
     // Reset
+    Object.defineProperty(window, "location", {
+      value: { ...window.location, pathname: "/" },
+      writable: true,
+    });
+  });
+
+  test("renders ResetPasswordPage when path is /reset-password", () => {
+    Object.defineProperty(window, "location", {
+      value: { ...window.location, pathname: "/reset-password" },
+      writable: true,
+    });
+
+    useAuth.mockReturnValue({ user: null, loading: false });
+    render(<App />);
+    expect(screen.getByText("ResetPasswordPage")).toBeInTheDocument();
+
+    Object.defineProperty(window, "location", {
+      value: { ...window.location, pathname: "/" },
+      writable: true,
+    });
+  });
+
+  test("renders AdminPage when path is /admin and user is authenticated", () => {
+    Object.defineProperty(window, "location", {
+      value: { ...window.location, pathname: "/admin" },
+      writable: true,
+    });
+
+    useAuth.mockReturnValue({ user: { id: 1, username: "alice" }, loading: false });
+    render(<App />);
+    expect(screen.getByText("AdminPage")).toBeInTheDocument();
+
     Object.defineProperty(window, "location", {
       value: { ...window.location, pathname: "/" },
       writable: true,
