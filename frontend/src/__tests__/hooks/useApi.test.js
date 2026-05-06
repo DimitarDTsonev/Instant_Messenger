@@ -610,3 +610,169 @@ describe("useSearch", () => {
     expect(result.current.loading).toBe(false);
   });
 });
+
+// ---------------------------------------------------------------------------
+// useGlobalSearch — error path (line 507)
+// ---------------------------------------------------------------------------
+describe("useGlobalSearch", () => {
+  beforeEach(() => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+  afterEach(() => {
+    console.error.mockRestore?.();
+    vi.restoreAllMocks();
+  });
+
+  it("logs error and keeps loading false when authFetch throws", async () => {
+    // Override the authFetch mock to reject
+    const { useAuth } = await import("../../context/AuthContext");
+    useAuth.mockReturnValue({
+      authFetch: vi.fn().mockRejectedValue(new Error("search network fail")),
+      token: "tok",
+    });
+
+    const { result } = renderHook(() => useGlobalSearch());
+
+    await act(async () => {
+      await result.current.search("hello world");
+    });
+
+    // loading must be reset to false even after the error
+    expect(result.current.loading).toBe(false);
+    // results stay empty
+    expect(result.current.results).toEqual([]);
+    // the error is logged
+    expect(console.error).toHaveBeenCalledWith(
+      "Global search error:",
+      expect.any(Error)
+    );
+  });
+
+  it("returns empty results and does NOT fetch when query is shorter than 2 chars", async () => {
+    const mockFetch = vi.fn();
+    const { useAuth } = await import("../../context/AuthContext");
+    useAuth.mockReturnValue({ authFetch: mockFetch, token: "tok" });
+
+    const { result } = renderHook(() => useGlobalSearch());
+
+    await act(async () => {
+      await result.current.search("a");
+    });
+
+    expect(mockFetch).not.toHaveBeenCalled();
+    expect(result.current.results).toEqual([]);
+  });
+
+  it("clearSearch resets results and query", async () => {
+    const { useAuth } = await import("../../context/AuthContext");
+    useAuth.mockReturnValue({
+      authFetch: vi.fn().mockResolvedValue({ results: [{ id: 1 }] }),
+      token: "tok",
+    });
+
+    const { result } = renderHook(() => useGlobalSearch());
+
+    await act(async () => {
+      await result.current.search("hello");
+    });
+
+    act(() => {
+      result.current.clearSearch();
+    });
+
+    expect(result.current.results).toEqual([]);
+    expect(result.current.query).toBe("");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// useChannelMembers — error path (line 548)
+// ---------------------------------------------------------------------------
+describe("useChannelMembers", () => {
+  beforeEach(() => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("logs error when fetching members fails", async () => {
+    const { useAuth } = await import("../../context/AuthContext");
+    useAuth.mockReturnValue({
+      authFetch: vi.fn().mockRejectedValue(new Error("members network fail")),
+      token: "tok",
+    });
+
+    const { result } = renderHook(() => useChannelMembers(42));
+
+    // wait for the useEffect → load() to run
+    await waitFor(() => {
+      expect(console.error).toHaveBeenCalledWith(
+        "Members error:",
+        expect.any(Error)
+      );
+    });
+
+    expect(result.current.members).toEqual([]);
+  });
+
+  it("sets members to [] and skips fetch when channelId is null", async () => {
+    const mockFetch = vi.fn();
+    const { useAuth } = await import("../../context/AuthContext");
+    useAuth.mockReturnValue({ authFetch: mockFetch, token: "tok" });
+
+    const { result } = renderHook(() => useChannelMembers(null));
+
+    await waitFor(() => {
+      expect(result.current.members).toEqual([]);
+    });
+
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  // ─────────────────────────────────────────────────────────────────
+  // Missing branch coverage tests
+  // ─────────────────────────────────────────────────────────────────
+
+  test("useGlobalSearch defaults results to empty array when API returns falsy (line 505)", async () => {
+    setupAuthFetch(vi.fn().mockResolvedValue({ results: null }));
+    const { result } = renderHook(() => useGlobalSearch());
+    await act(async () => { await result.current.search("hello"); });
+    expect(result.current.results).toEqual([]);
+  });
+
+  test("changeRole preserves other members' roles (line 591 else branch)", async () => {
+    const mockFetch = vi.fn()
+      .mockResolvedValueOnce({ members: [
+        { id: 1, username: "alice", channel_role: "member" },
+        { id: 2, username: "bob", channel_role: "member" },
+      ]})
+      .mockResolvedValueOnce({ success: true });
+    setupAuthFetch(mockFetch);
+    const { result } = renderHook(() => useChannelMembers(1));
+    await waitFor(() => expect(result.current.members).toHaveLength(2));
+
+    // Change only the first member's role
+    await act(async () => { await result.current.changeRole(1, "manager"); });
+
+    expect(result.current.members[0].channel_role).toBe("manager");
+    expect(result.current.members[1].channel_role).toBe("member"); // unchanged
+  });
+
+  test("updateRole handles null permissions gracefully (line 640 else branch)", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({ success: true });
+    setupAuthFetch(mockFetch);
+    const { result } = renderHook(() => useChannelPermissions(null));
+    await waitFor(() => expect(result.current.permissions).toBeNull());
+
+    // When permissions is null (because channelId is null), calling updateRole should not crash
+    // The test is just checking it doesn't throw an error
+    await act(async () => {
+      // This will hit the else branch of the ternary: prev ? {...} : prev
+      // Since prev is null, it returns null unchanged
+      await result.current.updateRole("member", { can_write: 1 });
+    });
+
+    expect(result.current.permissions).toBeNull();
+  });
+});

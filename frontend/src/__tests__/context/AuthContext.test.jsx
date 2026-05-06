@@ -3,8 +3,11 @@
  * Covers: initial token validation, login, register, logout, loginWithToken (guest/regular), authFetch
  */
 
-import { render, screen, waitFor, act } from "@testing-library/react";
 import { AuthProvider, useAuth } from "../../context/AuthContext";
+import { render, screen, act, renderHook, waitFor } from "@testing-library/react";
+ 
+// Wrapper helper — renders children inside a real AuthProvider
+const wrapper = ({ children }) => <AuthProvider>{children}</AuthProvider>;
 
 // Helper component that exposes context values via data-testid elements
 function ContextDisplay() {
@@ -221,5 +224,193 @@ describe("AuthContext", () => {
     await waitFor(() =>
       expect(document.getElementById("fetch-err").textContent).toBe("Forbidden")
     );
+  });
+});
+ 
+// ---------------------------------------------------------------------------
+// register()
+// ---------------------------------------------------------------------------
+describe("AuthContext — register()", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+  });
+ 
+  it("sets user and token on successful registration", async () => {
+    // No stored token → mount useEffect exits immediately (no /auth/me fetch).
+    // register() succeeds → setToken("new-tok") fires → useEffect re-runs
+    // with the new token → GET /auth/me is called once.
+    global.fetch = vi.fn()
+      // POST /auth/register
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          user: { id: 99, username: "newuser" },
+          token: "new-tok",
+        }),
+      })
+      // GET /auth/me triggered by the token change after register
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ user: { id: 99, username: "newuser" } }),
+      });
+
+    const { result } = renderHook(() => useAuth(), { wrapper });
+
+    // Wait for initial loading to finish (no token → immediate)
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await result.current.register("newuser", "new@x.com", "pass123");
+    });
+
+    await waitFor(() => expect(result.current.user?.username).toBe("newuser"));
+    expect(result.current.token).toBe("new-tok");
+    expect(localStorage.getItem("im_token")).toBe("new-tok");
+  });
+ 
+  it("throws when server returns non-ok status on register", async () => {
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      ok: false,
+      json: async () => ({ error: "Email already taken" }),
+    });
+ 
+    const { result } = renderHook(() => useAuth(), { wrapper });
+ 
+    await expect(
+      act(async () => {
+        await result.current.register("x", "x@x.com", "pass");
+      })
+    ).rejects.toThrow("Email already taken");
+ 
+    // user stays null after failed register
+    expect(result.current.user).toBeNull();
+  });
+ 
+  it("throws with default message when server error has no message", async () => {
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      ok: false,
+      json: async () => ({}),
+    });
+ 
+    const { result } = renderHook(() => useAuth(), { wrapper });
+ 
+    await expect(
+      act(async () => {
+        await result.current.register("x", "x@x.com", "pass");
+      })
+    ).rejects.toThrow("Registration error");
+  });
+});
+ 
+// ---------------------------------------------------------------------------
+// loginWithToken() — isGuest branch
+// ---------------------------------------------------------------------------
+describe("AuthContext — loginWithToken()", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    // Prevent the /auth/me call on mount from interfering
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      json: async () => ({}),
+    });
+  });
+ 
+  it("stores token in sessionStorage (not localStorage) when isGuest=true", async () => {
+    const { result } = renderHook(() => useAuth(), { wrapper });
+ 
+    // Wait for mount effect to settle
+    await waitFor(() => expect(result.current.loading).toBe(false));
+ 
+    act(() => {
+      result.current.loginWithToken(
+        { id: 5, username: "guest" },
+        "guest-tok",
+        true   // isGuest = true  ← the uncovered branch
+      );
+    });
+ 
+    expect(sessionStorage.getItem("im_token")).toBe("guest-tok");
+    expect(localStorage.getItem("im_token")).toBeNull();
+    expect(result.current.user?.username).toBe("guest");
+  });
+ 
+  it("stores token in localStorage when isGuest=false (default)", async () => {
+    const { result } = renderHook(() => useAuth(), { wrapper });
+ 
+    await waitFor(() => expect(result.current.loading).toBe(false));
+ 
+    act(() => {
+      result.current.loginWithToken({ id: 3, username: "alice" }, "alice-tok");
+    });
+ 
+    expect(localStorage.getItem("im_token")).toBe("alice-tok");
+    expect(sessionStorage.getItem("im_token")).toBeNull();
+  });
+});
+ 
+// ---------------------------------------------------------------------------
+// authFetch() — non-ok response throws
+// ---------------------------------------------------------------------------
+describe("AuthContext — authFetch()", () => {
+  beforeEach(() => {
+    localStorage.setItem("im_token", "stored-tok");
+    // First fetch is the /auth/me validation on mount
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ user: { id: 1, username: "alice" } }),
+      });
+  });
+  afterEach(() => {
+    localStorage.clear();
+  });
+ 
+  it("throws when the server returns a non-ok response", async () => {
+    const { result } = renderHook(() => useAuth(), { wrapper });
+ 
+    await waitFor(() => expect(result.current.loading).toBe(false));
+ 
+    // Next fetch is the one we test (authFetch call)
+    global.fetch.mockResolvedValueOnce({
+      ok: false,
+      json: async () => ({ error: "Forbidden" }),
+    });
+ 
+    await expect(
+      result.current.authFetch("http://api/protected")
+    ).rejects.toThrow("Forbidden");
+  });
+ 
+  it("throws with default 'Error' message when server returns no error field", async () => {
+    const { result } = renderHook(() => useAuth(), { wrapper });
+ 
+    await waitFor(() => expect(result.current.loading).toBe(false));
+ 
+    global.fetch.mockResolvedValueOnce({
+      ok: false,
+      json: async () => ({}),
+    });
+ 
+    await expect(
+      result.current.authFetch("http://api/protected")
+    ).rejects.toThrow("Error");
+  });
+});
+ 
+// ---------------------------------------------------------------------------
+// useAuth() — used outside AuthProvider
+// ---------------------------------------------------------------------------
+describe("AuthContext — useAuth() outside provider", () => {
+  it("throws a descriptive error when used outside AuthProvider", () => {
+    // Suppress the React error boundary noise in test output
+    vi.spyOn(console, "error").mockImplementation(() => {});
+ 
+    expect(() => {
+      renderHook(() => useAuth());
+    }).toThrow("useAuth must be used inside AuthProvider");
+ 
+    console.error.mockRestore();
   });
 });

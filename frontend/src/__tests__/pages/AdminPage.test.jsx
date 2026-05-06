@@ -232,3 +232,109 @@ describe("error handling", () => {
     await waitFor(() => expect(screen.getByTestId("admin-error")).toBeInTheDocument());
   });
 });
+
+// ─────────────────────────────────────────────────────────
+//  7. Missing branch coverage
+// ─────────────────────────────────────────────────────────
+describe("additional branch coverage", () => {
+  test("shows actionError when unban fails (line 219)", async () => {
+    global.fetch = vi.fn((url) => {
+      if (url.includes("/admin/users"))
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ users: USERS }) });
+      if (url.includes("/admin/unban/"))
+        return Promise.resolve({ ok: false, json: () => Promise.resolve({ error: "Cannot unban system user" }) });
+      return Promise.resolve({ ok: false, json: () => Promise.resolve({ error: "Unknown" }) });
+    });
+
+    render(<AdminPage />);
+    await waitFor(() => screen.getByTestId("unban-3"));
+    await act(async () => { fireEvent.click(screen.getByTestId("unban-3")); });
+
+    await waitFor(() =>
+      expect(screen.getByTestId("action-error")).toBeInTheDocument()
+    );
+  });
+
+  test("Go back button calls window.history.back() for non-admins (line 228)", () => {
+    useAuth.mockReturnValue({ user: { id: 2, username: "bob", role: "member" }, token: TOKEN });
+    const backSpy = vi.spyOn(window.history, "back").mockImplementation(() => {});
+
+    render(<AdminPage />);
+    fireEvent.click(screen.getByRole("button", { name: /go back/i }));
+
+    expect(backSpy).toHaveBeenCalled();
+    backSpy.mockRestore();
+  });
+
+  test("Back header button calls pushState and reload for admins (line 250)", async () => {
+    const pushSpy = vi.spyOn(window.history, "pushState").mockImplementation(() => {});
+
+    // jsdom marks window.location as non-configurable, so we replace the whole object
+    const originalLocation = window.location;
+    let reloadCalled = false;
+    delete window.location;
+    window.location = { ...originalLocation, reload: () => { reloadCalled = true; } };
+
+    render(<AdminPage />);
+    await waitFor(() => screen.getByTestId("back-btn"));
+    fireEvent.click(screen.getByTestId("back-btn"));
+
+    expect(pushSpy).toHaveBeenCalledWith({}, "", "/");
+    expect(reloadCalled).toBe(true);
+
+    window.location = originalLocation;
+    pushSpy.mockRestore();
+  });
+
+  test("tab-users button switches back to Users tab (line 257)", async () => {
+    render(<AdminPage />);
+    await waitFor(() => screen.getByTestId("tab-logs"));
+
+    // Switch to logs, then back to users
+    await act(async () => { fireEvent.click(screen.getByTestId("tab-logs")); });
+    await act(async () => { fireEvent.click(screen.getByTestId("tab-users")); });
+
+    await waitFor(() => expect(screen.getByTestId("users-table")).toBeInTheDocument());
+  });
+
+  test("shows error when fetching logs fails (line 180)", async () => {
+    global.fetch = vi.fn((url) => {
+      if (url.includes("/admin/users"))
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ users: USERS }) });
+      if (url.includes("/admin/security-logs"))
+        return Promise.resolve({ ok: false, json: () => Promise.resolve({ error: "Failed to load logs" }) });
+      return Promise.resolve({ ok: false, json: () => Promise.resolve({ error: "Unknown" }) });
+    });
+
+    render(<AdminPage />);
+    await waitFor(() => screen.getByTestId("tab-logs"));
+    await act(async () => { fireEvent.click(screen.getByTestId("tab-logs")); });
+
+    await waitFor(() =>
+      expect(screen.getByTestId("admin-error")).toBeInTheDocument()
+    );
+  });
+
+  test("shows actionError when banning a user fails (line 204)", async () => {
+    global.fetch = vi.fn((url) => {
+      if (url.includes("/admin/users"))
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ users: USERS }) });
+      if (url.includes("/admin/ban/"))
+        return Promise.resolve({ ok: false, json: () => Promise.resolve({ error: "Cannot ban admin user" }) });
+      return Promise.resolve({ ok: true, json: () => Promise.resolve({ success: true }) });
+    });
+
+    render(<AdminPage />);
+    await waitFor(() => screen.getByTestId("ban-2"));
+    fireEvent.click(screen.getByTestId("ban-2"));
+
+    await waitFor(() => screen.getByTestId("ban-confirm"));
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("ban-confirm"));
+    });
+
+    await waitFor(() =>
+      expect(screen.getByTestId("action-error")).toBeInTheDocument()
+    );
+  });
+});

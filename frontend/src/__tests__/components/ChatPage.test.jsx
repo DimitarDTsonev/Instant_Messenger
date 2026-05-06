@@ -60,6 +60,7 @@ vi.mock("../../components/ChatArea", () => ({
       data-seen={String(props.seenByPartner ?? false)}
     >
       <button data-testid="chatarea-pin"         onClick={() => props.onPin?.(1, false)} />
+      <button data-testid="chatarea-unpin"        onClick={() => props.onPin?.(1, true)} />
       <button data-testid="chatarea-clear-reply" onClick={() => props.onClearReply?.()} />
     </div>
   ),
@@ -1087,5 +1088,139 @@ describe("session restore DM", () => {
     await waitFor(() => {
       expect(screen.getByText("bob")).toBeInTheDocument();
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// onDmDeleted — ternary branches and removeDmMsg call (lines 279-281)
+// ---------------------------------------------------------------------------
+describe("ChatPage — onDmDeleted socket event", () => {
+  let capturedOnDmDeleted;
+  let mockRemoveDmMsg;
+
+  beforeEach(() => {
+    capturedOnDmDeleted = null;
+    mockRemoveDmMsg = vi.fn();
+
+    useDm.mockReturnValue({
+      messages: [], loading: false, hasMore: false, partner: null,
+      loadMore: vi.fn(), addMessage: vi.fn(),
+      updateMessage: vi.fn(), removeMessage: mockRemoveDmMsg,
+    });
+
+    useSocket.mockReturnValue({
+      ...DEFAULT_SOCKET,
+      onDmDeleted: (cb) => { capturedOnDmDeleted = cb; return vi.fn(); },
+    });
+  });
+
+  it("calls removeMessage when current user is the SENDER (partnerId = receiverId)", async () => {
+    // user.id=1 is sender, receiverId=2 = activeDm.id → partnerId=2 matches
+    render(<ChatPage />);
+    // Open DM with bob (id=2) to set activeDmRef
+    fireEvent.click(screen.getByTestId("sidebar-select-dm"));
+
+    await act(async () => {
+      capturedOnDmDeleted?.({ messageId: 55, senderId: 1, receiverId: 2 });
+    });
+
+    expect(mockRemoveDmMsg).toHaveBeenCalledWith(55);
+  });
+
+  it("calls removeMessage via second OR branch (activeDmRef.id === senderId)", async () => {
+    // user.id=1 is receiver, senderId=2 = activeDm.id → second OR branch
+    render(<ChatPage />);
+    fireEvent.click(screen.getByTestId("sidebar-select-dm"));
+
+    await act(async () => {
+      capturedOnDmDeleted?.({ messageId: 66, senderId: 2, receiverId: 1 });
+    });
+
+    expect(mockRemoveDmMsg).toHaveBeenCalledWith(66);
+  });
+
+  it("does NOT call removeMessage when the event is about a different conversation", async () => {
+    render(<ChatPage />);
+    fireEvent.click(screen.getByTestId("sidebar-select-dm"));
+
+    await act(async () => {
+      // senderId=4, receiverId=5 → neither matches activeDm.id(2)
+      capturedOnDmDeleted?.({ messageId: 77, senderId: 4, receiverId: 5 });
+    });
+
+    expect(mockRemoveDmMsg).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// onDmReacted — updateDmMsg with reactions (line 289)
+// ---------------------------------------------------------------------------
+describe("ChatPage — onDmReacted socket event", () => {
+  let capturedOnDmReacted;
+  let mockUpdateDmMsg;
+
+  beforeEach(() => {
+    capturedOnDmReacted = null;
+    mockUpdateDmMsg = vi.fn();
+
+    useDm.mockReturnValue({
+      messages: [], loading: false, hasMore: false, partner: null,
+      loadMore: vi.fn(), addMessage: vi.fn(),
+      updateMessage: mockUpdateDmMsg, removeMessage: vi.fn(),
+    });
+
+    useSocket.mockReturnValue({
+      ...DEFAULT_SOCKET,
+      onDmReacted: (cb) => { capturedOnDmReacted = cb; return vi.fn(); },
+    });
+  });
+
+  it("calls updateMessage with { id, reactions } when a DM reaction arrives", async () => {
+    render(<ChatPage />);
+    const newReactions = { "👍": [1, 2], "❤️": [3] };
+
+    await act(async () => {
+      capturedOnDmReacted?.({ messageId: 88, reactions: newReactions });
+    });
+
+    expect(mockUpdateDmMsg).toHaveBeenCalledWith({ id: 88, reactions: newReactions });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// handlePin — error callbacks (lines 449, 451)
+// ---------------------------------------------------------------------------
+describe("ChatPage — handlePin() error callbacks", () => {
+  beforeEach(() => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+  afterEach(() => { vi.restoreAllMocks(); });
+
+  it("calls unpinMessage and logs error when isCurrentlyPinned=true (line 449)", async () => {
+    DEFAULT_SOCKET.unpinMessage.mockImplementation((_id, cb) => cb?.({ error: "Unpin failed" }));
+
+    render(<ChatPage />);
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("chatarea-unpin")); // onPin(1, true)
+    });
+
+    expect(DEFAULT_SOCKET.unpinMessage).toHaveBeenCalledWith(1, expect.any(Function));
+    expect(console.error).toHaveBeenCalledWith("Unpin error:", "Unpin failed");
+
+    DEFAULT_SOCKET.unpinMessage.mockReset();
+  });
+
+  it("calls pinMessage and logs error when isCurrentlyPinned=false (line 451)", async () => {
+    DEFAULT_SOCKET.pinMessage.mockImplementation((_id, cb) => cb?.({ error: "Pin failed" }));
+
+    render(<ChatPage />);
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("chatarea-pin")); // onPin(1, false)
+    });
+
+    expect(DEFAULT_SOCKET.pinMessage).toHaveBeenCalledWith(1, expect.any(Function));
+    expect(console.error).toHaveBeenCalledWith("Pin error:", "Pin failed");
+
+    DEFAULT_SOCKET.pinMessage.mockReset();
   });
 });

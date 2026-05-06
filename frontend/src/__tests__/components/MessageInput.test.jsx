@@ -3,7 +3,7 @@
  * Covers: renders, typing, send on Enter, canWrite guard, disabled state
  */
 
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import MessageInput from "../../components/MessageInput";
 
@@ -248,6 +248,84 @@ describe("file attachment", () => {
 
     await waitFor(() => expect(global.fetch).toHaveBeenCalled());
   });
+
+  test("fileIcon covers doc/docx extensions", async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ url: "/uploads/doc.docx", type: "file", name: "doc.docx" }),
+    });
+    render(<MessageInput {...DEFAULT_PROPS} />);
+    const fileInput = document.querySelector('input[type="file"]');
+    const file = new File(["data"], "doc.docx", { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+    Object.defineProperty(fileInput, "files", { value: [file], configurable: true });
+    fireEvent.change(fileInput);
+    await waitFor(() => expect(global.fetch).toHaveBeenCalled());
+  });
+
+  test("fileIcon covers spreadsheet extensions (xls, xlsx, csv)", async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ url: "/uploads/data.xlsx", type: "file", name: "data.xlsx" }),
+    });
+    render(<MessageInput {...DEFAULT_PROPS} />);
+    const fileInput = document.querySelector('input[type="file"]');
+    const file = new File(["data"], "data.xlsx", { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    Object.defineProperty(fileInput, "files", { value: [file], configurable: true });
+    fireEvent.change(fileInput);
+    await waitFor(() => expect(global.fetch).toHaveBeenCalled());
+  });
+
+  test("fileIcon covers presentation extensions (ppt, pptx)", async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ url: "/uploads/slides.pptx", type: "file", name: "slides.pptx" }),
+    });
+    render(<MessageInput {...DEFAULT_PROPS} />);
+    const fileInput = document.querySelector('input[type="file"]');
+    const file = new File(["data"], "slides.pptx", { type: "application/vnd.openxmlformats-officedocument.presentationml.presentation" });
+    Object.defineProperty(fileInput, "files", { value: [file], configurable: true });
+    fireEvent.change(fileInput);
+    await waitFor(() => expect(global.fetch).toHaveBeenCalled());
+  });
+
+  test("fileIcon covers archive extensions (zip, rar, 7z)", async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ url: "/uploads/archive.zip", type: "file", name: "archive.zip" }),
+    });
+    render(<MessageInput {...DEFAULT_PROPS} />);
+    const fileInput = document.querySelector('input[type="file"]');
+    const file = new File(["data"], "archive.zip", { type: "application/zip" });
+    Object.defineProperty(fileInput, "files", { value: [file], configurable: true });
+    fireEvent.change(fileInput);
+    await waitFor(() => expect(global.fetch).toHaveBeenCalled());
+  });
+
+  test("fileIcon covers txt extension", async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ url: "/uploads/notes.txt", type: "file", name: "notes.txt" }),
+    });
+    render(<MessageInput {...DEFAULT_PROPS} />);
+    const fileInput = document.querySelector('input[type="file"]');
+    const file = new File(["data"], "notes.txt", { type: "text/plain" });
+    Object.defineProperty(fileInput, "files", { value: [file], configurable: true });
+    fireEvent.change(fileInput);
+    await waitFor(() => expect(global.fetch).toHaveBeenCalled());
+  });
+
+  test("fileIcon defaults to paperclip for unknown extension", async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ url: "/uploads/file.unknown", type: "file", name: "file.unknown" }),
+    });
+    render(<MessageInput {...DEFAULT_PROPS} />);
+    const fileInput = document.querySelector('input[type="file"]');
+    const file = new File(["data"], "file.unknown", { type: "application/octet-stream" });
+    Object.defineProperty(fileInput, "files", { value: [file], configurable: true });
+    fireEvent.change(fileInput);
+    await waitFor(() => expect(global.fetch).toHaveBeenCalled());
+  });
 });
 
 // ─────────────────────────────────────────────────────────
@@ -336,3 +414,95 @@ describe("DM mode", () => {
   });
 });
 
+
+// ---------------------------------------------------------------------------
+// stopTyping debounce — DM branch (line 205) and channel branch (line 206)
+// ---------------------------------------------------------------------------
+describe("stopTyping debounce", () => {
+  beforeEach(() => { vi.useFakeTimers(); });
+  afterEach(() => { vi.runOnlyPendingTimers(); vi.useRealTimers(); });
+
+  test("emits emitDmTypingStop after 1.5 s inactivity when isDm=true and dmUser is set (line 205)", async () => {
+    const { useSocket } = await import("../../context/SocketContext");
+    const emitDmTypingStop = vi.fn();
+    useSocket.mockReturnValue({
+      sendMessage: vi.fn(), sendDm: vi.fn(),
+      emitTypingStart: vi.fn(), emitTypingStop: vi.fn(),
+      emitDmTypingStart: vi.fn(), emitDmTypingStop,
+    });
+
+    const dmUser = { id: 7, username: "bob" };
+    render(<MessageInput isDm={true} dmUser={dmUser} onAddMessage={vi.fn()} />);
+    fireEvent.change(screen.getByRole("textbox"), { target: { value: "hi" } });
+    act(() => { vi.advanceTimersByTime(1600); });
+
+    expect(emitDmTypingStop).toHaveBeenCalledWith(dmUser.id);
+  });
+
+  test("emits emitTypingStop after 1.5 s inactivity when channelId is set (line 206)", async () => {
+    const { useSocket } = await import("../../context/SocketContext");
+    const emitTypingStop = vi.fn();
+    useSocket.mockReturnValue({
+      sendMessage: vi.fn(), sendDm: vi.fn(),
+      emitTypingStart: vi.fn(), emitTypingStop,
+      emitDmTypingStart: vi.fn(), emitDmTypingStop: vi.fn(),
+    });
+
+    render(<MessageInput channelId={3} channelName="general" />);
+    fireEvent.change(screen.getByRole("textbox"), { target: { value: "hello" } });
+    act(() => { vi.advanceTimersByTime(1600); });
+
+    expect(emitTypingStop).toHaveBeenCalledWith(3);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// File upload error → alert (line 304)
+// ---------------------------------------------------------------------------
+describe("file upload error (line 304)", () => {
+  beforeEach(() => { vi.spyOn(window, "alert").mockImplementation(() => {}); });
+  afterEach(() => { vi.restoreAllMocks(); });
+
+  test("shows alert when the upload request fails", async () => {
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      ok: false,
+      json: async () => ({ error: "File too large" }),
+    });
+
+    render(<MessageInput channelId={1} channelName="general" />);
+
+    const fileInput = document.querySelector("input[type='file']");
+    const file = new File(["data"], "big.pdf", { type: "application/pdf" });
+    Object.defineProperty(fileInput, "files", { value: [file], configurable: true });
+    fireEvent.change(fileInput);
+
+    await waitFor(() => {
+      expect(window.alert).toHaveBeenCalledWith(expect.stringContaining("Upload error"));
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// File remove button (line 442)
+// ---------------------------------------------------------------------------
+describe("file remove button (line 442)", () => {
+  test("removes the file preview when ✕ is clicked", async () => {
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ url: "/uploads/doc.pdf", type: "document", name: "doc.pdf" }),
+    });
+
+    render(<MessageInput channelId={1} channelName="general" />);
+
+    const fileInput = document.querySelector("input[type='file']");
+    const file = new File(["data"], "doc.pdf", { type: "application/pdf" });
+    Object.defineProperty(fileInput, "files", { value: [file], configurable: true });
+    fireEvent.change(fileInput);
+
+    await waitFor(() => expect(screen.getByText("doc.pdf")).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole("button", { name: "✕" }));
+
+    expect(screen.queryByText("doc.pdf")).not.toBeInTheDocument();
+  });
+});

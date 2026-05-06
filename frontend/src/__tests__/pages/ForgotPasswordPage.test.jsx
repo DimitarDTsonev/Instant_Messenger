@@ -58,3 +58,21 @@ test("shows server error on failed request", async () => {
   await act(async () => { fireEvent.click(screen.getByTestId("fp-submit")); });
   await waitFor(() => expect(screen.getByTestId("fp-error")).toBeInTheDocument());
 });
+
+test("shows default error message when API returns no error field", async () => {
+  mockFetch(false, {});
+  render(<ForgotPasswordPage onBack={() => {}} />);
+  fireEvent.change(screen.getByTestId("fp-email"), { target: { value: "x@y.com" } });
+  await act(async () => { fireEvent.click(screen.getByTestId("fp-submit")); });
+  await waitFor(() => expect(screen.getByTestId("fp-error")).toHaveTextContent(/Request failed/i));
+});
+
+test("shows loading state while submitting", async () => {
+  global.fetch = vi.fn(() => new Promise(() => {}));
+  render(<ForgotPasswordPage onBack={() => {}} />);
+  fireEvent.change(screen.getByTestId("fp-email"), { target: { value: "x@y.com" } });
+  fireEvent.click(screen.getByTestId("fp-submit"));
+  // The button should show loading state immediately
+  expect(screen.getByTestId("fp-submit")).toHaveTextContent(/Sending/i);
+  vi.restoreAllMocks();
+});

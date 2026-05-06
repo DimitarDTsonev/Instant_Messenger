@@ -122,3 +122,61 @@ describe("SearchModal", () => {
     expect(search).toHaveBeenCalledWith("hello");
   });
 });
+
+// ---------------------------------------------------------------------------
+// Result item hover styles and badge styling (lines 279-293)
+// ---------------------------------------------------------------------------
+describe("SearchModal — result item hover styles and badges", () => {
+  it("changes background to #2d2d3f on mouseEnter and restores transparent on mouseLeave", () => {
+    useGlobalSearch.mockReturnValue({
+      results: [
+        { id: 1, type: "channel", content: "hello world", username: "alice",
+          avatar: "🐱", channel_name: "general", created_at: new Date().toISOString() },
+      ],
+      loading: false, query: "hello",
+      search: vi.fn(), clearSearch: vi.fn(),
+    });
+
+    render(<SearchModal onClose={vi.fn()} onNavigate={vi.fn()} />);
+
+    // DOM structure: resultItem > resultHeader > span("alice")
+    // parentElement.parentElement climbs: span → resultHeader → resultItem
+    const aliceSpan  = screen.getByText("alice");
+    const resultItem = aliceSpan.parentElement.parentElement;
+
+    fireEvent.mouseEnter(resultItem);
+    // jsdom normalises hex colours to rgb() — both represent #2d2d3f
+    expect(resultItem.style.background).toMatch(/rgb\(45,\s*45,\s*63\)|#2d2d3f/);
+
+    fireEvent.mouseLeave(resultItem);
+    expect(resultItem.style.background).toMatch(/transparent|rgba\(0,\s*0,\s*0,\s*0\)|^$/);
+  });
+
+  it("shows green DM badge for DM type result (lines 287-293)", () => {
+    useGlobalSearch.mockReturnValue({
+      results: [
+        { id: 2, type: "dm", content: "hey there", username: "bob",
+          avatar: "😊", dm_partner_username: "bob", created_at: new Date().toISOString() },
+      ],
+      loading: false, query: "hey",
+      search: vi.fn(), clearSearch: vi.fn(),
+    });
+
+    render(<SearchModal onClose={vi.fn()} />);
+    expect(screen.getByText(/💬 bob/)).toBeInTheDocument();
+  });
+
+  it("highlightText returns empty string when query is empty (line 154)", () => {
+    useGlobalSearch.mockReturnValue({
+      results: [
+        { id: 1, type: "channel", content: "hello world", username: "alice",
+          avatar: "👤", channel_name: "general", created_at: new Date().toISOString() },
+      ],
+      loading: false, query: "",
+      search: vi.fn(), clearSearch: vi.fn(),
+    });
+
+    render(<SearchModal onClose={vi.fn()} />);
+    expect(screen.getByText("hello world")).toBeInTheDocument();
+  });
+});

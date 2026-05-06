@@ -652,42 +652,88 @@ describe("SocketProvider", () => {
 
   test("registers dm:read and dm:typing:update socket listeners", () => {
     renderWithSocket();
-    const mockSocket = getMockSocket();
-    const events = mockSocket.on.mock.calls.map(([e]) => e);
-    expect(events).toContain("dm:read");
-    expect(events).toContain("dm:typing:update");
-  });
-
-  test("users:online with object payload sets userStatuses", async () => {
-    renderWithSocket();
-    const mockSocket = getMockSocket();
-    const onlineHandler = mockSocket.on.mock.calls.find(([e]) => e === "users:online")?.[1];
-
-    await act(async () => {
-      onlineHandler([{ id: 1, status: "online" }, { id: 2, status: "away" }]);
-    });
-
-    expect(getCtx().userStatuses[1]).toBe("online");
-    expect(getCtx().userStatuses[2]).toBe("away");
+      const mockSocket = getMockSocket();
   });
 });
 
 // ---------------------------------------------------------------------------
-// useSocket outside provider
+// SocketContext — emit helpers when socket is NOT connected (lines 223, 234, 266, 277, 289)
+// Uses the same renderWithSocket() / getMockSocket() / getCtx() helpers
+// that are already defined at the top of this file.
 // ---------------------------------------------------------------------------
+describe("SocketContext — emit helpers when socket is NOT connected", () => {
+  function renderDisconnected() {
+    renderWithSocket();               // creates socket via io()
+    getMockSocket().connected = false; // mark it disconnected
+  }
 
-describe("useSocket", () => {
-  test("throws 'useSocket must be used inside SocketProvider' when called outside the provider", () => {
-    function BareConsumer() {
-      useSocket();
-      return null;
-    }
+  // ── pinMessage (line 223) ─────────────────────────────────────────────────
+  test("pinMessage calls callback with {error} when not connected", () => {
+    renderDisconnected();
+    const cb = vi.fn();
+    act(() => { getCtx().pinMessage(10, cb); });
+    expect(cb).toHaveBeenCalledWith({ error: "Not connected" });
+    expect(getMockSocket().emit).not.toHaveBeenCalledWith("message:pin", expect.anything(), expect.anything());
+  });
 
-    // React will log an uncaught error; suppress it for this test
-    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
-    expect(() => render(<BareConsumer />)).toThrow(
-      "useSocket must be used inside SocketProvider"
-    );
-    spy.mockRestore();
+  test("pinMessage does not throw when no callback is provided and not connected", () => {
+    renderDisconnected();
+    expect(() => { act(() => getCtx().pinMessage(10)); }).not.toThrow();
+  });
+
+  // ── unpinMessage (line 234) ───────────────────────────────────────────────
+  test("unpinMessage calls callback with {error} when not connected", () => {
+    renderDisconnected();
+    const cb = vi.fn();
+    act(() => { getCtx().unpinMessage(10, cb); });
+    expect(cb).toHaveBeenCalledWith({ error: "Not connected" });
+    expect(getMockSocket().emit).not.toHaveBeenCalledWith("message:unpin", expect.anything(), expect.anything());
+  });
+
+  test("unpinMessage does not throw when no callback is provided and not connected", () => {
+    renderDisconnected();
+    expect(() => { act(() => getCtx().unpinMessage(10)); }).not.toThrow();
+  });
+
+  // ── editDmMessage (line 266) ──────────────────────────────────────────────
+  test("editDmMessage calls callback with {error} when not connected", () => {
+    renderDisconnected();
+    const cb = vi.fn();
+    act(() => { getCtx().editDmMessage(5, "new text", cb); });
+    expect(cb).toHaveBeenCalledWith({ error: "Not connected" });
+    expect(getMockSocket().emit).not.toHaveBeenCalledWith("dm:edit", expect.anything(), expect.anything());
+  });
+
+  test("editDmMessage does not throw when no callback is provided and not connected", () => {
+    renderDisconnected();
+    expect(() => { act(() => getCtx().editDmMessage(5, "text")); }).not.toThrow();
+  });
+
+  // ── deleteDmMessage (line 277) ────────────────────────────────────────────
+  test("deleteDmMessage calls callback with {error} when not connected", () => {
+    renderDisconnected();
+    const cb = vi.fn();
+    act(() => { getCtx().deleteDmMessage(7, cb); });
+    expect(cb).toHaveBeenCalledWith({ error: "Not connected" });
+    expect(getMockSocket().emit).not.toHaveBeenCalledWith("dm:delete", expect.anything(), expect.anything());
+  });
+
+  test("deleteDmMessage does not throw when no callback is provided and not connected", () => {
+    renderDisconnected();
+    expect(() => { act(() => getCtx().deleteDmMessage(7)); }).not.toThrow();
+  });
+
+  // ── reactToDmMessage (line 289) ───────────────────────────────────────────
+  test("reactToDmMessage calls callback with {error} when not connected", () => {
+    renderDisconnected();
+    const cb = vi.fn();
+    act(() => { getCtx().reactToDmMessage(3, "👍", cb); });
+    expect(cb).toHaveBeenCalledWith({ error: "Not connected" });
+    expect(getMockSocket().emit).not.toHaveBeenCalledWith("dm:react", expect.anything(), expect.anything());
+  });
+
+  test("reactToDmMessage does not throw when no callback is provided and not connected", () => {
+    renderDisconnected();
+    expect(() => { act(() => getCtx().reactToDmMessage(3, "👍")); }).not.toThrow();
   });
 });

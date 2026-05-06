@@ -828,3 +828,196 @@ describe("touch action sheet", () => {
     expect(screen.queryByTestId("touch-sheet")).not.toBeInTheDocument();
   });
 });
+
+// ---------------------------------------------------------------------------
+// fileIcon — uncovered extension branch (line 27)
+// ---------------------------------------------------------------------------
+// fileIcon is a module-private helper, but its output is visible through the
+// rendered attachment card. The simplest path: render a message whose
+// file_url ends in .xlsx and confirm the spreadsheet emoji is shown.
+ 
+describe("ChatArea — fileIcon() spreadsheet extensions", () => {
+  const xlsxMessage = {
+    id: 9,
+    content: "",
+    username: "alice",
+    user_id: 2,
+    created_at: new Date().toISOString(),
+    reactions: [],
+    file_url: "http://api/uploads/report.xlsx",
+    file_type: "document",
+    file_name: "report.xlsx",
+  };
+ 
+  it("shows 📊 emoji for .xlsx attachments", () => {
+    render(
+      <ChatArea
+        messages={[xlsxMessage]}
+        loading={false}
+        hasMore={false}
+        onLoadMore={vi.fn()}
+        onReply={vi.fn()}
+        onPin={vi.fn()}
+        canPin={false}
+      />
+    );
+    expect(screen.getByText("📊")).toBeInTheDocument();
+  });
+ 
+  it("shows 📊 emoji for .csv attachments", () => {
+    const csvMsg = { ...xlsxMessage, id: 10, file_url: "http://api/uploads/data.csv", file_name: "data.csv" };
+    render(
+      <ChatArea
+        messages={[csvMsg]}
+        loading={false}
+        hasMore={false}
+        onLoadMore={vi.fn()}
+        onReply={vi.fn()}
+        onPin={vi.fn()}
+        canPin={false}
+      />
+    );
+    expect(screen.getByText("📊")).toBeInTheDocument();
+  });
+});
+ 
+// ---------------------------------------------------------------------------
+// Delete error callback (line 439)
+
+// ---------------------------------------------------------------------------
+// fileIcon — xls/xlsx/csv branch (line 27)
+// ---------------------------------------------------------------------------
+describe("ChatArea — fileIcon() spreadsheet extensions", () => {
+  const mkMsg = (id, name) => ({
+    id, content: "", username: "alice", user_id: 2,
+    created_at: new Date().toISOString(), reactions: {},
+    file_url: `/uploads/${name}`, file_type: "document", file_name: name,
+  });
+
+  it("shows 📊 emoji for .xlsx attachment", () => {
+    render(<ChatArea messages={[mkMsg(1, "data.xlsx")]} loading={false} hasMore={false}
+      onLoadMore={vi.fn()} onReply={vi.fn()} onPin={vi.fn()} canPin={false} />);
+    expect(screen.getByText("📊")).toBeInTheDocument();
+  });
+
+  it("shows 📊 emoji for .xls attachment", () => {
+    render(<ChatArea messages={[mkMsg(2, "old.xls")]} loading={false} hasMore={false}
+      onLoadMore={vi.fn()} onReply={vi.fn()} onPin={vi.fn()} canPin={false} />);
+    expect(screen.getByText("📊")).toBeInTheDocument();
+  });
+
+  it("shows 📊 emoji for .csv attachment", () => {
+    render(<ChatArea messages={[mkMsg(3, "report.csv")]} loading={false} hasMore={false}
+      onLoadMore={vi.fn()} onReply={vi.fn()} onPin={vi.fn()} canPin={false} />);
+    expect(screen.getByText("📊")).toBeInTheDocument();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Delete error callback (line 439)
+// ---------------------------------------------------------------------------
+describe("ChatArea — delete error callback", () => {
+  beforeEach(() => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+  });
+  afterEach(() => { vi.restoreAllMocks(); });
+
+  it("logs error when doDelete callback receives an error", async () => {
+    const mockDeleteMessage = vi.fn((_id, cb) => cb({ error: "Delete failed" }));
+    const { useSocket } = await import("../../context/SocketContext");
+    useSocket.mockReturnValue({
+      ...useSocket(),
+      deleteMessage: mockDeleteMessage,
+      deleteDmMessage: mockDeleteMessage,
+    });
+
+    // user_id: 1 matches mocked user.id=1 → isOwn=true → shows Delete button
+    const msg = {
+      id: 1, content: "hello", username: "alice", user_id: 1,
+      created_at: new Date().toISOString(), reactions: {},
+    };
+
+    render(<ChatArea messages={[msg]} loading={false} hasMore={false}
+      onLoadMore={vi.fn()} onReply={vi.fn()} onPin={vi.fn()} canPin={false} />);
+
+    // Hover to reveal the action toolbar
+    const msgText = screen.getByText("hello");
+    const msgRow = msgText.closest("[style*='position: relative']");
+    fireEvent.mouseEnter(msgRow ?? msgText.parentElement.parentElement);
+
+    // Delete button has title="Delete" and emoji 🗑️ as text content
+    fireEvent.click(screen.getByTitle("Delete"));
+
+    expect(console.error).toHaveBeenCalledWith("Delete error:", "Delete failed");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// React error callback (line 450)
+// ---------------------------------------------------------------------------
+describe("ChatArea — react error callback", () => {
+  beforeEach(() => { vi.spyOn(console, "error").mockImplementation(() => {}); });
+  afterEach(() => { vi.restoreAllMocks(); });
+
+  it("logs error when doReact callback receives an error", async () => {
+    const mockReact = vi.fn((_id, _emoji, cb) => cb({ error: "React failed" }));
+    const { useSocket } = await import("../../context/SocketContext");
+    useSocket.mockReturnValue({
+      ...useSocket(),
+      reactToMessage: mockReact,
+      reactToDmMessage: mockReact,
+    });
+
+    // user_id: 2 ≠ mocked user.id=1 → isOwn=false → only React + Reply shown
+    const msg = {
+      id: 2, content: "world", username: "bob", user_id: 2,
+      created_at: new Date().toISOString(), reactions: {},
+    };
+
+    render(<ChatArea messages={[msg]} loading={false} hasMore={false}
+      onLoadMore={vi.fn()} onReply={vi.fn()} onPin={vi.fn()} canPin={false} />);
+
+    // Hover to reveal toolbar
+    const msgText = screen.getByText("world");
+    const msgRow = msgText.closest("[style*='position: relative']");
+    fireEvent.mouseEnter(msgRow ?? msgText.parentElement.parentElement);
+
+    // React button: title="React", text content "😊"
+    fireEvent.click(screen.getByTitle("React"));
+
+    // EMOJI_SET = ["👍", "❤️", "😂", ...] — click the first one
+    fireEvent.click(screen.getByRole("button", { name: "👍" }));
+
+    expect(console.error).toHaveBeenCalledWith("React error:", "React failed");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// lastOutgoingId — isDm && seenByPartner (line 751)
+// ---------------------------------------------------------------------------
+describe("ChatArea — lastOutgoingId computation", () => {
+  it("shows Seen indicator on the last outgoing message when isDm and seenByPartner", () => {
+    const messages = [
+      { id: 10, content: "first outgoing", username: "alice", user_id: 1, sender_id: 1,
+        created_at: new Date(Date.now() - 2000).toISOString(), reactions: {} },
+      { id: 11, content: "second outgoing", username: "alice", user_id: 1, sender_id: 1,
+        created_at: new Date().toISOString(), reactions: {} },
+    ];
+    render(<ChatArea messages={messages} loading={false} hasMore={false}
+      onLoadMore={vi.fn()} onReply={vi.fn()} onPin={vi.fn()} canPin={false}
+      isDm={true} seenByPartner={true} />);
+    expect(screen.getByText(/seen/i)).toBeInTheDocument();
+  });
+
+  it("does NOT show Seen indicator when seenByPartner is false", () => {
+    const messages = [
+      { id: 20, content: "outgoing", username: "alice", user_id: 1, sender_id: 1,
+        created_at: new Date().toISOString(), reactions: {} },
+    ];
+    render(<ChatArea messages={messages} loading={false} hasMore={false}
+      onLoadMore={vi.fn()} onReply={vi.fn()} onPin={vi.fn()} canPin={false}
+      isDm={true} seenByPartner={false} />);
+    expect(screen.queryByText(/seen/i)).not.toBeInTheDocument();
+  });
+});
