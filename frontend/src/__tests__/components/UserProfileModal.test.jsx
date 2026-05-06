@@ -164,8 +164,8 @@ describe("UserProfileModal", () => {
     const select = screen.getByRole("combobox");
     fireEvent.change(select, { target: { value: "admin" } });
 
-    // Save role button appears when role differs
-    const saveBtn = await waitFor(() => screen.getByText(/Save role/i));
+    // Save button appears when role differs
+    const saveBtn = await waitFor(() => screen.getByText(/Save changes/i));
     fireEvent.click(saveBtn);
 
     await waitFor(() => expect(screen.getByText(/Role updated successfully/i)).toBeInTheDocument());
@@ -183,7 +183,7 @@ describe("UserProfileModal", () => {
     await waitFor(() => screen.getByText("Role Management"));
 
     fireEvent.change(screen.getByRole("combobox"), { target: { value: "admin" } });
-    const saveBtn = await waitFor(() => screen.getByText(/Save role/i));
+    const saveBtn = await waitFor(() => screen.getByText(/Save changes/i));
     fireEvent.click(saveBtn);
 
     await waitFor(() => expect(screen.getByText(/Forbidden/i)).toBeInTheDocument());
@@ -200,7 +200,7 @@ describe("UserProfileModal", () => {
 
     // Role is already "member" — clicking save without changing should be a no-op
     // The save button should not be visible when role hasn't changed
-    expect(screen.queryByText(/Save role/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Save changes/i)).not.toBeInTheDocument();
     // Only the initial profile fetch should have been called
     expect(authFetch).toHaveBeenCalledTimes(1);
   });

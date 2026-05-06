@@ -59,8 +59,10 @@ function stubAudioContext() {
     createGain: vi.fn(() => gain),
     destination: {}, currentTime: 0, close: vi.fn(),
   };
+  // Use 'function' keyword (not arrow) so vi.fn wrapper is recognized as a constructor
+  const Ctor = vi.fn(function() { return ctx; });
   Object.defineProperty(window, "AudioContext", {
-    value: vi.fn(() => ctx),
+    value: Ctor,
     configurable: true,
     writable: true,
   });
@@ -75,7 +77,7 @@ function stubAudioContext() {
 describe("playNotificationSound", () => {
   test("returns early without creating AudioContext when page is focused and visible", () => {
     setFocused();
-    const Ctor = vi.fn();
+    const Ctor = vi.fn(function() {});
     Object.defineProperty(window, "AudioContext", {
       value: Ctor,
       configurable: true,
@@ -127,7 +129,7 @@ describe("playNotificationSound", () => {
   test("does not throw when AudioContext constructor throws", () => {
     setHidden();
     Object.defineProperty(window, "AudioContext", {
-      value: vi.fn(() => { throw new Error("NotAllowedError"); }),
+      value: vi.fn(function() { throw new Error("NotAllowedError"); }),
       configurable: true,
       writable: true,
     });
@@ -155,7 +157,7 @@ describe("playNotificationSound", () => {
       writable: true,
     });
     Object.defineProperty(window, "webkitAudioContext", {
-      value: vi.fn(() => ctx),
+      value: vi.fn(function() { return ctx; }),
       configurable: true,
       writable: true,
     });
