@@ -134,4 +134,74 @@ describe("UserProfileModal", () => {
     fireEvent.keyDown(window, { key: "Escape" });
     expect(onClose).toHaveBeenCalled();
   });
+
+  test("clicking overlay backdrop calls onClose", async () => {
+    useAuth.mockReturnValue({
+      user: { id: 1, username: "alice", role: "admin" },
+      authFetch: vi.fn().mockResolvedValue({ user: MOCK_PROFILE }),
+    });
+    const onClose = vi.fn();
+    const { container } = render(<UserProfileModal userId={2} onClose={onClose} onStartDm={vi.fn()} />);
+    await waitFor(() => screen.getByText("bob"));
+    // Click the outermost overlay div (the first div child of body)
+    const overlay = container.firstChild;
+    fireEvent.click(overlay);
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  test("handleSaveRole updates role on success", async () => {
+    const patchFetch = vi.fn()
+      .mockResolvedValueOnce({ user: MOCK_PROFILE }) // initial profile load
+      .mockResolvedValueOnce({});                    // PATCH role
+    useAuth.mockReturnValue({
+      user: { id: 1, username: "alice", role: "admin" },
+      authFetch: patchFetch,
+    });
+    render(<UserProfileModal userId={2} onClose={vi.fn()} onStartDm={vi.fn()} />);
+    await waitFor(() => screen.getByText("Role Management"));
+
+    // Change the select to "admin"
+    const select = screen.getByRole("combobox");
+    fireEvent.change(select, { target: { value: "admin" } });
+
+    // Save role button appears when role differs
+    const saveBtn = await waitFor(() => screen.getByText(/Save role/i));
+    fireEvent.click(saveBtn);
+
+    await waitFor(() => expect(screen.getByText(/Role updated successfully/i)).toBeInTheDocument());
+  });
+
+  test("handleSaveRole shows error message on failure", async () => {
+    const patchFetch = vi.fn()
+      .mockResolvedValueOnce({ user: MOCK_PROFILE })
+      .mockRejectedValueOnce(new Error("Forbidden"));
+    useAuth.mockReturnValue({
+      user: { id: 1, username: "alice", role: "admin" },
+      authFetch: patchFetch,
+    });
+    render(<UserProfileModal userId={2} onClose={vi.fn()} onStartDm={vi.fn()} />);
+    await waitFor(() => screen.getByText("Role Management"));
+
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "admin" } });
+    const saveBtn = await waitFor(() => screen.getByText(/Save role/i));
+    fireEvent.click(saveBtn);
+
+    await waitFor(() => expect(screen.getByText(/Forbidden/i)).toBeInTheDocument());
+  });
+
+  test("handleSaveRole does nothing when selected role equals current role", async () => {
+    const authFetch = vi.fn().mockResolvedValue({ user: MOCK_PROFILE });
+    useAuth.mockReturnValue({
+      user: { id: 1, username: "alice", role: "admin" },
+      authFetch,
+    });
+    render(<UserProfileModal userId={2} onClose={vi.fn()} onStartDm={vi.fn()} />);
+    await waitFor(() => screen.getByText("Role Management"));
+
+    // Role is already "member" — clicking save without changing should be a no-op
+    // The save button should not be visible when role hasn't changed
+    expect(screen.queryByText(/Save role/i)).not.toBeInTheDocument();
+    // Only the initial profile fetch should have been called
+    expect(authFetch).toHaveBeenCalledTimes(1);
+  });
 });

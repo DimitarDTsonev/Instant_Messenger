@@ -580,6 +580,96 @@ describe("SocketProvider", () => {
     socketHandler({ messageId: 52, reactions: ["❤️"] });
     expect(handler).toHaveBeenCalledWith({ messageId: 52, reactions: ["❤️"] });
   });
+
+  test("onDmRead routes dm:read events", () => {
+    renderWithSocket();
+    const mockSocket = getMockSocket();
+
+    const handler = vi.fn();
+    getCtx().onDmRead(handler);
+    const [, socketHandler] = mockSocket.on.mock.calls.find(([e]) => e === "dm:read");
+
+    socketHandler({ readBy: 5 });
+    expect(handler).toHaveBeenCalledWith({ readBy: 5 });
+  });
+
+  test("onDmTypingUpdate routes dm:typing:update events", () => {
+    renderWithSocket();
+    const mockSocket = getMockSocket();
+
+    const handler = vi.fn();
+    getCtx().onDmTypingUpdate(handler);
+    const [, socketHandler] = mockSocket.on.mock.calls.find(([e]) => e === "dm:typing:update");
+
+    socketHandler({ username: "bob", isTyping: true });
+    expect(handler).toHaveBeenCalledWith({ username: "bob", isTyping: true });
+  });
+
+  test("sendDmRead emits dm:read", () => {
+    renderWithSocket();
+    const mockSocket = getMockSocket();
+
+    getCtx().sendDmRead(7);
+
+    expect(mockSocket.emit).toHaveBeenCalledWith("dm:read", { partnerId: 7 });
+  });
+
+  test("setStatus emits status:set", () => {
+    renderWithSocket();
+    const mockSocket = getMockSocket();
+
+    getCtx().setStatus("away");
+
+    expect(mockSocket.emit).toHaveBeenCalledWith("status:set", { status: "away" });
+  });
+
+  test("leaveAllChannels emits channel:leave", () => {
+    renderWithSocket();
+    const mockSocket = getMockSocket();
+
+    getCtx().leaveAllChannels();
+
+    expect(mockSocket.emit).toHaveBeenCalledWith("channel:leave");
+  });
+
+  test("emitDmTypingStart emits dm:typing:start with partnerId", () => {
+    renderWithSocket();
+    const mockSocket = getMockSocket();
+
+    getCtx().emitDmTypingStart(9);
+
+    expect(mockSocket.emit).toHaveBeenCalledWith("dm:typing:start", { partnerId: 9 });
+  });
+
+  test("emitDmTypingStop emits dm:typing:stop with partnerId", () => {
+    renderWithSocket();
+    const mockSocket = getMockSocket();
+
+    getCtx().emitDmTypingStop(9);
+
+    expect(mockSocket.emit).toHaveBeenCalledWith("dm:typing:stop", { partnerId: 9 });
+  });
+
+  test("registers dm:read and dm:typing:update socket listeners", () => {
+    renderWithSocket();
+    const mockSocket = getMockSocket();
+    const events = mockSocket.on.mock.calls.map(([e]) => e);
+    expect(events).toContain("dm:read");
+    expect(events).toContain("dm:typing:update");
+  });
+
+  test("users:online with object payload sets userStatuses", async () => {
+    renderWithSocket();
+    const mockSocket = getMockSocket();
+    const onlineHandler = mockSocket.on.mock.calls.find(([e]) => e === "users:online")?.[1];
+
+    await act(async () => {
+      onlineHandler([{ id: 1, status: "online" }, { id: 2, status: "away" }]);
+    });
+
+    expect(getCtx().userStatuses[1]).toBe("online");
+    expect(getCtx().userStatuses[2]).toBe("away");
+  });
 });
 
 // ---------------------------------------------------------------------------

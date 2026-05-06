@@ -249,3 +249,90 @@ describe("file attachment", () => {
     await waitFor(() => expect(global.fetch).toHaveBeenCalled());
   });
 });
+
+// ─────────────────────────────────────────────────────────
+//  DM mode
+// ─────────────────────────────────────────────────────────
+const DM_PROPS = {
+  isDm: true,
+  dmUser: { id: 2, username: "bob" },
+  channelId: undefined,
+  channelName: undefined,
+  replyTo: null,
+  onClearReply: vi.fn(),
+  canWrite: true,
+};
+
+describe("DM mode", () => {
+  test("pressing Enter in DM mode calls sendDm, not sendMessage", async () => {
+    const { useSocket } = await import("../../context/SocketContext");
+    const sendDm = vi.fn();
+    const sendMessage = vi.fn();
+    useSocket.mockReturnValue({
+      sendMessage, sendDm,
+      emitTypingStart: vi.fn(), emitTypingStop: vi.fn(),
+      emitDmTypingStart: vi.fn(), emitDmTypingStop: vi.fn(),
+    });
+
+    render(<MessageInput {...DM_PROPS} />);
+    await userEvent.type(screen.getByRole("textbox"), "hello{Enter}");
+
+    expect(sendDm).toHaveBeenCalled();
+    expect(sendMessage).not.toHaveBeenCalled();
+  });
+
+  test("sendDm callback calls onAddMessage with the returned message", async () => {
+    const { useSocket } = await import("../../context/SocketContext");
+    const onAddMessage = vi.fn();
+    const sendDm = vi.fn((_, __, ___, ____, _____, ______, cb) =>
+      cb?.({ message: { id: 1, content: "hello" } })
+    );
+    useSocket.mockReturnValue({
+      sendMessage: vi.fn(), sendDm,
+      emitTypingStart: vi.fn(), emitTypingStop: vi.fn(),
+      emitDmTypingStart: vi.fn(), emitDmTypingStop: vi.fn(),
+    });
+
+    render(<MessageInput {...DM_PROPS} onAddMessage={onAddMessage} />);
+    await userEvent.type(screen.getByRole("textbox"), "hello{Enter}");
+
+    expect(onAddMessage).toHaveBeenCalledWith({ id: 1, content: "hello" });
+  });
+
+  test("sendDm error restores text in textarea", async () => {
+    const { useSocket } = await import("../../context/SocketContext");
+    const sendDm = vi.fn((_, __, ___, ____, _____, ______, cb) =>
+      cb?.({ error: "network failure" })
+    );
+    useSocket.mockReturnValue({
+      sendMessage: vi.fn(), sendDm,
+      emitTypingStart: vi.fn(), emitTypingStop: vi.fn(),
+      emitDmTypingStart: vi.fn(), emitDmTypingStop: vi.fn(),
+    });
+
+    render(<MessageInput {...DM_PROPS} />);
+    await userEvent.type(screen.getByRole("textbox"), "hello{Enter}");
+
+    await waitFor(() =>
+      expect(screen.getByRole("textbox").value).toBe("hello")
+    );
+  });
+
+  test("typing in DM mode calls emitDmTypingStart, not emitTypingStart", async () => {
+    const { useSocket } = await import("../../context/SocketContext");
+    const emitDmTypingStart = vi.fn();
+    const emitTypingStart   = vi.fn();
+    useSocket.mockReturnValue({
+      sendMessage: vi.fn(), sendDm: vi.fn(),
+      emitTypingStart, emitTypingStop: vi.fn(),
+      emitDmTypingStart, emitDmTypingStop: vi.fn(),
+    });
+
+    render(<MessageInput {...DM_PROPS} />);
+    await userEvent.type(screen.getByRole("textbox"), "a");
+
+    expect(emitDmTypingStart).toHaveBeenCalledWith(2);
+    expect(emitTypingStart).not.toHaveBeenCalled();
+  });
+});
+
