@@ -11,10 +11,26 @@
     <link rel="icon" type="image/svg+xml" href="./icon.svg" />
     <link rel="apple-touch-icon" href="./icon.svg" />
     <link rel="manifest" href="./manifest.json" />
-    <script type="module" crossorigin src="/Instant_Messenger/assets/index-Z__P1tV6.js"></script>
+    <script type="module" crossorigin src="/Instant_Messenger/assets/index-CSXUbfbN.js"></script>
     <link rel="stylesheet" crossorigin href="/Instant_Messenger/assets/index-Dj0iIdcE.css">
   </head>
   <body>
     <div id="root"></div>
+    <!-- Restore path after GitHub Pages 404.html redirect (encodes route as ?/…) -->
+    <script>
+      (function (l) {
+        if (l.search[1] === '/') {
+          var decoded = l.search.slice(1).split('&').map(function (s) {
+            return s.replace(/~and~/g, '&');
+          });
+          window.history.replaceState(
+            null, null,
+            l.pathname.slice(0, -1) + decoded[0] +
+            (decoded[1] ? '?' + decoded[1] : '') +
+            l.hash
+          );
+        }
+      }(window.location));
+    </script>
   </body>
 </html>
