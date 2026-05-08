@@ -671,6 +671,50 @@ describe("file preview modal", () => {
 });
 
 // ─────────────────────────────────────────────────────────
+//  21b. File preview modal — PDF and Office document rendering
+// ─────────────────────────────────────────────────────────
+describe("file preview modal — document rendering", () => {
+  test("PDF attachment renders an iframe (not object) in the preview modal", () => {
+    const msg = makeMsg({ file_url: "/uploads/doc.pdf", file_type: "file", file_name: "doc.pdf" });
+    const { container } = renderChatArea({ messages: [msg] });
+    fireEvent.click(screen.getByText("doc.pdf").closest("div"));
+    const iframe = container.querySelector("iframe");
+    expect(iframe).toBeInTheDocument();
+    expect(iframe.src).toContain("/uploads/doc.pdf");
+  });
+
+  test("PPTX attachment renders an Office Online viewer iframe in the preview modal", () => {
+    const msg = makeMsg({ file_url: "/uploads/slide.pptx", file_type: "file", file_name: "slide.pptx" });
+    const { container } = renderChatArea({ messages: [msg] });
+    fireEvent.click(screen.getByText("slide.pptx").closest("div"));
+    const iframe = container.querySelector("iframe");
+    expect(iframe).toBeInTheDocument();
+    expect(iframe.src).toContain("view.officeapps.live.com");
+    expect(iframe.src).toContain(encodeURIComponent("/uploads/slide.pptx"));
+  });
+
+  test("DOCX attachment renders an Office Online viewer iframe in the preview modal", () => {
+    const msg = makeMsg({ file_url: "/uploads/report.docx", file_type: "file", file_name: "report.docx" });
+    const { container } = renderChatArea({ messages: [msg] });
+    fireEvent.click(screen.getByText("report.docx").closest("div"));
+    const iframe = container.querySelector("iframe");
+    expect(iframe).toBeInTheDocument();
+    expect(iframe.src).toContain("view.officeapps.live.com");
+  });
+
+  test("non-previewable file (zip) shows file icon, not an iframe", () => {
+    const msg = makeMsg({ file_url: "/uploads/archive.zip", file_type: "file", file_name: "archive.zip" });
+    const { container } = renderChatArea({ messages: [msg] });
+    fireEvent.click(screen.getByText("archive.zip").closest("div"));
+    // Modal should be open but contain no iframe
+    expect(screen.getByTitle("Close (Esc)")).toBeInTheDocument();
+    expect(container.querySelector("iframe")).not.toBeInTheDocument();
+    // 🗜️ appears in both the chat card and the modal — at least two copies
+    expect(screen.getAllByText("🗜️").length).toBeGreaterThanOrEqual(2);
+  });
+});
+
+// ─────────────────────────────────────────────────────────
 //  22. formatBytes and file size display
 // ─────────────────────────────────────────────────────────
 describe("file size display", () => {

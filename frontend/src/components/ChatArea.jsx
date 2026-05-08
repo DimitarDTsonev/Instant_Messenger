@@ -248,10 +248,14 @@ function groupMessages(messages) {
  * @param {Function} props.onClose   - Called when the modal should be dismissed.
  * @returns {JSX.Element}
  */
+const OFFICE_EXTS = ["ppt", "pptx", "doc", "docx", "xls", "xlsx"];
+
 function FilePreviewModal({ fileUrl, fileType, fileName, onClose }) {
-  const fullUrl = `${BASE_URL}${fileUrl}`;
-  const isImage = fileType === "image";
-  const isPdf   = (fileName || "").toLowerCase().endsWith(".pdf");
+  const fullUrl    = `${BASE_URL}${fileUrl}`;
+  const isImage    = fileType === "image";
+  const lowerName  = (fileName || "").toLowerCase();
+  const isPdf      = lowerName.endsWith(".pdf");
+  const isOfficeDoc = OFFICE_EXTS.some((ext) => lowerName.endsWith(`.${ext}`));
 
   // Close on Escape key
   useEffect(() => {
@@ -296,16 +300,17 @@ function FilePreviewModal({ fileUrl, fileType, fileName, onClose }) {
         {isImage ? (
           <img src={fullUrl} alt={fileName} style={s.modalImg} />
         ) : isPdf ? (
-          <object
-            data={fullUrl}
-            type="application/pdf"
+          <iframe
+            src={fullUrl}
+            title={fileName}
             style={{ width: "75vw", height: "68vh", borderRadius: "8px", border: "none" }}
-          >
-            <div style={{ ...s.modalFileIcon, marginTop: "16px" }}>{fileIcon(fileName)}</div>
-            <div style={{ ...s.modalFileMeta, marginTop: "8px" }}>
-              Your browser does not support PDF preview. Use the download button.
-            </div>
-          </object>
+          />
+        ) : isOfficeDoc ? (
+          <iframe
+            src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fullUrl)}`}
+            title={fileName}
+            style={{ width: "75vw", height: "68vh", borderRadius: "8px", border: "none" }}
+          />
         ) : (
           <>
             <div style={s.modalFileIcon}>{fileIcon(fileName)}</div>

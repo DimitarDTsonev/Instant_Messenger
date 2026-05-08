@@ -43,7 +43,10 @@ const loadingScreen = (
 function AppInner() {
   const { user, loading } = useAuth();
 
-  const path = window.location.pathname;
+  // Strip the Vite base path so routing works for both root and project-page deployments.
+  // import.meta.env.BASE_URL is "/" for user pages and "/<repo>/" for project pages.
+  const base = import.meta.env.BASE_URL.replace(/\/$/, ""); // e.g. "" or "/instant-messenger"
+  const path = window.location.pathname.slice(base.length) || "/";
 
   // Invite paths work without auth
   if (path.startsWith("/invite/")) {

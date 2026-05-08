@@ -13,7 +13,7 @@ import {
 } from "../hooks/useApi";
 
 /** Base URL used to construct full invite links shown to the user. */
-const INVITE_BASE = `${window.location.origin}/invite/`;
+const INVITE_BASE = `${window.location.origin}${import.meta.env.BASE_URL}invite/`;
 
 /** Inline style map used throughout ChannelSettingsModal and its sub-components. */
 const s = {
