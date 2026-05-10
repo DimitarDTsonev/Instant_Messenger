@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "moduleDetection": "force",
+    "moduleResolution": "Node",
+    "rootDir": ".",
+    "outDir": "dist",
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "strict": false,
+    "noImplicitAny": true,
+    "sourceMap": true,
+    "types": ["node", "jest"]
+  },
+  "include": ["server.ts", "src/**/*.ts"],
+  "exclude": ["dist", "node_modules", "coverage", "src/__tests__", "src/test-utils"]
+}

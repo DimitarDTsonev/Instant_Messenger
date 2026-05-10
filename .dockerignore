@@ -1,0 +1,13 @@
+.git
+.github
+**/node_modules
+**/dist
+**/coverage
+backend/messenger.db
+backend/messenger.db-*
+backend/messenger.db-shm
+backend/messenger.db-wal
+uploads
+.DS_Store
+npm-debug.log*
+

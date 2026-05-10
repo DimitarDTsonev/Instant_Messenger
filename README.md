@@ -1,6 +1,6 @@
 # Instant Messenger
 
-A fullstack real-time chat application built with React, Node.js, Express, Socket.io, and SQLite.
+A fullstack real-time chat application built with TypeScript, React, Node.js, Express, Socket.io, and SQLite.
 
 ---
 
@@ -8,8 +8,8 @@ A fullstack real-time chat application built with React, Node.js, Express, Socke
 
 | Layer | Technology |
 |---|---|
-| Frontend | React 18, Vite, Socket.io-client |
-| Backend | Node.js, Express, Socket.io |
+| Frontend | TypeScript, React 18, Vite, Socket.io-client |
+| Backend | TypeScript, Node.js, Express, Socket.io |
 | Database | SQLite via better-sqlite3 |
 | Auth | JWT, bcrypt |
 | Deployment | GitHub Pages (frontend), Render (backend) |
@@ -27,62 +27,64 @@ instant-messenger/
 |       `-- deploy.yml           CD: deploys frontend to GitHub Pages, triggers Render backend deploy
 |
 |-- backend/
-|   |-- server.js                Entry point - Express app + Socket.io + middleware wiring
-|   |-- jest.config.js           Jest configuration for backend tests
+|   |-- server.ts                Entry point - Express app + Socket.io + middleware wiring
+|   |-- jest.config.ts           Jest configuration for backend tests
+|   |-- tsconfig.json            TypeScript compiler settings for backend build
 |   |-- package.json
 |   |-- .env.example             Template for required environment variables
 |   |-- messenger.db             SQLite database file (auto-created on first run)
 |   `-- src/
 |       |-- db/
-|       |   |-- database.js      Database initialisation, schema migrations, getDb()
-|       |   `-- seed.js          Seeds demo channels and a guest user for development
+|       |   |-- database.ts      Database initialisation, schema migrations, getDb()
+|       |   `-- seed.ts          Seeds demo channels and a guest user for development
 |       |-- middleware/
-|       |   |-- auth.js          JWT verification middleware + signToken helper
-|       |   `-- security.js      IP ban, login-fail tracking, socket rate limiting, security event logging
+|       |   |-- auth.ts          JWT verification middleware + signToken helper
+|       |   `-- security.ts      IP ban, login-fail tracking, socket rate limiting, security event logging
 |       |-- routes/
-|       |   |-- auth.js          POST /register, POST /login, GET /me, GET /users
-|       |   |-- channels.js      GET/POST/DELETE /channels, invite-link generation
-|       |   |-- messages.js      GET /messages/:channelId, GET /messages/search, POST /pin
-|       |   |-- dm.js            GET /dm/conversations, GET /dm/:partnerId, message history
-|       |   |-- invites.js       GET /invite/:code - resolves an invite link to a channel
-|       |   |-- upload.js        POST /upload - multipart file upload, serves /uploads/*
-|       |   `-- admin.js         GET /security-logs, POST /ban/:userId, POST /unban/:userId
+|       |   |-- auth.ts          POST /register, POST /login, GET /me, GET /users
+|       |   |-- channels.ts      GET/POST/DELETE /channels, invite-link generation
+|       |   |-- messages.ts      GET /messages/:channelId, GET /messages/search, POST /pin
+|       |   |-- dm.ts            GET /dm/conversations, GET /dm/:partnerId, message history
+|       |   |-- invites.ts       GET /invite/:code - resolves an invite link to a channel
+|       |   |-- upload.ts        POST /upload - multipart file upload, serves /uploads/*
+|       |   `-- admin.ts         GET /security-logs, POST /ban/:userId, POST /unban/:userId
 |       |-- socket/
-|       |   `-- handlers.js      All Socket.io event handlers (channels, DMs, typing, reactions, pins)
+|       |   `-- handlers.ts      All Socket.io event handlers (channels, DMs, typing, reactions, pins)
 |       `-- test-utils/
-|           |-- createTestApp.js Express app factory used by integration tests
-|           `-- createTestDb.js  In-memory SQLite factory + clearDb() for test isolation
+|           |-- createTestApp.ts Express app factory used by integration tests
+|           `-- createTestDb.ts  In-memory SQLite factory + clearDb() for test isolation
 |
 |-- frontend/
 |   |-- index.html               Vite HTML shell
-|   |-- vite.config.js           Vite config - base path, Vitest and coverage settings
+|   |-- vite.config.ts           Vite config - base path, Vitest and coverage settings
+|   |-- tsconfig.json            TypeScript settings for React/Vite
 |   |-- package.json
 |   |-- .env.example             Template for VITE_API_URL and VITE_SOCKET_URL
-|   |-- .env.development         Local dev values (not committed - copy from .env.example)
+|   |-- .env.development         Local dev values
 |   `-- src/
-|       |-- main.jsx             React DOM root
-|       |-- App.jsx              Top-level routing: Login / Chat / Invite
+|       |-- main.tsx             React DOM root
+|       |-- App.tsx              Top-level routing: Login / Chat / Invite
 |       |-- index.css            Global dark-theme styles, mobile responsive rules, touch sheet styles
-|       |-- config.js            Reads VITE_* env vars and exports API_BASE, SOCKET_URL
+|       |-- config.ts            Reads VITE_* env vars and exports API_BASE, SOCKET_URL
 |       |-- context/
-|       |   |-- AuthContext.jsx  user, token, login(), logout() - persisted in localStorage
-|       |   `-- SocketContext.jsx Socket.io connection, all emit helpers, real-time state
+|       |   |-- AuthContext.tsx  user, token, login(), logout() - persisted in localStorage
+|       |   `-- SocketContext.tsx Socket.io connection, all emit helpers, real-time state
 |       |-- hooks/
-|       |   `-- useApi.js        useChannels, useMessages, useDm, useSearch - REST data fetching
+|       |   `-- useApi.ts        useChannels, useMessages, useDm, useSearch - REST data fetching
 |       |-- pages/
-|       |   |-- LoginPage.jsx    Login and registration forms
-|       |   |-- ChatPage.jsx     Main chat layout - sidebar + topbar + chat area
-|       |   `-- InvitePage.jsx   Handles /invite/:code links
+|       |   |-- LoginPage.tsx    Login and registration forms
+|       |   |-- ChatPage.tsx     Main chat layout - sidebar + topbar + chat area
+|       |   `-- InvitePage.tsx   Handles /invite/:code links
 |       |-- components/
-|       |   |-- Sidebar.jsx      Channel list, DM list, online users, user profile
-|       |   |-- ChatArea.jsx     Message list with grouping, reactions, file preview, touch sheet
-|       |   |-- MessageInput.jsx Text input, file upload, reply bar, typing events
-|       |   |-- MarkdownRenderer.jsx Inline markdown: bold, italic, code, links, mentions
-|       |   |-- PinnedBanner.jsx Pinned message banner at top of channel view
-|       |   |-- SearchModal.jsx  Full-text message search modal
-|       |   |-- UserSearchModal.jsx User search + DM / profile actions
-|       |   |-- ChannelSettingsModal.jsx Channel rename, invite link, member management
-|       |   `-- UserProfileModal.jsx View any user's profile, avatar, role badge
+|       |   |-- Sidebar.tsx      Channel list, DM list, online users, user profile
+|       |   |-- ChatArea.tsx     Message list with grouping, reactions, file preview, touch sheet
+|       |   |-- MessageInput.tsx Text input, file upload, reply bar, typing events
+|       |   |-- MarkdownRenderer.tsx Inline markdown: bold, italic, code, links, mentions
+|       |   |-- PinnedBanner.tsx Pinned message banner at top of channel view
+|       |   |-- SearchModal.tsx  Full-text message search modal
+|       |   |-- UserSearchModal.tsx User search + DM / profile actions
+|       |   |-- ChannelSettingsModal.tsx Channel rename, invite link, member management
+|       |   `-- UserProfileModal.tsx View any user's profile, avatar, role badge
 |       `-- __tests__/           Vitest test suite mirroring the src/ folder structure
 |
 |-- uploads/                     Uploaded files served by the backend (auto-created)
@@ -96,7 +98,7 @@ instant-messenger/
 
 ### Prerequisites
 
-- Node.js 18 or newer
+- Node.js 22 or newer
 - npm 9 or newer
 
 ---
@@ -187,7 +189,7 @@ Register a new account, or log in with the seeded demo account:
 
 | Email | Password |
 |---|---|
-| guest@demo.com | password123 |
+| alice@demo.com | password123 |
 
 ---
 

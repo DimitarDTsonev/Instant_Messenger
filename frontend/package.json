@@ -4,12 +4,14 @@
   "description": "Instant Messenger Frontend — React + Vite + Socket.io",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
+    "dev": "npm run build:sw && vite",
+    "build:sw": "./node_modules/.bin/tsc -p tsconfig.sw.json",
+    "build": "npm run build:sw && vite build",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "./node_modules/.bin/tsc --noEmit -p tsconfig.json && ./node_modules/.bin/tsc --noEmit -p tsconfig.node.json && ./node_modules/.bin/tsc --noEmit -p tsconfig.sw.json"
   },
   "dependencies": {
     "react": "^18.2.0",
@@ -20,9 +22,13 @@
     "@testing-library/jest-dom": "^6.4.2",
     "@testing-library/react": "^15.0.6",
     "@testing-library/user-event": "^14.5.2",
+    "@types/node": "^22.10.2",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^6.0.1",
     "@vitest/coverage-v8": "^4.1.5",
     "jsdom": "^24.0.0",
+    "typescript": "^5.5.4",
     "vite": "^8.0.10",
     "vitest": "^4.1.5"
   }
