@@ -142,6 +142,14 @@ describe("POST /api/auth/login", () => {
       .send({ password: "password123" });
     expect(res.status).toBe(400);
   });
+
+  test("returns 403 when account is banned", async () => {
+    db.prepare("UPDATE users SET is_banned = 1, ban_reason = 'spam' WHERE username = 'alice'").run();
+    const res = await request(app).post("/api/auth/login")
+      .send({ email: "alice@test.com", password: "password123" });
+    expect(res.status).toBe(403);
+    expect(res.body.error).toMatch(/suspended/i);
+  });
 });
 
 // ─── GET /api/auth/me ────────────────────────────────────────────────────────

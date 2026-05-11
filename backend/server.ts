@@ -32,7 +32,7 @@ import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 
-import { getDb, initDatabase } from "./src/db/database";
+import { getDb, initDatabase } from "./src/db/database.js";
 import authRoutes from "./src/routes/auth";
 import channelRoutes from "./src/routes/channels";
 import messageRoutes from "./src/routes/messages";
