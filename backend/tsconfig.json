@@ -1,9 +1,9 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "CommonJS",
+    "module": "Node16",
     "moduleDetection": "force",
-    "moduleResolution": "Node",
+    "moduleResolution": "Node16",
     "rootDir": ".",
     "outDir": "dist",
     "esModuleInterop": true,
@@ -13,7 +13,7 @@
     "strict": false,
     "noImplicitAny": true,
     "sourceMap": true,
-    "types": ["node", "jest"]
+    "types": ["node"]
   },
   "include": ["server.ts", "src/**/*.ts"],
   "exclude": ["dist", "node_modules", "coverage", "src/__tests__", "src/test-utils"]
