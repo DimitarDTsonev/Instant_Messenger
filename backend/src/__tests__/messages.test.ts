@@ -137,10 +137,10 @@ describe("GET /api/messages/:channelId", () => {
     expect(res.body.messages.every((m) => m.id < msgs.id)).toBe(true);
   });
 
-  test("returns 404 for unknown channel", async () => {
+  test("returns 403 for unknown or inaccessible channel", async () => {
     const res = await request(app).get("/api/messages/99999")
       .set("Authorization", `Bearer ${token}`);
-    expect(res.status).toBe(404);
+    expect(res.status).toBe(403);
   });
 
   test("attaches reactions map to each message", async () => {

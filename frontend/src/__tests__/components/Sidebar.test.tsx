@@ -7,7 +7,7 @@
  * and logout button.
  */
 
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, within } from "@testing-library/react";
 import { useAuth } from "../../context/AuthContext";
 import { useSocket } from "../../context/SocketContext";
 import Sidebar from "../../components/Sidebar";
@@ -148,7 +148,9 @@ describe("new channel form", () => {
   test("clicking cancel hides the new-channel form", () => {
     render(<Sidebar {...buildProps()} />);
     fireEvent.click(screen.getByTitle("New channel"));
-    fireEvent.click(screen.getByTitle("Cancel"));
+    // Cancel button renders as ✕ with type="button" (no title attribute)
+    const form = screen.getByPlaceholderText("new-channel").closest("form");
+    fireEvent.click(within(form).getByRole("button", { name: "✕" }));
     expect(screen.queryByPlaceholderText("new-channel")).not.toBeInTheDocument();
   });
 

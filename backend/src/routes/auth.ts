@@ -332,15 +332,18 @@ router.post("/forgot-password", (req, res) => {
   const user = db.prepare("SELECT id, username FROM users WHERE LOWER(email) = LOWER(?) AND is_guest = 0").get(email.trim()) as ResetUserRow | undefined;
   if (!user) return res.json({ success: true });
 
-  const token     = crypto.randomBytes(32).toString("hex");
+  const rawToken  = crypto.randomBytes(32).toString("hex");
+  const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
   const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString().replace("T", " ").slice(0, 19);
 
   // Invalidate any existing tokens for this user
   db.prepare("DELETE FROM password_reset_tokens WHERE user_id = ?").run(user.id);
-  db.prepare("INSERT INTO password_reset_tokens (user_id, token, expires_at) VALUES (?, ?, ?)").run(user.id, token, expiresAt);
+  // Store only the hash — the raw token is what gets sent to the user (via email in production)
+  db.prepare("INSERT INTO password_reset_tokens (user_id, token, expires_at) VALUES (?, ?, ?)").run(user.id, tokenHash, expiresAt);
 
-  // In production, send an email. For now, log to console for local testing.
-  console.log(`[PASSWORD RESET] token for ${user.username}: ${token}`);
+  // In production replace this with an email. The raw token is intentionally logged here
+  // because there is no email service — the console acts as the delivery mechanism for testing.
+  console.log(`[PASSWORD RESET] token for ${user.username}: ${rawToken}`);
 
   return res.json({ success: true });
 });
@@ -365,9 +368,10 @@ router.post("/reset-password", async (req, res) => {
 
   const db   = getDb();
   const now  = new Date().toISOString().replace("T", " ").slice(0, 19);
+  const tokenHash = crypto.createHash("sha256").update(token.trim()).digest("hex");
   const row  = db.prepare(
     "SELECT * FROM password_reset_tokens WHERE token = ? AND used = 0 AND expires_at > ?"
-  ).get(token.trim(), now) as ResetTokenRow | undefined;
+  ).get(tokenHash, now) as ResetTokenRow | undefined;
 
   if (!row) return res.status(400).json({ error: "Invalid or expired reset token" });
 

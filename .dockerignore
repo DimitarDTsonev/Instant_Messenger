@@ -10,4 +10,3 @@ backend/messenger.db-wal
 uploads
 .DS_Store
 npm-debug.log*
-

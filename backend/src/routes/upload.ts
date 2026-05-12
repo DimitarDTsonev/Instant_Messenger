@@ -56,7 +56,7 @@ const storage = multer.diskStorage({
  * Files whose MIME type is in this set are returned with `type: "image"`.
  */
 const IMAGE_TYPES = new Set([
-  "image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml",
+  "image/jpeg", "image/png", "image/gif", "image/webp",
 ]);
 
 /**

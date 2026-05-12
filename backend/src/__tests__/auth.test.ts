@@ -5,6 +5,7 @@
 
 import request from "supertest";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 
 import { getDb } from "../db/database";
 import { signToken } from "../middleware/auth";
@@ -169,13 +170,13 @@ describe("GET /api/auth/me", () => {
     expect(res.status).toBe(401);
   });
 
-  test("returns 404 if user was deleted after token was issued", async () => {
+  test("returns 401 if user was deleted after token was issued", async () => {
     const user  = seedUser("ghost");
     const token = signToken(user);
     db.prepare("DELETE FROM users WHERE id = ?").run(user.id);
     const res   = await request(app).get("/api/auth/me")
       .set("Authorization", `Bearer ${token}`);
-    expect(res.status).toBe(404);
+    expect(res.status).toBe(401);
   });
 });
 
@@ -351,13 +352,14 @@ describe("POST /api/auth/forgot-password", () => {
 
 describe("POST /api/auth/reset-password", () => {
   function seedResetToken(userId, opts: { expired?: boolean; used?: boolean } = {}) {
-    const token = "testtoken123";
+    const rawToken  = "testtoken123";
+    const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
     const expiresAt = opts.expired
       ? "2000-01-01 00:00:00"
       : new Date(Date.now() + 60 * 60 * 1000).toISOString().replace("T", " ").slice(0, 19);
     db.prepare("INSERT INTO password_reset_tokens (user_id, token, expires_at, used) VALUES (?, ?, ?, ?)")
-      .run(userId, token, expiresAt, opts.used ? 1 : 0);
-    return token;
+      .run(userId, tokenHash, expiresAt, opts.used ? 1 : 0);
+    return rawToken;
   }
 
   test("resets the password with a valid token", async () => {
@@ -368,8 +370,9 @@ describe("POST /api/auth/reset-password", () => {
       .send({ token, password: "newpassword" });
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
-    // Token should be marked as used
-    const row = db.prepare("SELECT used FROM password_reset_tokens WHERE token = ?").get(token);
+    // Token should be marked as used (DB stores the hash, not the raw token)
+    const storedHash = crypto.createHash("sha256").update(token).digest("hex");
+    const row = db.prepare("SELECT used FROM password_reset_tokens WHERE token = ?").get(storedHash);
     expect(row.used).toBe(1);
   });
 

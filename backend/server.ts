@@ -33,6 +33,12 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 
 import { getDb, initDatabase } from "./src/db/database.js";
+
+if (!process.env.JWT_SECRET) {
+  console.error("FATAL: JWT_SECRET environment variable is required. Set it in your Render config or .env file.");
+  process.exit(1);
+}
+
 import authRoutes from "./src/routes/auth";
 import channelRoutes from "./src/routes/channels";
 import messageRoutes from "./src/routes/messages";

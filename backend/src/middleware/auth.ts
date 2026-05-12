@@ -11,6 +11,7 @@
 import type { NextFunction, Request, Response } from "express";
 import type { AuthUser } from "../types";
 import jwt from "jsonwebtoken";
+import { getDb } from "../db/database";
 
 // Secret key used to sign and verify JWTs.
 // Must be overridden via the JWT_SECRET environment variable in production.
@@ -43,7 +44,13 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction) 
 
   try {
     const payload = jwt.verify(token, JWT_SECRET) as AuthUser;
-    req.user = payload; // { id, username, email, role }
+    // Fresh DB read: picks up role changes and bans that happened after token was issued
+    const user = getDb()
+      .prepare("SELECT id, username, email, role, is_banned FROM users WHERE id = ?")
+      .get(payload.id) as (AuthUser & { is_banned: number }) | undefined;
+    if (!user) return res.status(401).json({ error: "Authentication required" });
+    if (user.is_banned) return res.status(403).json({ error: "This account has been suspended" });
+    req.user = user;
     next();
   } catch {
     return res.status(401).json({ error: "Invalid or expired token" });
@@ -61,10 +68,15 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction) 
  *   `role` defaults to `"member"` if omitted.
  * @returns {string} Signed JWT token string
  */
-export function signToken(user: Pick<AuthUser, "id" | "username" | "email"> & Partial<Pick<AuthUser, "role">>) {
+export function signToken(user: Pick<AuthUser, "id" | "username" | "email"> & 
+                Partial<Pick<AuthUser, "role">>) {
   return jwt.sign(
-    { id: user.id, username: user.username, email: user.email, role: user.role || "member" },
-    JWT_SECRET,
+    { id: user.id, 
+      username: user.username, 
+      email: user.email, 
+      role: user.role || "member" 
+    },
+      JWT_SECRET,
     { expiresIn: "7d" }
   );
 }

@@ -24,6 +24,7 @@
 import express from "express";
 import { getDb } from "../db/database";
 import { authMiddleware } from "../middleware/auth";
+import { getUserRole } from "./channels";
 import type { Db, MessageRow, ReactionMap } from "../types";
 
 type SearchResultRow = MessageRow & {
@@ -122,7 +123,7 @@ router.get("/search", (req, res) => {
   const userId  = req.user.id; // Used to scope DM results to the current user
   const pattern = `%${q.trim()}%`; // SQL LIKE wildcard pattern
 
-  // Search channel messages (no access filtering — public channels only here)
+  // Search channel messages; private channels are filtered to members only
   const channelResults = db.prepare(`
     SELECT m.id, m.content, m.created_at,
            u.username, u.avatar,
@@ -132,11 +133,13 @@ router.get("/search", (req, res) => {
            NULL AS dm_partner_username,
            'channel' AS type
     FROM messages m
-    JOIN users    u ON u.id = m.user_id
-    JOIN channels c ON c.id = m.channel_id
+    JOIN users    u  ON u.id = m.user_id
+    JOIN channels c  ON c.id = m.channel_id
+    LEFT JOIN channel_members cm ON cm.channel_id = c.id AND cm.user_id = ?
     WHERE LOWER(m.content) LIKE LOWER(?)
+      AND (c.is_private = 0 OR c.created_by = ? OR cm.user_id IS NOT NULL)
     ORDER BY m.id DESC LIMIT 25
-  `).all(pattern) as SearchResultRow[];
+  `).all(userId, pattern, userId) as SearchResultRow[];
 
   // Search DMs involving the current user
   const dmResults = db.prepare(`
@@ -187,8 +190,8 @@ router.get("/:channelId", (req, res) => {
 
   const db = getDb();
 
-  const channel = db.prepare("SELECT id FROM channels WHERE id = ?").get(channelId);
-  if (!channel) return res.status(404).json({ error: "Channel not found" });
+  const role = getUserRole(db, req.user.id, channelId);
+  if (role === null) return res.status(403).json({ error: "Access denied" });
 
   // Fetch DESC then reverse so the array is in ascending order for the client
   const messages = before
@@ -214,6 +217,8 @@ router.get("/:channelId", (req, res) => {
 router.get("/:channelId/pinned", (req, res) => {
   const { channelId } = req.params;
   const db = getDb();
+
+  if (getUserRole(db, req.user.id, channelId) === null) return res.status(403).json({ error: "Access denied" });
 
   const messages = db
     .prepare(`${MSG_SELECT} WHERE m.channel_id = ? AND m.is_pinned = 1 ORDER BY m.id DESC`)
@@ -244,6 +249,8 @@ router.get("/:channelId/search", (req, res) => {
   }
 
   const db = getDb();
+
+  if (getUserRole(db, req.user.id, channelId) === null) return res.status(403).json({ error: "Access denied" });
 
   const results = db
     .prepare(`${MSG_SELECT} WHERE m.channel_id = ? AND LOWER(m.content) LIKE LOWER(?) ORDER BY m.id DESC LIMIT 50`)

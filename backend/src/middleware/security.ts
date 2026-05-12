@@ -144,8 +144,8 @@ export function isUserBanned(db: Db, userId: number) {
 
 // ── Socket message rate limiting ──────────────────────────────
 
-const RATE_WARN  = 20;  // warn + log at this many messages per 10 s
-export const RATE_BAN   = 50;  // auto-ban at this many messages per 10 s
+const RATE_WARN  = 20;          // warn + log at this many messages per 10 s
+export const RATE_BAN   = 50;   // auto-ban at this many messages per 10 s
 
 /**
  * Tracks socket message throughput for a user.

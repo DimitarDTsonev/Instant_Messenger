@@ -6,7 +6,15 @@
 import type { NextFunction, Request, Response } from "express";
 import jwt, { type JwtPayload } from "jsonwebtoken";
 
+import { getDb } from "../db/database";
 import { authMiddleware, signToken } from "../middleware/auth";
+
+jest.mock("../db/database", () => ({ getDb: jest.fn() }));
+const mockedGetDb = getDb as jest.Mock;
+
+function mockDbReturning(user: object | undefined) {
+  return { prepare: jest.fn().mockReturnValue({ get: jest.fn().mockReturnValue(user) }) };
+}
 
 const SECRET = process.env.JWT_SECRET || "super-secret-dev-key-change-in-prod";
 
@@ -96,6 +104,7 @@ describe("authMiddleware", () => {
   });
 
   test("attaches decoded payload to req.user and calls next for valid token", () => {
+    mockedGetDb.mockReturnValue(mockDbReturning({ id: 5, username: "alice", email: "a@a.com", role: "admin", is_banned: 0 }));
     const token = signToken({ id: 5, username: "alice", email: "a@a.com", role: "admin" });
     const req = mockReq(`Bearer ${token}`);
     const res = mockRes();
@@ -104,5 +113,25 @@ describe("authMiddleware", () => {
     expect(req.user.id).toBe(5);
     expect(req.user.role).toBe("admin");
     expect(res.status).not.toHaveBeenCalled();
+  });
+
+  test("returns 401 when user no longer exists in the database", () => {
+    mockedGetDb.mockReturnValue(mockDbReturning(undefined));
+    const token = signToken({ id: 99, username: "ghost", email: "g@g.com", role: "member" });
+    const req = mockReq(`Bearer ${token}`);
+    const res = mockRes();
+    authMiddleware(req as Request, res as Response, mockNext);
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(mockNext).not.toHaveBeenCalled();
+  });
+
+  test("returns 403 when user is banned", () => {
+    mockedGetDb.mockReturnValue(mockDbReturning({ id: 5, username: "alice", email: "a@a.com", role: "member", is_banned: 1 }));
+    const token = signToken({ id: 5, username: "alice", email: "a@a.com", role: "member" });
+    const req = mockReq(`Bearer ${token}`);
+    const res = mockRes();
+    authMiddleware(req as Request, res as Response, mockNext);
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(mockNext).not.toHaveBeenCalled();
   });
 });

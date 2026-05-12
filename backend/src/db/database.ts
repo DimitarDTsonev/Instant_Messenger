@@ -212,8 +212,10 @@ export function initDatabase() {
   `);
 
   // Migration: add new columns to existing tables if they do not yet exist
-  const msgCols  = (db.pragma("table_info(messages)") as Array<{ name: string }>).map((c) => c.name);
-  const userCols = (db.pragma("table_info(users)") as Array<{ name: string }>).map((c) => c.name);
+  const msgCols  = (db.pragma("table_info(messages)") as 
+        Array<{ name: string }>).map((c) => c.name);
+  const userCols = (db.pragma("table_info(users)") as 
+        Array<{ name: string }>).map((c) => c.name);
 
   // New columns added to messages over time
   const msgMigrations = [
@@ -269,7 +271,8 @@ export function initDatabase() {
   }
 
   // Migration: back-fill existing channel creators as 'owner' in channel_members
-  const existingChannels = db.prepare("SELECT id, created_by FROM channels WHERE created_by IS NOT NULL").all() as Array<{ id: number; created_by: number }>;
+  const existingChannels = db.prepare("SELECT id, created_by FROM channels WHERE created_by IS NOT NULL").all() as 
+        Array<{ id: number; created_by: number }>;
   const insertOwner = db.prepare(
     "INSERT OR IGNORE INTO channel_members (channel_id, user_id, role) VALUES (?, ?, 'owner')"
   );
@@ -285,7 +288,8 @@ export function initDatabase() {
   `).run();
 
   // Migration: add file attachment and edit-tracking columns to direct_messages
-  const dmCols = (db.pragma("table_info(direct_messages)") as Array<{ name: string }>).map((c) => c.name);
+  const dmCols = (db.pragma("table_info(direct_messages)") as 
+        Array<{ name: string }>).map((c) => c.name);
   const dmMigrations = [
     ["file_url",    "TEXT"],
     ["file_type",   "TEXT"],

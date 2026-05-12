@@ -8,8 +8,20 @@ import path from "path";
 import express from "express";
 import request from "supertest";
 
+import { getDb } from "../db/database";
 import { signToken } from "../middleware/auth";
 import uploadRouter from "../routes/upload";
+
+// authMiddleware now queries the DB to check for bans/role changes
+jest.mock("../db/database", () => ({ getDb: jest.fn() }));
+const mockedGetDb = getDb as jest.Mock;
+beforeAll(() => {
+  mockedGetDb.mockReturnValue({
+    prepare: jest.fn().mockReturnValue({
+      get: jest.fn().mockReturnValue({ id: 1, username: "tester", email: "t@t.com", role: "member", is_banned: 0 }),
+    }),
+  });
+});
 
 // Build a minimal app that mounts the upload router directly.
 // Multer writes to ../../uploads (two levels up from src/routes/), which
