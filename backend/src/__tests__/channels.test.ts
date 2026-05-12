@@ -1,8 +1,3 @@
-/**
- * @fileoverview Integration tests for /api/channels routes.
- * Covers channel CRUD, member management, role permissions, and invite links.
- */
-
 import request from "supertest";
 import bcrypt from "bcryptjs";
 
@@ -24,8 +19,6 @@ beforeAll(() => {
 });
 
 beforeEach(() => clearDb(db));
-
-// ── helpers ────────────────────────────────────────────────────────────────
 
 function seedUser(username: string, role = "member") {
   const hash = bcrypt.hashSync("pw", 1);
@@ -51,8 +44,6 @@ function seedChannel(name: string, creatorId: number, isPrivate = 0) {
 function addMember(channelId: number, userId: number, role = "member") {
   db.prepare("INSERT OR IGNORE INTO channel_members (channel_id, user_id, role) VALUES (?, ?, ?)").run(channelId, userId, role);
 }
-
-// ── getUserRole helper ─────────────────────────────────────────────────────
 
 describe("getUserRole", () => {
   test("returns explicit role from channel_members", () => {
@@ -89,8 +80,6 @@ describe("getUserRole", () => {
   });
 });
 
-// ── getPerms helper ────────────────────────────────────────────────────────
-
 describe("getPerms", () => {
   test("returns full perms for 'owner' role", () => {
     const u = seedUser("perm-owner");
@@ -123,8 +112,6 @@ describe("getPerms", () => {
     expect(p.can_write).toBe(0);
   });
 });
-
-// ── GET /api/channels ──────────────────────────────────────────────────────
 
 describe("GET /api/channels", () => {
   test("returns 401 without token", async () => {
@@ -165,8 +152,6 @@ describe("GET /api/channels", () => {
     expect(res.body.channels.some((c) => c.name === "priv-member-ch")).toBe(true);
   });
 });
-
-// ── POST /api/channels ─────────────────────────────────────────────────────
 
 describe("POST /api/channels", () => {
   test("returns 401 without token", async () => {
@@ -225,8 +210,6 @@ describe("POST /api/channels", () => {
   });
 });
 
-// ── PATCH /api/channels/:id ────────────────────────────────────────────────
-
 describe("PATCH /api/channels/:id", () => {
   test("returns 401 without token", async () => {
     const u = seedUser("patch-unauth");
@@ -280,8 +263,6 @@ describe("PATCH /api/channels/:id", () => {
   });
 });
 
-// ── DELETE /api/channels/:id ───────────────────────────────────────────────
-
 describe("DELETE /api/channels/:id", () => {
   test("returns 401 without token", async () => {
     const u = seedUser("del-unauth");
@@ -331,8 +312,6 @@ describe("DELETE /api/channels/:id", () => {
   });
 });
 
-// ── GET /api/channels/:id/members ─────────────────────────────────────────
-
 describe("GET /api/channels/:id/members", () => {
   test("returns 401 without token", async () => {
     const u = seedUser("mem-unauth");
@@ -364,8 +343,6 @@ describe("GET /api/channels/:id/members", () => {
     expect(res.body.members.length).toBeGreaterThanOrEqual(2);
   });
 });
-
-// ── POST /api/channels/:id/members ────────────────────────────────────────
 
 describe("POST /api/channels/:id/members", () => {
   test("returns 401 without token", async () => {
@@ -421,8 +398,6 @@ describe("POST /api/channels/:id/members", () => {
     expect(res.body.user.username).toBe(newMember.username);
   });
 });
-
-// ── PATCH /api/channels/:id/members/:userId ───────────────────────────────
 
 describe("PATCH /api/channels/:id/members/:userId", () => {
   test("returns 401 without token", async () => {
@@ -500,8 +475,6 @@ describe("PATCH /api/channels/:id/members/:userId", () => {
   });
 });
 
-// ── DELETE /api/channels/:id/members/:userId ──────────────────────────────
-
 describe("DELETE /api/channels/:id/members/:userId", () => {
   test("returns 401 without token", async () => {
     const u = seedUser("kick-unauth");
@@ -548,8 +521,6 @@ describe("DELETE /api/channels/:id/members/:userId", () => {
   });
 });
 
-// ── GET /api/channels/:id/permissions ─────────────────────────────────────
-
 describe("GET /api/channels/:id/permissions", () => {
   test("returns 401 without token", async () => {
     const u = seedUser("perms-unauth");
@@ -592,8 +563,6 @@ describe("GET /api/channels/:id/permissions", () => {
     expect(res.body.permissions.member.can_write).toBe(0);
   });
 });
-
-// ── PUT /api/channels/:id/permissions/:role ───────────────────────────────
 
 describe("PUT /api/channels/:id/permissions/:role", () => {
   test("returns 401 without token", async () => {
@@ -647,8 +616,6 @@ describe("PUT /api/channels/:id/permissions/:role", () => {
   });
 });
 
-// ── POST /api/channels/:id/invites ────────────────────────────────────────
-
 describe("POST /api/channels/:id/invites", () => {
   test("returns 401 without token", async () => {
     const u = seedUser("inv-create-unauth");
@@ -694,8 +661,6 @@ describe("POST /api/channels/:id/invites", () => {
   });
 });
 
-// ── GET /api/channels/:id/invites ─────────────────────────────────────────
-
 describe("GET /api/channels/:id/invites", () => {
   test("returns 401 without token", async () => {
     const u = seedUser("inv-list-unauth");
@@ -728,8 +693,6 @@ describe("GET /api/channels/:id/invites", () => {
     expect(res.body.invites.some((i) => i.code === "testcode01")).toBe(true);
   });
 });
-
-// ── DELETE /api/channels/:id/invites/:code ────────────────────────────────
 
 describe("DELETE /api/channels/:id/invites/:code", () => {
   test("returns 401 without token", async () => {

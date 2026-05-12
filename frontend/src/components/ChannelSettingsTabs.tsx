@@ -4,6 +4,8 @@ import { useAuth } from "../context/AuthContext";
 import { API_BASE as API } from "../config";
 import type { Channel, ChannelRole, PermissionKey } from "../types";
 import { useChannelMembers, useChannelPermissions, useChannelInvites } from "../hooks/useApi";
+import { avatarLabel } from "../utils/avatar";
+import Icon from "./Icons";
 import { s } from "./channelSettingsStyles";
 
 const INVITE_BASE = `${window.location.origin}${import.meta.env.BASE_URL}invite/`;
@@ -53,7 +55,7 @@ export function GeneralTab({ channel, myRole, onChannelUpdated }: { channel: Cha
         <div style={s.toggleRow}>
           <Toggle value={priv} onChange={setPriv} />
           <div>
-            <div style={{ fontSize: "14px", color: "#f2f3f5" }}>🔒 Private channel</div>
+            <div style={{ fontSize: "14px", color: "#f2f3f5" }}>Private channel</div>
             <div style={{ fontSize: "12px", color: "#5c6068" }}>Only invited users can see the channel</div>
           </div>
         </div>
@@ -102,8 +104,15 @@ export function MembersTab({ channelId, myRole, currentUserId }: { channelId: nu
       {error && <div style={s.error}>{error}</div>}
       {members.map((m) => (
         <div key={m.id} style={s.memberRow}>
-          <span style={s.memberAvatar}>{m.avatar || "👤"}</span>
-          <div style={s.memberName}>{m.username}{m.global_role === "admin" && <span title="Global admin" style={{ marginLeft: 4 }}>👑</span>}</div>
+          <span style={s.memberAvatar}>{avatarLabel(m)}</span>
+          <div style={s.memberName}>
+            {m.username}
+            {m.global_role === "admin" && (
+              <span title="Global admin" style={{ marginLeft: 4, color: "#faa61a", display: "inline-flex", verticalAlign: "text-bottom" }}>
+                <Icon name="shield" size={12} />
+              </span>
+            )}
+          </div>
           <span style={s.roleBadge(m.channel_role)}>{m.channel_role}</span>
           {canManage && m.id !== currentUserId && m.channel_role !== "owner" && (
             <>
@@ -146,7 +155,7 @@ export function PermissionsTab({ channelId, myRole }: { channelId: number; myRol
     <div>
       {["manager", "member"].map((role) => (
         <div key={role} style={{ marginBottom: "24px" }}>
-          <div style={s.sectionTitle}>Role: {role} {saved[role] && <span style={{ color: "#23a55a" }}>✓ Saved</span>}</div>
+          <div style={s.sectionTitle}>Role: {role} {saved[role] && <span style={{ color: "#23a55a" }}>Saved</span>}</div>
           {PERM_DEFS.map(({ key, label, desc }) => (
             <div key={key} style={s.permRow}>
               <div><div style={s.permLabel}>{label}</div><div style={s.permDesc}>{desc}</div></div>
@@ -184,7 +193,7 @@ export function InvitesTab({ channelId }: { channelId: number }) {
       <div style={{ background: "#0f0f1a", border: "1px solid #2d2d3f", borderRadius: "8px", padding: "14px", marginBottom: "16px" }}>
         <div style={s.sectionTitle}>New invite</div>
         <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-          <div style={{ flex: 1, minWidth: "120px" }}><label style={s.label}>Max uses</label><input style={s.input} type="number" min="1" value={maxUses} onChange={(e) => setMaxUses(e.target.value)} placeholder="∞" /></div>
+          <div style={{ flex: 1, minWidth: "120px" }}><label style={s.label}>Max uses</label><input style={s.input} type="number" min="1" value={maxUses} onChange={(e) => setMaxUses(e.target.value)} placeholder="unlimited" /></div>
           <div style={{ flex: 1, minWidth: "120px" }}><label style={s.label}>Expires after (hours)</label><input style={s.input} type="number" min="1" value={expiresHours} onChange={(e) => setExpiresHours(e.target.value)} placeholder="never" /></div>
         </div>
         <button style={{ ...s.saveBtn, marginTop: "12px" }} onClick={handleCreate} disabled={creating}>{creating ? "Generating..." : "Generate invite"}</button>
@@ -198,7 +207,7 @@ export function InvitesTab({ channelId }: { channelId: number }) {
             {inv.expires_at && ` · Expires ${new Date(inv.expires_at).toLocaleString("en-US")}`}
           </div>
           <div style={s.inviteActions}>
-            <button style={s.secondaryBtn} onClick={() => copy(inv.code)}>{copied === inv.code ? "✅ Copied!" : "📋 Copy"}</button>
+            <button style={s.secondaryBtn} onClick={() => copy(inv.code)}>{copied === inv.code ? "Copied" : "Copy"}</button>
             <button style={s.dangerBtn} onClick={() => deleteInvite(inv.code)}>Delete</button>
           </div>
         </div>

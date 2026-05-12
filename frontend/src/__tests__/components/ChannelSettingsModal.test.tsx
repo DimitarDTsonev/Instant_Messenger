@@ -1,11 +1,3 @@
-/**
- * @fileoverview Tests for ChannelSettingsModal component.
- * Covers: channel name in title, close button, Escape key, default tab (General),
- * tab switching, description field, save changes, Members tab member list,
- * Permissions tab owner-only restriction, Invites tab, non-owner tab visibility,
- * and admin access.
- */
-
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { useAuth } from "../../context/AuthContext";
 import { useSocket } from "../../context/SocketContext";
@@ -19,8 +11,8 @@ vi.mock("../../context/SocketContext", () => ({ useSocket: vi.fn() }));
 vi.mock("../../hooks/useApi", () => ({
   useChannelMembers: vi.fn(() => ({
     members: [
-      { id: 1, username: "alice", avatar: "👤", global_role: "admin", channel_role: "owner" },
-      { id: 2, username: "bob",   avatar: "🐧", global_role: "user",  channel_role: "member" },
+      { id: 1, username: "alice", avatar: "AL", global_role: "admin", channel_role: "owner" },
+      { id: 2, username: "bob",   avatar: "BO", global_role: "user",  channel_role: "member" },
     ],
     addMember: vi.fn(),
     removeMember: vi.fn(),
@@ -51,7 +43,7 @@ vi.mock("../../hooks/useApi", () => ({
 const MOCK_AUTH_FETCH = vi.fn().mockResolvedValue({ channel: { id: 10, name: "general", description: "Updated desc", is_private: 0 } });
 
 const DEFAULT_AUTH = {
-  user: { id: 1, username: "alice", role: "admin", avatar: "👤" },
+  user: { id: 1, username: "alice", role: "admin", avatar: "AL" },
   token: "tok",
   authFetch: MOCK_AUTH_FETCH,
 };
@@ -61,7 +53,6 @@ const DEFAULT_SOCKET = {
   onlineUserIds: [1],
 };
 
-/** A channel owned by alice. */
 const OWNER_CHANNEL = {
   id: 10,
   name: "general",
@@ -72,7 +63,6 @@ const OWNER_CHANNEL = {
   can_invite: 1,
 };
 
-/** A channel where alice is a regular member. */
 const MEMBER_CHANNEL = {
   id: 11,
   name: "random",
@@ -83,7 +73,6 @@ const MEMBER_CHANNEL = {
   can_invite: 0,
 };
 
-/** A channel where alice is a manager. */
 const MANAGER_CHANNEL = {
   id: 12,
   name: "projects",
@@ -111,8 +100,8 @@ beforeEach(() => {
   useSocket.mockReturnValue(DEFAULT_SOCKET);
   useChannelMembers.mockReturnValue({
     members: [
-      { id: 1, username: "alice", avatar: "👤", global_role: "admin", channel_role: "owner" },
-      { id: 2, username: "bob",   avatar: "🐧", global_role: "user",  channel_role: "member" },
+      { id: 1, username: "alice", avatar: "AL", global_role: "admin", channel_role: "owner" },
+      { id: 2, username: "bob",   avatar: "BO", global_role: "user",  channel_role: "member" },
     ],
     addMember: vi.fn(),
     removeMember: vi.fn(),
@@ -140,10 +129,7 @@ beforeEach(() => {
   });
   MOCK_AUTH_FETCH.mockClear();
 });
-
-// ─────────────────────────────────────────────────────────
 //  1. Renders channel name
-// ─────────────────────────────────────────────────────────
 describe("channel name in header", () => {
   test("shows channel name in the modal title", () => {
     renderModal();
@@ -152,38 +138,29 @@ describe("channel name in header", () => {
 
   test("shows lock icon prefix for private channels", () => {
     renderModal({ is_private: 1 });
-    // The title contains 🔒 for private channels
-    const title = screen.getByText(/general.*Settings/i);
-    expect(title.textContent).toContain("🔒");
+    expect(screen.getByTitle("Private channel")).toBeInTheDocument();
   });
 
   test("shows # prefix for public channels", () => {
     renderModal({ is_private: 0 });
-    const title = screen.getByText(/general.*Settings/i);
-    expect(title.textContent).toContain("#");
+    expect(screen.getByTitle("Public channel")).toBeInTheDocument();
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  2. Close button calls onClose
-// ─────────────────────────────────────────────────────────
 describe("close button", () => {
-  test("clicking ✕ calls onClose", () => {
+  test("clicking x calls onClose", () => {
     const onClose = vi.fn();
     renderModal({}, { onClose });
-    fireEvent.click(screen.getByText("✕"));
+    fireEvent.click(screen.getByRole("button", { name: "Close settings" }));
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  3. Escape key calls onClose (via overlay click on backdrop)
-// ─────────────────────────────────────────────────────────
 describe("overlay click", () => {
   test("clicking the overlay backdrop calls onClose", () => {
     const onClose = vi.fn();
     const { container } = renderModal({}, { onClose });
-    // The overlay is the outermost div — simulate a click where target === currentTarget
+    // The overlay is the outermost div - simulate a click where target === currentTarget
     const overlay = container.firstChild;
     // Simulate a click directly on the overlay element
     fireEvent.click(overlay, { target: overlay });
@@ -192,10 +169,7 @@ describe("overlay click", () => {
     expect(overlay).toBeInTheDocument();
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  4. Default tab is General
-// ─────────────────────────────────────────────────────────
 describe("default tab", () => {
   test("General tab is shown by default", () => {
     renderModal();
@@ -205,20 +179,17 @@ describe("default tab", () => {
 
   test("General tab button appears active (bold)", () => {
     renderModal();
-    // The tab button text is "⚙️ General" — use exact string match
-    const generalTabBtn = screen.getByText("⚙️ General");
+    // The tab button text is "General" - use exact string match
+    const generalTabBtn = screen.getByText("General");
     // Active tab has fontWeight: 700
     expect(generalTabBtn).toHaveStyle({ fontWeight: 700 });
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  5. Tab switching
-// ─────────────────────────────────────────────────────────
 describe("tab switching", () => {
   test("clicking Members tab shows member list", () => {
     renderModal();
-    fireEvent.click(screen.getByText("👥 Members"));
+    fireEvent.click(screen.getByText("Members"));
     // MembersTab renders usernames
     expect(screen.getByText("alice")).toBeInTheDocument();
     expect(screen.getByText("bob")).toBeInTheDocument();
@@ -226,21 +197,18 @@ describe("tab switching", () => {
 
   test("clicking Permissions tab shows permission toggles (owner only)", () => {
     renderModal();
-    fireEvent.click(screen.getByText("🛡️ Permissions"));
+    fireEvent.click(screen.getByText("Permissions"));
     // "Can write" appears twice (once per role), so use getAllBy
     expect(screen.getAllByText("Can write").length).toBeGreaterThanOrEqual(1);
   });
 
   test("clicking Invites tab shows invite list", () => {
     renderModal();
-    fireEvent.click(screen.getByText("🔗 Invites"));
+    fireEvent.click(screen.getByText("Invites"));
     expect(screen.getByText(/ABC123/)).toBeInTheDocument();
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  6. Settings tab: description field
-// ─────────────────────────────────────────────────────────
 describe("General tab description field", () => {
   test("description textarea is pre-filled with channel description", () => {
     renderModal();
@@ -260,10 +228,7 @@ describe("General tab description field", () => {
     expect(textarea).toBeDisabled();
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  7. Save changes calls onUpdate (authFetch)
-// ─────────────────────────────────────────────────────────
 describe("save changes", () => {
   test("clicking Save button triggers authFetch for the owner", async () => {
     renderModal();
@@ -289,31 +254,28 @@ describe("save changes", () => {
     expect(screen.queryByText("Save")).not.toBeInTheDocument();
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  8. Members tab shows member list
-// ─────────────────────────────────────────────────────────
 describe("Members tab", () => {
   test("renders all member usernames", () => {
     renderModal();
-    fireEvent.click(screen.getByText("👥 Members"));
+    fireEvent.click(screen.getByText("Members"));
     expect(screen.getByText("alice")).toBeInTheDocument();
     expect(screen.getByText("bob")).toBeInTheDocument();
   });
 
   test("shows channel role badges", () => {
     renderModal();
-    fireEvent.click(screen.getByText("👥 Members"));
+    fireEvent.click(screen.getByText("Members"));
     expect(screen.getByText("owner")).toBeInTheDocument();
-    // "member" may appear multiple times (role badge + select option) — just check presence
+    // "member" may appear multiple times (role badge + select option) - just check presence
     expect(screen.getAllByText("member").length).toBeGreaterThanOrEqual(1);
   });
 
   test("shows viewer role badge styling branch", () => {
     useChannelMembers.mockReturnValue({
       members: [
-        { id: 1, username: "alice", avatar: "👤", global_role: "admin", channel_role: "owner" },
-        { id: 3, username: "viewer", avatar: "👁️", global_role: "user", channel_role: "viewer" },
+        { id: 1, username: "alice", avatar: "AL", global_role: "admin", channel_role: "owner" },
+        { id: 3, username: "viewer", avatar: "VI", global_role: "user", channel_role: "viewer" },
       ],
       addMember: vi.fn(),
       removeMember: vi.fn(),
@@ -321,38 +283,35 @@ describe("Members tab", () => {
     });
 
     renderModal();
-    fireEvent.click(screen.getByText("👥 Members"));
+    fireEvent.click(screen.getByText("Members"));
 
     expect(screen.getAllByText("viewer").length).toBeGreaterThanOrEqual(1);
   });
 
   test("shows Add member form for owner", () => {
     renderModal();
-    fireEvent.click(screen.getByText("👥 Members"));
+    fireEvent.click(screen.getByText("Members"));
     expect(screen.getByPlaceholderText("username...")).toBeInTheDocument();
   });
 
   test("does not show Add member form for plain member", () => {
     renderModal({ user_role: "member" });
-    fireEvent.click(screen.getByText("👥 Members"));
+    fireEvent.click(screen.getByText("Members"));
     expect(screen.queryByPlaceholderText("username...")).not.toBeInTheDocument();
   });
 
   test("shows Kick button for non-owner members when viewer is owner", () => {
     renderModal();
-    fireEvent.click(screen.getByText("👥 Members"));
+    fireEvent.click(screen.getByText("Members"));
     // bob is member and can be kicked
     expect(screen.getByText("Kick")).toBeInTheDocument();
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  9. Permissions tab (owner only)
-// ─────────────────────────────────────────────────────────
 describe("Permissions tab", () => {
   test("shows permission definitions for owner", () => {
     renderModal();
-    fireEvent.click(screen.getByText("🛡️ Permissions"));
+    fireEvent.click(screen.getByText("Permissions"));
     // Each perm label appears once per role (manager/member) = 2 times each
     expect(screen.getAllByText("Can write").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Can invite").length).toBeGreaterThanOrEqual(1);
@@ -361,68 +320,59 @@ describe("Permissions tab", () => {
   });
 
   test("shows restricted message for non-owner", () => {
-    // The Permissions tab is hidden entirely for non-owners — verify button is absent.
+    // The Permissions tab is hidden entirely for non-owners - verify button is absent.
     renderModal({ user_role: "member" });
-    expect(screen.queryByText("🛡️ Permissions")).not.toBeInTheDocument();
+    expect(screen.queryByText("Permissions")).not.toBeInTheDocument();
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  10. Invites tab shows invite list
-// ─────────────────────────────────────────────────────────
 describe("Invites tab", () => {
   test("shows invite code", () => {
     renderModal();
-    fireEvent.click(screen.getByText("🔗 Invites"));
+    fireEvent.click(screen.getByText("Invites"));
     expect(screen.getByText(/ABC123/)).toBeInTheDocument();
   });
 
   test("shows invite creator name", () => {
     renderModal();
-    fireEvent.click(screen.getByText("🔗 Invites"));
+    fireEvent.click(screen.getByText("Invites"));
     expect(screen.getByText(/Created by alice/)).toBeInTheDocument();
   });
 
   test("shows Copy and Delete buttons for each invite", () => {
     renderModal();
-    fireEvent.click(screen.getByText("🔗 Invites"));
+    fireEvent.click(screen.getByText("Invites"));
     expect(screen.getByText(/Copy/)).toBeInTheDocument();
     expect(screen.getByText("Delete")).toBeInTheDocument();
   });
 
   test("shows 'Generate invite' button", () => {
     renderModal();
-    fireEvent.click(screen.getByText("🔗 Invites"));
+    fireEvent.click(screen.getByText("Invites"));
     expect(screen.getByText("Generate invite")).toBeInTheDocument();
   });
 
   test("Invites tab is hidden for plain member without can_invite", () => {
     renderModal({ user_role: "member", can_invite: 0 });
-    expect(screen.queryByText("🔗 Invites")).not.toBeInTheDocument();
+    expect(screen.queryByText("Invites")).not.toBeInTheDocument();
   });
 
   test("Invites tab is visible for manager", () => {
     renderModal({ user_role: "manager" });
-    expect(screen.getByText("🔗 Invites")).toBeInTheDocument();
+    expect(screen.getByText("Invites")).toBeInTheDocument();
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  11. Non-owner cannot see Permissions tab
-// ─────────────────────────────────────────────────────────
 describe("tab visibility for non-owner", () => {
   test("member sees General and Members tabs only (no Permissions, no Invites by default)", () => {
     renderModal({ user_role: "member", can_invite: 0 });
-    expect(screen.getByText("⚙️ General")).toBeInTheDocument();
-    expect(screen.getByText("👥 Members")).toBeInTheDocument();
-    expect(screen.queryByText("🛡️ Permissions")).not.toBeInTheDocument();
-    expect(screen.queryByText("🔗 Invites")).not.toBeInTheDocument();
+    expect(screen.getByText("General")).toBeInTheDocument();
+    expect(screen.getByText("Members")).toBeInTheDocument();
+    expect(screen.queryByText("Permissions")).not.toBeInTheDocument();
+    expect(screen.queryByText("Invites")).not.toBeInTheDocument();
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  12. Admin can access settings (role shown in title)
-// ─────────────────────────────────────────────────────────
 describe("admin access", () => {
   test("shows role label in the modal title", () => {
     renderModal({ user_role: "owner" });
@@ -434,10 +384,7 @@ describe("admin access", () => {
     expect(screen.getByText(/\(member\)/)).toBeInTheDocument();
   });
 });
-
-// ─────────────────────────────────────────────────────────
-//  13. General tab interactions — onChange handlers
-// ─────────────────────────────────────────────────────────
+//  13. General tab interactions - onChange handlers
 describe("General tab interactions", () => {
   test("typing in description textarea updates value", () => {
     renderModal();
@@ -449,7 +396,7 @@ describe("General tab interactions", () => {
   test("clicking the private channel toggle fires onChange", async () => {
     renderModal();
     // The Toggle button is rendered only for owner on General tab
-    // Find the toggle button by its style — it's the only button without text in the toggle row
+    // Find the toggle button by its style - it's the only button without text in the toggle row
     const toggleBtn = screen.getAllByRole("button").find(
       (b) => b.querySelector("div") !== null && !b.textContent.trim()
     );
@@ -467,14 +414,11 @@ describe("General tab interactions", () => {
     await waitFor(() => expect(screen.getByText(/Error:.*Server error/i)).toBeInTheDocument());
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  14. Members tab interactions
-// ─────────────────────────────────────────────────────────
 describe("Members tab interactions", () => {
   test("typing in add-member input updates its value", () => {
     renderModal();
-    fireEvent.click(screen.getByText("👥 Members"));
+    fireEvent.click(screen.getByText("Members"));
     const input = screen.getByPlaceholderText("username...");
     fireEvent.change(input, { target: { value: "carol" } });
     expect(input).toHaveValue("carol");
@@ -484,8 +428,8 @@ describe("Members tab interactions", () => {
     const addMember = vi.fn().mockResolvedValue();
     useChannelMembers.mockReturnValue({
       members: [
-        { id: 1, username: "alice", avatar: "👤", global_role: "admin", channel_role: "owner" },
-        { id: 2, username: "bob",   avatar: "🐧", global_role: "user",  channel_role: "member" },
+        { id: 1, username: "alice", avatar: "AL", global_role: "admin", channel_role: "owner" },
+        { id: 2, username: "bob",   avatar: "BO", global_role: "user",  channel_role: "member" },
       ],
       addMember,
       removeMember: vi.fn(),
@@ -493,7 +437,7 @@ describe("Members tab interactions", () => {
     });
 
     renderModal();
-    fireEvent.click(screen.getByText("👥 Members"));
+    fireEvent.click(screen.getByText("Members"));
     const input = screen.getByPlaceholderText("username...");
     fireEvent.change(input, { target: { value: "carol" } });
     fireEvent.submit(input.closest("form"));
@@ -505,8 +449,8 @@ describe("Members tab interactions", () => {
     const addMember = vi.fn();
     useChannelMembers.mockReturnValue({
       members: [
-        { id: 1, username: "alice", avatar: "👤", global_role: "admin", channel_role: "owner" },
-        { id: 2, username: "bob", avatar: "🐧", global_role: "user", channel_role: "member" },
+        { id: 1, username: "alice", avatar: "AL", global_role: "admin", channel_role: "owner" },
+        { id: 2, username: "bob", avatar: "BO", global_role: "user", channel_role: "member" },
       ],
       addMember,
       removeMember: vi.fn(),
@@ -514,7 +458,7 @@ describe("Members tab interactions", () => {
     });
 
     renderModal();
-    fireEvent.click(screen.getByText("👥 Members"));
+    fireEvent.click(screen.getByText("Members"));
     fireEvent.submit(screen.getByPlaceholderText("username...").closest("form"));
 
     expect(addMember).not.toHaveBeenCalled();
@@ -525,8 +469,8 @@ describe("Members tab interactions", () => {
     const removeMember = vi.fn().mockResolvedValue();
     useChannelMembers.mockReturnValue({
       members: [
-        { id: 1, username: "alice", avatar: "👤", global_role: "admin", channel_role: "owner" },
-        { id: 2, username: "bob",   avatar: "🐧", global_role: "user",  channel_role: "member" },
+        { id: 1, username: "alice", avatar: "AL", global_role: "admin", channel_role: "owner" },
+        { id: 2, username: "bob",   avatar: "BO", global_role: "user",  channel_role: "member" },
       ],
       addMember: vi.fn(),
       removeMember,
@@ -534,7 +478,7 @@ describe("Members tab interactions", () => {
     });
 
     renderModal();
-    fireEvent.click(screen.getByText("👥 Members"));
+    fireEvent.click(screen.getByText("Members"));
     fireEvent.click(screen.getByText("Kick"));
 
     await waitFor(() => expect(removeMember).toHaveBeenCalledWith(2));
@@ -546,8 +490,8 @@ describe("Members tab interactions", () => {
     const removeMember = vi.fn();
     useChannelMembers.mockReturnValue({
       members: [
-        { id: 1, username: "alice", avatar: "👤", global_role: "admin", channel_role: "owner" },
-        { id: 2, username: "bob", avatar: "🐧", global_role: "user", channel_role: "member" },
+        { id: 1, username: "alice", avatar: "AL", global_role: "admin", channel_role: "owner" },
+        { id: 2, username: "bob", avatar: "BO", global_role: "user", channel_role: "member" },
       ],
       addMember: vi.fn(),
       removeMember,
@@ -555,7 +499,7 @@ describe("Members tab interactions", () => {
     });
 
     renderModal();
-    fireEvent.click(screen.getByText("👥 Members"));
+    fireEvent.click(screen.getByText("Members"));
     fireEvent.click(screen.getByText("Kick"));
 
     expect(removeMember).not.toHaveBeenCalled();
@@ -566,8 +510,8 @@ describe("Members tab interactions", () => {
     const changeRole = vi.fn().mockResolvedValue();
     useChannelMembers.mockReturnValue({
       members: [
-        { id: 1, username: "alice", avatar: "👤", global_role: "admin", channel_role: "owner" },
-        { id: 2, username: "bob",   avatar: "🐧", global_role: "user",  channel_role: "member" },
+        { id: 1, username: "alice", avatar: "AL", global_role: "admin", channel_role: "owner" },
+        { id: 2, username: "bob",   avatar: "BO", global_role: "user",  channel_role: "member" },
       ],
       addMember: vi.fn(),
       removeMember: vi.fn(),
@@ -575,17 +519,14 @@ describe("Members tab interactions", () => {
     });
 
     renderModal();
-    fireEvent.click(screen.getByText("👥 Members"));
+    fireEvent.click(screen.getByText("Members"));
     const select = screen.getByRole("combobox");
     fireEvent.change(select, { target: { value: "manager" } });
 
     await waitFor(() => expect(changeRole).toHaveBeenCalledWith(2, "manager"));
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  15. Permissions tab interactions
-// ─────────────────────────────────────────────────────────
 describe("Permissions tab interactions", () => {
   test("shows loading state when permissions are not loaded", () => {
     useChannelPermissions.mockReturnValue({
@@ -594,7 +535,7 @@ describe("Permissions tab interactions", () => {
     });
 
     renderModal();
-    fireEvent.click(screen.getByText("🛡️ Permissions"));
+    fireEvent.click(screen.getByText("Permissions"));
 
     expect(screen.getByText("Loading...")).toBeInTheDocument();
   });
@@ -610,7 +551,7 @@ describe("Permissions tab interactions", () => {
     });
 
     renderModal();
-    fireEvent.click(screen.getByText("🛡️ Permissions"));
+    fireEvent.click(screen.getByText("Permissions"));
 
     // Find the first toggle button in the permissions tab
     const toggleBtns = screen.getAllByRole("button").filter(
@@ -634,7 +575,7 @@ describe("Permissions tab interactions", () => {
     });
 
     renderModal();
-    fireEvent.click(screen.getByText("🛡️ Permissions"));
+    fireEvent.click(screen.getByText("Permissions"));
     const toggleBtns = screen.getAllByRole("button").filter(
       (b) => b.querySelector("div") !== null && !b.textContent.trim()
     );
@@ -644,10 +585,7 @@ describe("Permissions tab interactions", () => {
     alertSpy.mockRestore();
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  16. Invites tab interactions
-// ─────────────────────────────────────────────────────────
 describe("Invites tab interactions", () => {
   test("shows empty invite state when there are no invites", () => {
     useChannelInvites.mockReturnValue({
@@ -657,7 +595,7 @@ describe("Invites tab interactions", () => {
     });
 
     renderModal();
-    fireEvent.click(screen.getByText("🔗 Invites"));
+    fireEvent.click(screen.getByText("Invites"));
 
     expect(screen.getByText("No active invites")).toBeInTheDocument();
   });
@@ -676,7 +614,7 @@ describe("Invites tab interactions", () => {
     });
 
     renderModal();
-    fireEvent.click(screen.getByText("🔗 Invites"));
+    fireEvent.click(screen.getByText("Invites"));
 
     expect(screen.getByText(/2 uses/)).toBeInTheDocument();
     expect(screen.getAllByText(/Expires/).length).toBeGreaterThanOrEqual(1);
@@ -684,7 +622,7 @@ describe("Invites tab interactions", () => {
 
   test("typing in max-uses input updates its value", () => {
     renderModal();
-    fireEvent.click(screen.getByText("🔗 Invites"));
+    fireEvent.click(screen.getByText("Invites"));
     const inputs = screen.getAllByRole("spinbutton"); // type="number"
     fireEvent.change(inputs[0], { target: { value: "5" } });
     expect(inputs[0]).toHaveValue(5);
@@ -692,7 +630,7 @@ describe("Invites tab interactions", () => {
 
   test("typing in expires-hours input updates its value", () => {
     renderModal();
-    fireEvent.click(screen.getByText("🔗 Invites"));
+    fireEvent.click(screen.getByText("Invites"));
     const inputs = screen.getAllByRole("spinbutton");
     fireEvent.change(inputs[1], { target: { value: "24" } });
     expect(inputs[1]).toHaveValue(24);
@@ -707,7 +645,7 @@ describe("Invites tab interactions", () => {
     });
 
     renderModal();
-    fireEvent.click(screen.getByText("🔗 Invites"));
+    fireEvent.click(screen.getByText("Invites"));
     fireEvent.click(screen.getByText("Generate invite"));
 
     await waitFor(() => expect(createInvite).toHaveBeenCalled());
@@ -722,7 +660,7 @@ describe("Invites tab interactions", () => {
     });
 
     renderModal();
-    fireEvent.click(screen.getByText("🔗 Invites"));
+    fireEvent.click(screen.getByText("Invites"));
     const inputs = screen.getAllByRole("spinbutton");
     fireEvent.change(inputs[0], { target: { value: "5" } });
     fireEvent.change(inputs[1], { target: { value: "24" } });
@@ -739,8 +677,8 @@ describe("Invites tab interactions", () => {
     Object.defineProperty(navigator, "clipboard", { value: { writeText }, writable: true });
 
     renderModal();
-    fireEvent.click(screen.getByText("🔗 Invites"));
-    fireEvent.click(screen.getByText(/📋 Copy/));
+    fireEvent.click(screen.getByText("Invites"));
+    fireEvent.click(screen.getByText(/Copy/));
 
     await waitFor(() => expect(writeText).toHaveBeenCalledWith(expect.stringContaining("ABC123")));
   });
@@ -754,7 +692,7 @@ describe("Invites tab interactions", () => {
     });
 
     renderModal();
-    fireEvent.click(screen.getByText("🔗 Invites"));
+    fireEvent.click(screen.getByText("Invites"));
     fireEvent.click(screen.getByText("Delete"));
 
     await waitFor(() => expect(deleteInvite).toHaveBeenCalledWith("ABC123"));

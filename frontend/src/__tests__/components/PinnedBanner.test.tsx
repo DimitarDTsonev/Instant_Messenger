@@ -1,8 +1,3 @@
-/**
- * @fileoverview Tests for PinnedBanner component
- * Covers: renders nothing when empty, shows pin, collapse/expand, multi-pin nav, unpin button
- */
-
 import { render, screen, fireEvent } from "@testing-library/react";
 import PinnedBanner from "../../components/PinnedBanner";
 
@@ -50,15 +45,15 @@ describe("PinnedBanner", () => {
 
   test("collapse button hides message content", () => {
     render(<PinnedBanner pinnedMessages={[PIN1]} channelCreatedBy={1} onUnpin={vi.fn()} />);
-    const collapseBtn = screen.getByText("▲");
+    const collapseBtn = screen.getByRole("button", { name: "Collapse pinned message" });
     fireEvent.click(collapseBtn);
     expect(screen.queryByText(/first pinned message/)).not.toBeInTheDocument();
   });
 
   test("expand button restores message content after collapse", () => {
     render(<PinnedBanner pinnedMessages={[PIN1]} channelCreatedBy={1} onUnpin={vi.fn()} />);
-    fireEvent.click(screen.getByText("▲"));
-    fireEvent.click(screen.getByText("▼"));
+    fireEvent.click(screen.getByRole("button", { name: "Collapse pinned message" }));
+    fireEvent.click(screen.getByRole("button", { name: "Expand pinned message" }));
     expect(screen.getByText(/first pinned message/)).toBeInTheDocument();
   });
 
@@ -76,14 +71,14 @@ describe("PinnedBanner", () => {
 
   test("advances to next pin when forward arrow is clicked", () => {
     render(<PinnedBanner pinnedMessages={[PIN1, PIN2]} channelCreatedBy={1} onUnpin={vi.fn()} />);
-    fireEvent.click(screen.getByText("▶"));
+    fireEvent.click(screen.getByRole("button", { name: "Next pinned message" }));
     expect(screen.getByText(/second pinned message/)).toBeInTheDocument();
   });
 
   test("wraps back to first pin when back arrow is clicked on last pin", () => {
     render(<PinnedBanner pinnedMessages={[PIN1, PIN2]} channelCreatedBy={1} onUnpin={vi.fn()} />);
-    fireEvent.click(screen.getByText("▶")); // go to pin 2
-    fireEvent.click(screen.getByText("◀")); // wrap back
+    fireEvent.click(screen.getByRole("button", { name: "Next pinned message" }));
+    fireEvent.click(screen.getByRole("button", { name: "First pinned message" }));
     expect(screen.getByText(/first pinned message/)).toBeInTheDocument();
   });
 
@@ -97,7 +92,7 @@ describe("PinnedBanner", () => {
     const longPin = { id: 13, username: "alice", content: "a".repeat(200), file_url: null };
     render(<PinnedBanner pinnedMessages={[longPin]} channelCreatedBy={1} onUnpin={vi.fn()} />);
     // Should show 120 chars + ellipsis, not the full 200
-    const content = screen.getByText(/a+…/);
+    const content = screen.getAllByText(/a+\.\.\./)[0];
     expect(content.textContent.length).toBeLessThan(200);
   });
 });

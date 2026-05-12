@@ -1,8 +1,3 @@
-// ============================================================
-//  src/db/seed.ts — Development seed data
-//  Run with: npm run seed
-// ============================================================
-
 import bcrypt from "bcryptjs";
 import { getDb, initDatabase } from "./database";
 
@@ -12,18 +7,13 @@ async function seed() {
 
   console.log("Seeding development data...\n");
 
-  // -----------------------------------------------------------
-  // Wipe existing data (development only)
-  // -----------------------------------------------------------
+  // Development-only reset.
   db.exec(`
     DELETE FROM messages;
     DELETE FROM channels;
     DELETE FROM users;
   `);
 
-  // -----------------------------------------------------------
-  // Users
-  // -----------------------------------------------------------
   const password = bcrypt.hashSync("password123", 10);
 
   const insertUser = db.prepare(`
@@ -32,10 +22,10 @@ async function seed() {
   `);
 
   const users = [
-    { username: "alice",   email: "alice@demo.com",   avatar: "🧑‍💻" },
-    { username: "bob",     email: "bob@demo.com",     avatar: "👨‍🎨" },
-    { username: "charlie", email: "charlie@demo.com", avatar: "👩‍🔬" },
-    { username: "diana",   email: "diana@demo.com",   avatar: "🧑‍🚀" },
+    { username: "alice",   email: "alice@demo.com",   avatar: "AL" },
+    { username: "bob",     email: "bob@demo.com",     avatar: "BO" },
+    { username: "charlie", email: "charlie@demo.com", avatar: "CH" },
+    { username: "diana",   email: "diana@demo.com",   avatar: "DI" },
   ];
 
   const insertedUsers = users.map((u) => {
@@ -44,9 +34,6 @@ async function seed() {
     return { id: lastInsertRowid, ...u };
   });
 
-  // -----------------------------------------------------------
-  // Channels
-  // -----------------------------------------------------------
   const insertChannel = db.prepare(`
     INSERT INTO channels (name, description, created_by)
     VALUES (?, ?, ?)
@@ -65,9 +52,6 @@ async function seed() {
     return { id: lastInsertRowid, ...c };
   });
 
-  // -----------------------------------------------------------
-  // Messages
-  // -----------------------------------------------------------
   const insertMessage = db.prepare(`
     INSERT INTO messages (content, channel_id, user_id, created_at)
     VALUES (?, ?, ?, ?)
@@ -85,7 +69,7 @@ async function seed() {
     // #tech
     { content: "Anyone using React 19?",                            channelId: insertedChannels[2].id, userId: insertedUsers[1].id, ago: 40 * min },
     { content: "Yes, Server Components are amazing!",               channelId: insertedChannels[2].id, userId: insertedUsers[2].id, ago: 35 * min },
-    { content: "Socket.io vs raw WebSocket — which do you prefer?", channelId: insertedChannels[2].id, userId: insertedUsers[0].id, ago: 30 * min },
+    { content: "Socket.io vs raw WebSocket - which do you prefer?", channelId: insertedChannels[2].id, userId: insertedUsers[0].id, ago: 30 * min },
     { content: "Socket.io has better cross-browser compatibility",  channelId: insertedChannels[2].id, userId: insertedUsers[3].id, ago: 25 * min },
     // #random
     { content: "Anyone watched Oppenheimer?",                       channelId: insertedChannels[1].id, userId: insertedUsers[3].id, ago: 20 * min },

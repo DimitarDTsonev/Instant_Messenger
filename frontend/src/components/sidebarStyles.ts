@@ -9,6 +9,7 @@ export const s: Record<string, any> = {
   sectionHeader: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 16px", cursor: "pointer" },
   sectionTitle: { fontSize: "11px", fontWeight: 700, color: "#949ba4", textTransform: "uppercase", letterSpacing: "0.5px" },
   addBtn:       { width: "16px", height: "16px", color: "#949ba4", fontSize: "16px", lineHeight: "16px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "4px", transition: "all 0.15s" },
+  iconButton:   { width: "28px", height: "28px", display: "flex", alignItems: "center", justifyContent: "center", background: "transparent", border: "none", color: "#5c6068", cursor: "pointer", padding: 0, borderRadius: "6px" },
   channelItem: (active: boolean) => ({
     display: "flex", alignItems: "center", gap: "6px", padding: "5px 16px", cursor: "pointer",
     background: active ? "#5865f220" : "transparent",
@@ -31,7 +32,7 @@ export const s: Record<string, any> = {
   footerUser:   { flex: 1, overflow: "hidden" },
   footerUsername: { fontSize: "13px", fontWeight: 600, color: "#f2f3f5", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
   footerEmail:  { fontSize: "11px", color: "#5c6068", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
-  logoutBtn:    { padding: "6px", borderRadius: "6px", color: "#f23f42", fontSize: "18px", transition: "background 0.15s" },
+  logoutBtn:    { width: "30px", height: "30px", padding: 0, borderRadius: "6px", color: "#f23f42", background: "transparent", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "background 0.15s" },
   newChannelForm: { padding: "8px 16px", display: "flex", flexDirection: "column", gap: "6px" },
   newChannelInput: { background: "#0f0f1a", border: "1px solid #2d2d3f", borderRadius: "6px", padding: "6px 10px", color: "#f2f3f5", fontSize: "13px", outline: "none" },
   newChannelRow: { display: "flex", gap: "6px" },

@@ -1,19 +1,3 @@
-// ============================================================
-//  src/db/database.ts — SQLite database initialisation
-//
-//  Provides a singleton better-sqlite3 connection and runs all
-//  CREATE TABLE / ALTER TABLE migrations on first startup.
-//
-//  Tables managed:
-//    users, channels, messages, direct_messages,
-//    message_reactions, dm_reactions,
-//    channel_members, channel_permissions, channel_invites
-//
-//  Exports:
-//    getDb()        — returns the singleton Database instance
-//    initDatabase() — creates tables and applies migrations
-// ============================================================
-
 import type { Db } from "../types";
 import Database from "better-sqlite3";
 import path from "path";
@@ -24,17 +8,6 @@ const DB_PATH = process.env.DB_PATH || path.join(process.cwd(), "messenger.db");
 // Module-level singleton; populated on first call to getDb()
 let db: Db | null = null;
 
-/**
- * Returns the singleton better-sqlite3 database instance.
- *
- * On the first call the database file is opened (or created) at
- * `DB_PATH`, WAL journal mode is enabled for better write concurrency,
- * and foreign-key enforcement is turned on.
- *
- * Subsequent calls return the already-open instance without re-opening.
- *
- * @returns {import('better-sqlite3').Database} The open SQLite database instance
- */
 export function getDb(): Db {
   if (!db) {
     db = new Database(DB_PATH);
@@ -44,27 +17,6 @@ export function getDb(): Db {
   return db;
 }
 
-/**
- * Creates all application tables and applies incremental schema migrations.
- *
- * This function is idempotent — it uses `CREATE TABLE IF NOT EXISTS` and
- * `ALTER TABLE … ADD COLUMN` guards, so it is safe to call on every server
- * startup regardless of whether the database already exists.
- *
- * Migration steps performed:
- *  1. Creates core tables: users, channels, messages, direct_messages,
- *     message_reactions, dm_reactions, channel_members,
- *     channel_permissions, channel_invites.
- *  2. Adds new columns to `messages` (edit tracking, reply threading,
- *     file attachment, pinning).
- *  3. Adds `role` and `is_guest` columns to `users`.
- *  4. Adds `is_private` column to `channels`.
- *  5. Back-fills existing channel creators as `owner` in `channel_members`.
- *  6. Purges guest accounts older than 24 hours.
- *  7. Adds file attachment and edit-tracking columns to `direct_messages`.
- *
- * @returns {void}
- */
 export function initDatabase() {
   const db = getDb();
 

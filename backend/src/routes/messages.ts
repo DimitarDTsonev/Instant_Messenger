@@ -1,26 +1,3 @@
-// ============================================================
-//  src/routes/messages.ts — Channel message read routes
-//
-//  Provides paginated message history, per-channel search,
-//  pinned-message listing, and a cross-channel/DM global search.
-//
-//  All routes require a valid Bearer token (authMiddleware applied
-//  globally via router.use).
-//
-//  REST routes defined:
-//    GET /api/messages/search?q=          — global full-text search (channels + DMs)
-//    GET /api/messages/:channelId         — paginated channel history
-//    GET /api/messages/:channelId/pinned  — list pinned messages in a channel
-//    GET /api/messages/:channelId/search  — search within a specific channel
-//
-//  Note: Write operations (send, edit, delete, react, pin) are handled
-//  over Socket.io in src/socket/handlers.ts.
-//
-//  Connects to:
-//    ../db/database     — SQLite via getDb()
-//    ../middleware/auth — authMiddleware
-// ============================================================
-
 import express from "express";
 import { getDb } from "../db/database";
 import { authMiddleware } from "../middleware/auth";
@@ -36,18 +13,6 @@ type SearchResultRow = MessageRow & {
 const router = express.Router();
 router.use(authMiddleware);
 
-/**
- * Reusable SQL fragment that selects a full message row with author info,
- * reply-to preview fields, and a reply count.
- * Append a WHERE clause and ORDER/LIMIT before passing to `.prepare()`.
- *
- * Columns returned:
- *   id, content, created_at, is_edited, edited_at, reply_to_id,
- *   file_url, file_type, file_name, is_pinned,
- *   user_id, username, avatar, role (author),
- *   reply_content, reply_file_url, reply_username, reply_avatar,
- *   reply_count
- */
 const MSG_SELECT = `
   SELECT
     m.id, m.content, m.created_at, m.is_edited, m.edited_at,
@@ -64,17 +29,6 @@ const MSG_SELECT = `
   LEFT JOIN users ru    ON ru.id = rm.user_id
 `;
 
-/**
- * Mutates each message object in the array by attaching a `reactions` map.
- *
- * The reactions map has the shape `{ [emoji]: userId[] }`.
- * A single bulk query is used for all message IDs to avoid N+1 queries.
- * If the array is empty the function returns early without a database call.
- *
- * @param {import('better-sqlite3').Database} db - SQLite database instance
- * @param {Object[]} messages - Array of message objects to enrich in-place
- * @returns {void}
- */
 function attachReactions(db: Db, messages: MessageRow[]) {
   if (!messages.length) return;
   const ids = messages.map((m) => m.id);
@@ -95,24 +49,6 @@ function attachReactions(db: Db, messages: MessageRow[]) {
   messages.forEach((m) => { m.reactions = map[m.id] || {}; });
 }
 
-/**
- * GET /api/messages/search?q=
- * Performs a global full-text search across both channel messages and
- * direct messages that involve the authenticated user.
- *
- * NOTE: This route MUST be registered before `/:channelId` to prevent
- * Express from interpreting "search" as a channel ID.
- *
- * Results from both sources are merged, sorted by most recent, and
- * capped at 50. Each result includes a `type` field ("channel" or "dm")
- * and contextual fields (channel_id / dm_partner_id, etc.).
- *
- * @route   GET /api/messages/search
- * @access  Private (requires Bearer token)
- * @param   {string} req.query.q - Search term (min 2 characters)
- * @returns {200} { results: SearchResultObject[], query: string }
- * @returns {400} { error: string } - Query too short
- */
 router.get("/search", (req, res) => {
   const q = typeof req.query.q === "string" ? req.query.q : "";
   if (!q || q.trim().length < 2) {
@@ -166,22 +102,6 @@ router.get("/search", (req, res) => {
   return res.json({ results: all, query: q });
 });
 
-/**
- * GET /api/messages/:channelId?limit=50&before=<id>
- * Returns paginated messages for a channel in ascending chronological order.
- *
- * Pagination is cursor-based: pass `before=<messageId>` to load the page
- * that precedes the given message ID. `hasMore` is `true` when there are
- * additional older messages available.
- *
- * @route   GET /api/messages/:channelId
- * @access  Private (requires Bearer token)
- * @param   {string} req.params.channelId - Target channel ID
- * @param   {number} [req.query.limit=50] - Number of messages to return (max 100)
- * @param   {number} [req.query.before]   - Return messages with id < this value
- * @returns {200} { messages: MessageObject[], hasMore: boolean }
- * @returns {404} { error: string } - Channel not found
- */
 router.get("/:channelId", (req, res) => {
   const { channelId } = req.params;
   // Cap limit at 100 to prevent excessive payloads
@@ -204,16 +124,6 @@ router.get("/:channelId", (req, res) => {
   return res.json({ messages, hasMore: messages.length === limit });
 });
 
-/**
- * GET /api/messages/:channelId/pinned
- * Returns all pinned messages in a channel, most recently pinned first.
- * Emoji reactions are attached to each message.
- *
- * @route   GET /api/messages/:channelId/pinned
- * @access  Private (requires Bearer token)
- * @param   {string} req.params.channelId - Target channel ID
- * @returns {200} { messages: MessageObject[] }
- */
 router.get("/:channelId/pinned", (req, res) => {
   const { channelId } = req.params;
   const db = getDb();
@@ -228,18 +138,6 @@ router.get("/:channelId/pinned", (req, res) => {
   return res.json({ messages });
 });
 
-/**
- * GET /api/messages/:channelId/search?q=
- * Searches for messages within a specific channel whose content matches
- * the given query string (case-insensitive). Returns up to 50 results.
- *
- * @route   GET /api/messages/:channelId/search
- * @access  Private (requires Bearer token)
- * @param   {string} req.params.channelId - Target channel ID
- * @param   {string} req.query.q          - Search term (min 2 characters)
- * @returns {200} { results: MessageObject[], query: string, count: number }
- * @returns {400} { error: string } - Query too short
- */
 router.get("/:channelId/search", (req, res) => {
   const { channelId } = req.params;
   const q = typeof req.query.q === "string" ? req.query.q : "";

@@ -1,16 +1,3 @@
-// ============================================================
-//  src/routes/channels/members.ts — Channel member management
-//
-//  Mounted at /:id/members on the channels router.
-//  Uses mergeParams so req.params.id (the channel ID) is available.
-//
-//  Routes:
-//    GET    /              — list channel members
-//    POST   /              — add a member by username
-//    PATCH  /:userId       — change a member's channel role
-//    DELETE /:userId       — remove (kick) a member
-// ============================================================
-
 import { Router } from "express";
 import type { Request, Response } from "express";
 import { getDb } from "../../db/database";

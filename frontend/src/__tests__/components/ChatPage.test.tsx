@@ -1,11 +1,3 @@
-/**
- * @fileoverview Tests for ChatPage (main page component).
- * Covers: sidebar rendered, channel area, DM area, welcome screen, channel name
- * in topbar, SearchModal opens, UserSearchModal opens, UserProfileModal opens,
- * ChannelSettingsModal opens, online users count, DM unread count, channel
- * notification badge, and loading state.
- */
-
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { useAuth } from "../../context/AuthContext";
 import { useSocket } from "../../context/SocketContext";
@@ -19,12 +11,8 @@ import {
   useChannelPermissions,
 } from "../../hooks/useApi";
 import ChatPage from "../../pages/ChatPage";
-
-// ── Context mocks ───────────────────────────────────────────────
 vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
 vi.mock("../../context/SocketContext", () => ({ useSocket: vi.fn() }));
-
-// ── API hooks mock ──────────────────────────────────────────────
 vi.mock("../../hooks/useApi", () => ({
   useChannels:          vi.fn(),
   useMessages:          vi.fn(),
@@ -34,8 +22,6 @@ vi.mock("../../hooks/useApi", () => ({
   usePinnedMessages:    vi.fn(),
   useChannelPermissions: vi.fn(),
 }));
-
-// ── Heavy child component mocks ────────────────────────────────
 // These are mocked to simple test-id containers so ChatPage tests focus on
 // page-level behaviour without replicating component internals.
 vi.mock("../../components/Sidebar", () => ({
@@ -81,7 +67,7 @@ vi.mock("../../components/PinnedBanner", () => ({
   ),
 }));
 
-// Additional modals — rendered only when their show-state is true:
+// Additional modals - rendered only when their show-state is true:
 vi.mock("../../components/SearchModal", () => ({
   default: ({ onClose, onNavigate }) => (
     <div data-testid="search-modal">
@@ -95,7 +81,7 @@ vi.mock("../../components/UserSearchModal", () => ({
   default: ({ onClose, onSelectDm, onViewProfile }) => (
     <div data-testid="user-search-modal">
       <button onClick={onClose}>Close user search</button>
-      <button data-testid="user-search-select-dm"      onClick={() => onSelectDm?.({ id: 2, username: "bob", avatar: "🐧" })}>Select DM</button>
+      <button data-testid="user-search-select-dm"      onClick={() => onSelectDm?.({ id: 2, username: "bob", avatar: "BO" })}>Select DM</button>
       <button data-testid="user-search-view-profile"   onClick={() => onViewProfile?.(2)}>View profile</button>
     </div>
   ),
@@ -104,7 +90,7 @@ vi.mock("../../components/UserProfileModal", () => ({
   default: ({ onClose, onStartDm }) => (
     <div data-testid="user-profile-modal">
       <button onClick={onClose}>Close profile</button>
-      <button data-testid="profile-start-dm" onClick={() => onStartDm?.({ id: 2, username: "bob", avatar: "🐧" })}>Start DM</button>
+      <button data-testid="profile-start-dm" onClick={() => onStartDm?.({ id: 2, username: "bob", avatar: "BO" })}>Start DM</button>
     </div>
   ),
 }));
@@ -116,16 +102,14 @@ vi.mock("../../components/ChannelSettingsModal", () => ({
     </div>
   ),
 }));
-
-// ── Sample data ─────────────────────────────────────────────────
 const CHANNELS = [
   { id: 10, name: "general",  description: "General chat", is_private: 0, created_by: 1, user_role: "owner" },
   { id: 11, name: "random",   description: "",             is_private: 0, created_by: 2, user_role: "member" },
 ];
 
 const USERS = [
-  { id: 1, username: "alice", avatar: "👤", role: "admin" },
-  { id: 2, username: "bob",   avatar: "🐧", role: "user"  },
+  { id: 1, username: "alice", avatar: "AL", role: "admin" },
+  { id: 2, username: "bob",   avatar: "BO", role: "user"  },
 ];
 
 const CONVERSATIONS = [
@@ -134,9 +118,6 @@ const CONVERSATIONS = [
 
 const PINNED_MESSAGES = [];
 
-// ── Default mock return values ──────────────────────────────────
-
-/** Returns a no-op cleanup fn for all socket event subscriptions. */
 const noopCleanup = () => vi.fn(() => vi.fn());
 
 const DEFAULT_SOCKET = {
@@ -179,7 +160,7 @@ const DEFAULT_SOCKET = {
 };
 
 const DEFAULT_AUTH = {
-  user: { id: 1, username: "alice", role: "admin", avatar: "👤" },
+  user: { id: 1, username: "alice", role: "admin", avatar: "AL" },
   token: "tok",
   authFetch: vi.fn().mockResolvedValue({}),
 };
@@ -242,20 +223,14 @@ beforeEach(() => {
   // Clear sessionStorage so session restore doesn't affect tests
   sessionStorage.clear();
 });
-
-// ─────────────────────────────────────────────────────────
 //  1. Sidebar rendered
-// ─────────────────────────────────────────────────────────
 describe("Sidebar", () => {
   test("renders the Sidebar component", () => {
     render(<ChatPage />);
     expect(screen.getByTestId("sidebar")).toBeInTheDocument();
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  2. Welcome screen when no channel / DM selected
-// ─────────────────────────────────────────────────────────
 describe("welcome screen", () => {
   test("shows welcome message when no channel or DM is active (empty channel list)", () => {
     setupDefaultMocks({ channels: [] });
@@ -269,10 +244,7 @@ describe("welcome screen", () => {
     expect(screen.getByText(/Select a channel or user from the left menu/i)).toBeInTheDocument();
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  3. Channel area rendered when channel selected
-// ─────────────────────────────────────────────────────────
 describe("channel view", () => {
   test("renders ChatArea when a channel is active", async () => {
     render(<ChatPage />);
@@ -299,10 +271,7 @@ describe("channel view", () => {
     });
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  4. Channel description in topbar
-// ─────────────────────────────────────────────────────────
 describe("topbar description", () => {
   test("shows channel description in topbar when present", async () => {
     render(<ChatPage />);
@@ -312,10 +281,7 @@ describe("topbar description", () => {
     });
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  5. DM area rendered when DM selected
-// ─────────────────────────────────────────────────────────
 describe("DM view", () => {
   test("renders ChatArea when a DM is active", async () => {
     render(<ChatPage />);
@@ -337,7 +303,7 @@ describe("DM view", () => {
     render(<ChatPage />);
     fireEvent.click(screen.getByTestId("sidebar-select-dm"));
     await waitFor(() => {
-      expect(screen.getByText(/💬 DM/i)).toBeInTheDocument();
+      expect(screen.getByText(/DM/i)).toBeInTheDocument();
     });
   });
 
@@ -349,17 +315,14 @@ describe("DM view", () => {
     });
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  6. SearchModal opens on search click
-// ─────────────────────────────────────────────────────────
 describe("SearchModal", () => {
   test("SearchModal is not shown initially", () => {
     render(<ChatPage />);
     expect(screen.queryByTestId("search-modal")).not.toBeInTheDocument();
   });
 
-  test("clicking the 🔍 Search button opens SearchModal", async () => {
+  test("clicking the Search button opens SearchModal", async () => {
     render(<ChatPage />);
     fireEvent.click(screen.getByText(/Search/));
     await waitFor(() => {
@@ -377,10 +340,7 @@ describe("SearchModal", () => {
     });
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  7. UserSearchModal opens
-// ─────────────────────────────────────────────────────────
 describe("UserSearchModal", () => {
   test("UserSearchModal not shown initially", () => {
     render(<ChatPage />);
@@ -405,10 +365,7 @@ describe("UserSearchModal", () => {
     });
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  8. UserProfileModal opens on profile view
-// ─────────────────────────────────────────────────────────
 describe("UserProfileModal", () => {
   test("UserProfileModal not shown initially", () => {
     render(<ChatPage />);
@@ -433,10 +390,7 @@ describe("UserProfileModal", () => {
     });
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  9. ChannelSettingsModal opens on settings click
-// ─────────────────────────────────────────────────────────
 describe("ChannelSettingsModal", () => {
   test("settings modal not shown initially", () => {
     render(<ChatPage />);
@@ -471,10 +425,7 @@ describe("ChannelSettingsModal", () => {
     }
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  10. PinnedBanner rendered for channels
-// ─────────────────────────────────────────────────────────
 describe("PinnedBanner", () => {
   test("PinnedBanner is rendered when a channel is active", async () => {
     render(<ChatPage />);
@@ -484,20 +435,14 @@ describe("PinnedBanner", () => {
     });
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  11. Search button always present in topbar
-// ─────────────────────────────────────────────────────────
 describe("topbar search button", () => {
-  test("🔍 Search button is always visible", () => {
+  test("Search button is always visible", () => {
     render(<ChatPage />);
     expect(screen.getByText(/Search/)).toBeInTheDocument();
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  12. Ctrl+F opens search modal
-// ─────────────────────────────────────────────────────────
 describe("Ctrl+F shortcut", () => {
   test("pressing Ctrl+F opens SearchModal", async () => {
     render(<ChatPage />);
@@ -507,10 +452,7 @@ describe("Ctrl+F shortcut", () => {
     });
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  13. Loading state while channels load
-// ─────────────────────────────────────────────────────────
 describe("loading state", () => {
   test("shows 'Loading...' in topbar when no channel or DM is selected and channels are empty", () => {
     setupDefaultMocks({ channels: [] });
@@ -518,10 +460,7 @@ describe("loading state", () => {
     expect(screen.getByText("Loading...")).toBeInTheDocument();
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  14. Session restore: auto-selects first channel
-// ─────────────────────────────────────────────────────────
 describe("session restore", () => {
   test("auto-selects the first channel if no session is saved", async () => {
     sessionStorage.clear();
@@ -541,10 +480,7 @@ describe("session restore", () => {
     });
   });
 });
-
-// ─────────────────────────────────────────────────────────
-//  15. Handler coverage — prop callbacks
-// ─────────────────────────────────────────────────────────
+//  15. Handler coverage - prop callbacks
 describe("handler coverage", () => {
   test("handleCreateChannel creates and selects new channel", async () => {
     const newChannel = { id: 99, name: "new-ch", description: "desc", is_private: 0, user_role: "owner" };
@@ -687,10 +623,7 @@ describe("handler coverage", () => {
     await waitFor(() => expect(screen.getByTestId("chat-area")).toBeInTheDocument());
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  17. Mobile sidebar toggle
-// ─────────────────────────────────────────────────────────
 describe("mobile sidebar", () => {
   test("sidebar starts closed (open=false)", () => {
     render(<ChatPage />);
@@ -750,10 +683,7 @@ describe("mobile sidebar", () => {
     expect(screen.getByTestId("sidebar")).toHaveAttribute("data-open", "false");
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  18. Socket handler branch coverage
-// ─────────────────────────────────────────────────────────
 describe("socket handler branches", () => {
   // Helper to capture a single socket subscription handler
   function captureHandler(eventName) {
@@ -850,7 +780,7 @@ describe("socket handler branches", () => {
 
     // Active channel is 10; notification for channel 11 should increment badge
     act(() => notifyHandler({ channelId: 11 }));
-    // No visible assertion needed — just covering the branch without throwing
+    // No visible assertion needed - just covering the branch without throwing
     expect(notifyHandler).toBeDefined();
   });
 
@@ -995,11 +925,11 @@ describe("socket handler branches", () => {
     fireEvent.click(screen.getByTestId("sidebar-select-dm"));
     await waitFor(() => screen.getByTestId("chat-area"));
 
-    // Partner reads → seenByPartner = true
+    // Partner reads -> seenByPartner = true
     act(() => dmReadHandler({ readBy: 2 }));
     await waitFor(() => expect(screen.getByTestId("chat-area").dataset.seen).toBe("true"));
 
-    // User sends a new message → seenByPartner should reset to false
+    // User sends a new message -> seenByPartner should reset to false
     fireEvent.click(screen.getByTestId("input-dm-sent"));
     await waitFor(() => expect(screen.getByTestId("chat-area").dataset.seen).toBe("false"));
   });
@@ -1032,10 +962,7 @@ describe("socket handler branches", () => {
     expect(addMessage).not.toHaveBeenCalled();
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  19. Delete active channel switches to next
-// ─────────────────────────────────────────────────────────
 describe("delete active channel", () => {
   test("deleting the active channel selects the next available channel", async () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
@@ -1077,10 +1004,7 @@ describe("delete active channel", () => {
     vi.restoreAllMocks();
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  20. Session restore with DM
-// ─────────────────────────────────────────────────────────
 describe("session restore DM", () => {
   test("restores DM from sessionStorage when user is present", async () => {
     sessionStorage.setItem("im_session", JSON.stringify({ channelId: null, dmUserId: 2 }));
@@ -1090,11 +1014,8 @@ describe("session restore DM", () => {
     });
   });
 });
-
-// ---------------------------------------------------------------------------
-// onDmDeleted — ternary branches and removeDmMsg call (lines 279-281)
-// ---------------------------------------------------------------------------
-describe("ChatPage — onDmDeleted socket event", () => {
+// onDmDeleted - ternary branches and removeDmMsg call (lines 279-281)
+describe("ChatPage - onDmDeleted socket event", () => {
   let capturedOnDmDeleted;
   let mockRemoveDmMsg;
 
@@ -1115,7 +1036,7 @@ describe("ChatPage — onDmDeleted socket event", () => {
   });
 
   it("calls removeMessage when current user is the SENDER (partnerId = receiverId)", async () => {
-    // user.id=1 is sender, receiverId=2 = activeDm.id → partnerId=2 matches
+    // user.id=1 is sender, receiverId=2 = activeDm.id -> partnerId=2 matches
     render(<ChatPage />);
     // Open DM with bob (id=2) to set activeDmRef
     fireEvent.click(screen.getByTestId("sidebar-select-dm"));
@@ -1128,7 +1049,7 @@ describe("ChatPage — onDmDeleted socket event", () => {
   });
 
   it("calls removeMessage via second OR branch (activeDmRef.id === senderId)", async () => {
-    // user.id=1 is receiver, senderId=2 = activeDm.id → second OR branch
+    // user.id=1 is receiver, senderId=2 = activeDm.id -> second OR branch
     render(<ChatPage />);
     fireEvent.click(screen.getByTestId("sidebar-select-dm"));
 
@@ -1144,18 +1065,15 @@ describe("ChatPage — onDmDeleted socket event", () => {
     fireEvent.click(screen.getByTestId("sidebar-select-dm"));
 
     await act(async () => {
-      // senderId=4, receiverId=5 → neither matches activeDm.id(2)
+      // senderId=4, receiverId=5 -> neither matches activeDm.id(2)
       capturedOnDmDeleted?.({ messageId: 77, senderId: 4, receiverId: 5 });
     });
 
     expect(mockRemoveDmMsg).not.toHaveBeenCalled();
   });
 });
-
-// ---------------------------------------------------------------------------
-// onDmReacted — updateDmMsg with reactions (line 289)
-// ---------------------------------------------------------------------------
-describe("ChatPage — onDmReacted socket event", () => {
+// onDmReacted - updateDmMsg with reactions (line 289)
+describe("ChatPage - onDmReacted socket event", () => {
   let capturedOnDmReacted;
   let mockUpdateDmMsg;
 
@@ -1186,11 +1104,8 @@ describe("ChatPage — onDmReacted socket event", () => {
     expect(mockUpdateDmMsg).toHaveBeenCalledWith({ id: 88, reactions: newReactions });
   });
 });
-
-// ---------------------------------------------------------------------------
-// handlePin — error callbacks (lines 449, 451)
-// ---------------------------------------------------------------------------
-describe("ChatPage — handlePin() error callbacks", () => {
+// handlePin - error callbacks (lines 449, 451)
+describe("ChatPage - handlePin() error callbacks", () => {
   beforeEach(() => {
     vi.spyOn(console, "error").mockImplementation(() => {});
   });
@@ -1224,11 +1139,8 @@ describe("ChatPage — handlePin() error callbacks", () => {
     DEFAULT_SOCKET.pinMessage.mockReset();
   });
 });
-
-// ---------------------------------------------------------------------------
-// onDmEdited — branches when active DM matches (lines 270-272)
-// ---------------------------------------------------------------------------
-describe("ChatPage — onDmEdited socket event", () => {
+// onDmEdited - branches when active DM matches (lines 270-272)
+describe("ChatPage - onDmEdited socket event", () => {
   let capturedOnDmEdited;
   let mockUpdateDmMsg;
 
@@ -1281,11 +1193,8 @@ describe("ChatPage — onDmEdited socket event", () => {
     expect(mockUpdateDmMsg).not.toHaveBeenCalled();
   });
 });
-
-// ---------------------------------------------------------------------------
-// onUserMentioned — Notification branch (lines 231-232)
-// ---------------------------------------------------------------------------
-describe("ChatPage — onUserMentioned Notification", () => {
+// onUserMentioned - Notification branch (lines 231-232)
+describe("ChatPage - onUserMentioned Notification", () => {
   let capturedOnUserMentioned;
 
   beforeEach(() => {

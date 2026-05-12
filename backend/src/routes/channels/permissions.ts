@@ -1,13 +1,3 @@
-// ============================================================
-//  src/routes/channels/permissions.ts — Per-role permission settings
-//
-//  Mounted at /:id/permissions on the channels router.
-//
-//  Routes:
-//    GET  /        — return permission matrix for manager and member roles
-//    PUT  /:role   — upsert permissions for a specific role (owner only)
-// ============================================================
-
 import { Router } from "express";
 import type { Request, Response } from "express";
 import { getDb } from "../../db/database";

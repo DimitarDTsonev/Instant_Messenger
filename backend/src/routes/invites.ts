@@ -1,19 +1,3 @@
-// ============================================================
-//  src/routes/invites.ts — Public invite-link endpoints
-//
-//  Allows unauthenticated users to preview a channel via an invite
-//  code, and authenticated users (including guests) to join a channel
-//  by redeeming that code.
-//
-//  REST routes defined:
-//    GET  /api/invite/:code       — preview invite info (public, no auth required)
-//    POST /api/invite/:code/join  — join the channel via invite (auth required)
-//
-//  Connects to:
-//    ../db/database     — SQLite via getDb()
-//    ../middleware/auth — authMiddleware (join route only)
-// ============================================================
-
 import express from "express";
 import { getDb } from "../db/database";
 import { authMiddleware } from "../middleware/auth";
@@ -30,27 +14,6 @@ type InviteRow = {
 // Express router; individual routes opt-in to authMiddleware as needed
 const router = express.Router();
 
-/**
- * GET /api/invite/:code
- * Returns preview information about a channel invite link — including the
- * channel name, description, current member count, and who created it.
- *
- * This endpoint is intentionally public so that un-authenticated visitors
- * (e.g. following a shared link) can see what they are about to join.
- *
- * Returns HTTP 410 (Gone) if the invite has expired or reached its
- * maximum use count.
- *
- * @route   GET /api/invite/:code
- * @access  Public (no authentication required)
- * @param   {string} req.params.code - The 10-character hex invite code
- * @returns {200} { invite: InvitePreviewObject }
- *   InvitePreviewObject includes all channel_invites fields plus:
- *     channel_name, channel_description, is_private,
- *     created_by_username, member_count
- * @returns {404} { error: string } - Invite not found or deleted
- * @returns {410} { error: string } - Invite has expired or reached max uses
- */
 router.get("/:code", (req, res) => {
   const db = getDb();
   const invite = db.prepare(`
@@ -69,7 +32,7 @@ router.get("/:code", (req, res) => {
   if (!invite)
     return res.status(404).json({ error: "Invite not found or has been deleted" });
 
-  // Check expiry — expires_at is stored as an ISO timestamp string
+  // Check expiry - expires_at is stored as an ISO timestamp string
   if (invite.expires_at && new Date(invite.expires_at) < new Date())
     return res.status(410).json({ error: "This invite has expired" });
 
@@ -80,23 +43,6 @@ router.get("/:code", (req, res) => {
   return res.json({ invite });
 });
 
-/**
- * POST /api/invite/:code/join
- * Redeems an invite code, adding the authenticated user to the channel
- * as a "member". Uses INSERT OR IGNORE so calling this endpoint multiple
- * times is safe (idempotent membership add).
- *
- * The invite's `uses_count` is incremented on each successful join.
- * Returns the channel object including the user's resolved role.
- *
- * @route   POST /api/invite/:code/join
- * @access  Private — any authenticated user, including guests
- * @param   {string} req.params.code - The 10-character hex invite code
- * @returns {200} { success: true, channel: ChannelObject }
- *   ChannelObject includes all channels fields plus `user_role`
- * @returns {404} { error: string } - Invite not found
- * @returns {410} { error: string } - Invite expired or max uses reached
- */
 router.post("/:code/join", authMiddleware, (req, res) => {
   const db     = getDb();
   const invite = db.prepare("SELECT * FROM channel_invites WHERE code = ?").get(req.params.code) as InviteRow | undefined;

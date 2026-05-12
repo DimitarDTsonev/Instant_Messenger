@@ -1,8 +1,3 @@
-/**
- * @fileoverview Tests for SearchModal component
- * Covers: renders, auto-focus, Escape close, backdrop close, search results, navigation
- */
-
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import SearchModal from "../../components/SearchModal";
@@ -33,7 +28,7 @@ describe("SearchModal", () => {
   test("calls onClose when ESC button is clicked", () => {
     const onClose = vi.fn();
     render(<SearchModal onClose={onClose} />);
-    fireEvent.click(screen.getByText("ESC"));
+    fireEvent.click(screen.getByRole("button", { name: "Close search" }));
     expect(onClose).toHaveBeenCalled();
   });
 
@@ -71,7 +66,7 @@ describe("SearchModal", () => {
   test("renders result cards for each match", () => {
     useGlobalSearch.mockReturnValue({
       results: [
-        { id: 1, type: "channel", username: "alice", avatar: "👤",
+        { id: 1, type: "channel", username: "alice", avatar: "AL",
           content: "hello world", created_at: new Date().toISOString(),
           channel_name: "general" },
       ],
@@ -84,7 +79,7 @@ describe("SearchModal", () => {
 
   test("calls onNavigate and closes when a result is clicked", () => {
     const result = {
-      id: 1, type: "channel", username: "alice", avatar: "👤",
+      id: 1, type: "channel", username: "alice", avatar: "AL",
       content: "hello world", created_at: new Date().toISOString(), channel_name: "general",
     };
     const onNavigate = vi.fn();
@@ -103,7 +98,7 @@ describe("SearchModal", () => {
   test("shows result count badge when there are results", () => {
     useGlobalSearch.mockReturnValue({
       results: [
-        { id: 1, type: "channel", username: "alice", avatar: "👤",
+        { id: 1, type: "channel", username: "alice", avatar: "AL",
           content: "match", created_at: new Date().toISOString(), channel_name: "general" },
       ],
       loading: false, query: "match", search: vi.fn(), clearSearch: vi.fn(),
@@ -122,16 +117,13 @@ describe("SearchModal", () => {
     expect(search).toHaveBeenCalledWith("hello");
   });
 });
-
-// ---------------------------------------------------------------------------
 // Result item hover styles and badge styling (lines 279-293)
-// ---------------------------------------------------------------------------
-describe("SearchModal — result item hover styles and badges", () => {
+describe("SearchModal - result item hover styles and badges", () => {
   it("changes background to #2d2d3f on mouseEnter and restores transparent on mouseLeave", () => {
     useGlobalSearch.mockReturnValue({
       results: [
         { id: 1, type: "channel", content: "hello world", username: "alice",
-          avatar: "🐱", channel_name: "general", created_at: new Date().toISOString() },
+          avatar: "CA", channel_name: "general", created_at: new Date().toISOString() },
       ],
       loading: false, query: "hello",
       search: vi.fn(), clearSearch: vi.fn(),
@@ -140,12 +132,12 @@ describe("SearchModal — result item hover styles and badges", () => {
     render(<SearchModal onClose={vi.fn()} onNavigate={vi.fn()} />);
 
     // DOM structure: resultItem > resultHeader > span("alice")
-    // parentElement.parentElement climbs: span → resultHeader → resultItem
+    // parentElement.parentElement climbs: span -> resultHeader -> resultItem
     const aliceSpan  = screen.getByText("alice");
     const resultItem = aliceSpan.parentElement.parentElement;
 
     fireEvent.mouseEnter(resultItem);
-    // jsdom normalises hex colours to rgb() — both represent #2d2d3f
+    // jsdom normalises hex colours to rgb() - both represent #2d2d3f
     expect(resultItem.style.background).toMatch(/rgb\(45,\s*45,\s*63\)|#2d2d3f/);
 
     fireEvent.mouseLeave(resultItem);
@@ -156,21 +148,21 @@ describe("SearchModal — result item hover styles and badges", () => {
     useGlobalSearch.mockReturnValue({
       results: [
         { id: 2, type: "dm", content: "hey there", username: "bob",
-          avatar: "😊", dm_partner_username: "bob", created_at: new Date().toISOString() },
+          avatar: "BO", dm_partner_username: "bob", created_at: new Date().toISOString() },
       ],
       loading: false, query: "hey",
       search: vi.fn(), clearSearch: vi.fn(),
     });
 
     render(<SearchModal onClose={vi.fn()} />);
-    expect(screen.getByText(/💬 bob/)).toBeInTheDocument();
+    expect(screen.getByText(/DM bob/)).toBeInTheDocument();
   });
 
   it("highlightText returns empty string when query is empty (line 154)", () => {
     useGlobalSearch.mockReturnValue({
       results: [
         { id: 1, type: "channel", content: "hello world", username: "alice",
-          avatar: "👤", channel_name: "general", created_at: new Date().toISOString() },
+          avatar: "AL", channel_name: "general", created_at: new Date().toISOString() },
       ],
       loading: false, query: "",
       search: vi.fn(), clearSearch: vi.fn(),

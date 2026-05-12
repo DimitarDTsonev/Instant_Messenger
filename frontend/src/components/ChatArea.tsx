@@ -19,11 +19,6 @@ type Props = {
   seenByPartner?: boolean;
 };
 
-/**
- * Scrollable message list used by both channel and DM views.
- * Delegates per-message rendering to MessageRow and auto-scrolls
- * to the bottom when new messages arrive (only when near the bottom).
- */
 export default function ChatArea({
   messages, loading, hasMore, onLoadMore,
   typingUsers = [], onReply, onPin, canPin = false,
@@ -49,7 +44,7 @@ export default function ChatArea({
   if (loading) {
     return (
       <div style={{ ...s.area, ...s.empty }}>
-        <span style={s.emptyIcon}>⏳</span>
+        <span style={s.emptyIcon}>...</span>
         <span>Loading messages...</span>
       </div>
     );
@@ -63,7 +58,7 @@ export default function ChatArea({
 
       {messages.length === 0 && (
         <div style={s.empty}>
-          <span style={s.emptyIcon}>💬</span>
+          <span style={s.emptyIcon}>No messages</span>
           <span>No messages yet. Be the first!</span>
         </div>
       )}

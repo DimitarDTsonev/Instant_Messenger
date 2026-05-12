@@ -1,16 +1,14 @@
-/** Returns an emoji icon appropriate for a file's extension. */
 export function fileIcon(filename: string | null | undefined = "") {
   const ext = (filename || "").split(".").pop()?.toLowerCase() || "";
-  if (["pdf"].includes(ext))              return "📄";
-  if (["doc", "docx"].includes(ext))     return "📝";
-  if (["xls", "xlsx", "csv"].includes(ext)) return "📊";
-  if (["ppt", "pptx"].includes(ext))    return "📑";
-  if (["zip", "rar", "7z"].includes(ext)) return "🗜️";
-  if (["txt"].includes(ext))             return "📃";
-  return "📎";
+  if (["pdf"].includes(ext)) return "PDF";
+  if (["doc", "docx"].includes(ext)) return "DOC";
+  if (["xls", "xlsx", "csv"].includes(ext)) return "XLS";
+  if (["ppt", "pptx"].includes(ext)) return "PPT";
+  if (["zip", "rar", "7z"].includes(ext)) return "ZIP";
+  if (["txt"].includes(ext)) return "TXT";
+  return "FILE";
 }
 
-/** Formats a byte count as a human-readable string (B / KB / MB). */
 export function formatBytes(bytes?: number | null) {
   if (!bytes) return "";
   if (bytes < 1024) return `${bytes} B`;

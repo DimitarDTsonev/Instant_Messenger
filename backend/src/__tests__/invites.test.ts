@@ -1,8 +1,3 @@
-/**
- * @fileoverview Integration tests for /api/invite routes (public invite-link endpoints)
- * Covers: invite preview (public), join via invite (authenticated), expiry, max-uses
- */
-
 import request from "supertest";
 import bcrypt from "bcryptjs";
 
@@ -24,12 +19,10 @@ beforeAll(() => {
 beforeEach(() => clearDb(db));
 afterAll(() => db.close());
 
-// ─── helpers ─────────────────────────────────────────────────────────────────
-
 function seedUser(username = "alice", role = "member") {
   const hash = bcrypt.hashSync("pw", 1);
   const { lastInsertRowid } = db.prepare(
-    "INSERT INTO users (username, email, password, avatar, role) VALUES (?, ?, ?, '👤', ?)"
+    "INSERT INTO users (username, email, password, avatar, role) VALUES (?, ?, ?, 'AL', ?)"
   ).run(username, `${username}@t.com`, hash, role);
   return { id: lastInsertRowid, username, email: `${username}@t.com`, role };
 }
@@ -57,8 +50,6 @@ function seedInvite(
   ).run(channelId, createdBy, code, maxUses, usesCount, expiresAt);
   return lastInsertRowid;
 }
-
-// ─── GET /api/invite/:code ────────────────────────────────────────────────────
 
 describe("GET /api/invite/:code (public)", () => {
   test("returns invite preview without authentication", async () => {
@@ -105,8 +96,6 @@ describe("GET /api/invite/:code (public)", () => {
     expect(typeof res.body.invite.member_count).toBe("number");
   });
 });
-
-// ─── POST /api/invite/:code/join ──────────────────────────────────────────────
 
 describe("POST /api/invite/:code/join", () => {
   test("adds the authenticated user to the channel", async () => {

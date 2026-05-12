@@ -12,7 +12,6 @@ export type MessageGroup = {
 };
 export type GroupedMessageItem = MessageDivider | MessageGroup;
 
-/** Formats a date string as "Today", "Yesterday", or a localised date string. */
 export function formatDate(dateStr: string) {
   const d         = new Date(dateStr);
   const today     = new Date();
@@ -23,15 +22,10 @@ export function formatDate(dateStr: string) {
   return d.toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric" });
 }
 
-/** Formats a date string as a short HH:MM time string. */
 export function formatTime(dateStr: string) {
   return new Date(dateStr).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
 }
 
-/**
- * Groups a flat message array into date-dividers and consecutive-author groups.
- * Returns a mixed array of MessageDivider and MessageGroup items.
- */
 export function groupMessages(messages: Message[]): GroupedMessageItem[] {
   const result: GroupedMessageItem[] = [];
   let lastDate:  string | null       = null;

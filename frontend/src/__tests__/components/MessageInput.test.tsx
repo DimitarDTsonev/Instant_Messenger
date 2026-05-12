@@ -1,15 +1,10 @@
-/**
- * @fileoverview Tests for MessageInput component
- * Covers: renders, typing, send on Enter, canWrite guard, disabled state
- */
-
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import MessageInput from "../../components/MessageInput";
 
 vi.mock("../../context/AuthContext", () => ({
   useAuth: vi.fn(() => ({
-    user:      { id: 1, username: "alice", role: "member", avatar: "👤" },
+    user:      { id: 1, username: "alice", role: "member", avatar: "AL" },
     token:     "test-token",
     authFetch: vi.fn().mockResolvedValue({}),
   })),
@@ -128,16 +123,13 @@ describe("MessageInput", () => {
     expect(input.value).toBe("");
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  Emoji picker
-// ─────────────────────────────────────────────────────────
 describe("emoji picker", () => {
-  test("clicking the 😊 button opens the emoji picker", async () => {
+  test("clicking the React button opens the emoji picker", async () => {
     render(<MessageInput {...DEFAULT_PROPS} />);
     const emojiBtn = screen.getByTitle(/emoji/i);
     fireEvent.click(emojiBtn);
-    // Emoji categories should appear (Smileys, Gestures, …)
+    // Emoji categories should appear (Smileys, Gestures, ...)
     expect(screen.getByText("Smileys")).toBeInTheDocument();
   });
 
@@ -169,10 +161,7 @@ describe("emoji picker", () => {
     await waitFor(() => expect(screen.queryByText("Smileys")).not.toBeInTheDocument());
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  @mention autocomplete
-// ─────────────────────────────────────────────────────────
 describe("@mention autocomplete", () => {
   const USERS_PROP = [
     { id: 1, username: "alice" },
@@ -195,15 +184,12 @@ describe("@mention autocomplete", () => {
     expect(input.value).toContain("@alice ");
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  File attachment
-// ─────────────────────────────────────────────────────────
 describe("file attachment", () => {
-  test("clicking the 📎 button triggers the hidden file input", () => {
+  test("clicking the Attach button triggers the hidden file input", () => {
     render(<MessageInput {...DEFAULT_PROPS} />);
     const attachBtn = screen.getByTitle(/attach/i);
-    // The button calls fileInputRef.current.click() — verify it doesn't throw
+    // The button calls fileInputRef.current.click() - verify it doesn't throw
     expect(() => fireEvent.click(attachBtn)).not.toThrow();
   });
 
@@ -211,7 +197,7 @@ describe("file attachment", () => {
     const mockToken = "test-token";
     const { useAuth } = await import("../../context/AuthContext");
     useAuth.mockReturnValue({
-      user: { id: 1, username: "alice", role: "member", avatar: "👤" },
+      user: { id: 1, username: "alice", role: "member", avatar: "AL" },
       token: mockToken,
       authFetch: vi.fn().mockResolvedValue({}),
     });
@@ -327,10 +313,7 @@ describe("file attachment", () => {
     await waitFor(() => expect(global.fetch).toHaveBeenCalled());
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  DM mode
-// ─────────────────────────────────────────────────────────
 const DM_PROPS = {
   isDm: true,
   dmUser: { id: 2, username: "bob" },
@@ -413,11 +396,7 @@ describe("DM mode", () => {
     expect(emitTypingStart).not.toHaveBeenCalled();
   });
 });
-
-
-// ---------------------------------------------------------------------------
-// stopTyping debounce — DM branch (line 205) and channel branch (line 206)
-// ---------------------------------------------------------------------------
+// stopTyping debounce - DM branch (line 205) and channel branch (line 206)
 describe("stopTyping debounce", () => {
   beforeEach(() => { vi.useFakeTimers(); });
   afterEach(() => { vi.runOnlyPendingTimers(); vi.useRealTimers(); });
@@ -455,10 +434,7 @@ describe("stopTyping debounce", () => {
     expect(emitTypingStop).toHaveBeenCalledWith(3);
   });
 });
-
-// ---------------------------------------------------------------------------
-// File upload error → alert (line 304)
-// ---------------------------------------------------------------------------
+// File upload error -> alert (line 304)
 describe("file upload error (line 304)", () => {
   beforeEach(() => { vi.spyOn(window, "alert").mockImplementation(() => {}); });
   afterEach(() => { vi.restoreAllMocks(); });
@@ -481,12 +457,9 @@ describe("file upload error (line 304)", () => {
     });
   });
 });
-
-// ---------------------------------------------------------------------------
 // File remove button (line 442)
-// ---------------------------------------------------------------------------
 describe("file remove button (line 442)", () => {
-  test("removes the file preview when ✕ is clicked", async () => {
+  test("removes the file preview when remove attachment is clicked", async () => {
     global.fetch = vi.fn().mockResolvedValueOnce({
       ok: true,
       json: async () => ({ url: "/uploads/doc.pdf", type: "document", name: "doc.pdf" }),
@@ -501,7 +474,7 @@ describe("file remove button (line 442)", () => {
 
     await waitFor(() => expect(screen.getByText("doc.pdf")).toBeInTheDocument());
 
-    fireEvent.click(screen.getByRole("button", { name: "✕" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove attachment" }));
 
     expect(screen.queryByText("doc.pdf")).not.toBeInTheDocument();
   });

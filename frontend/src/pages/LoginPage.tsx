@@ -1,42 +1,8 @@
-/**
- * @fileoverview LoginPage — Entry authentication page
- *
- * Renders a centered card with two modes:
- *   - Login  (default): email + password → calls `useAuth().login()`
- *   - Register: username + email + password → calls `useAuth().register()`
- *
- * Pre-fills the demo credentials (alice@demo.com / password123) for easy first-run access.
- * On successful auth, `AuthContext` updates `user` and the app re-renders to `ChatPage`.
- *
- * @module pages/LoginPage
- * @connects AuthContext — consumes login() and register()
- */
-
 import { useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { useAuth } from "../context/AuthContext";
 import ForgotPasswordPage from "./ForgotPasswordPage";
 
-/**
- * Inline style map for the login/register card UI.
- * All styles are defined statically to avoid re-allocation on every render.
- *
- * @type {Object}
- * @property {Object} page         - Full-viewport flex container with gradient background
- * @property {Object} card         - Centered content card with rounded corners
- * @property {Object} logo         - Logo area at the top of the card
- * @property {Object} logoIcon     - Large emoji icon block
- * @property {Object} logoTitle    - App name headline
- * @property {Object} logoSub      - Subtitle / tagline beneath the title
- * @property {Object} tabs         - Pill-shaped tab row for switching login/register
- * @property {Function} tab        - Returns tab button style; active tab is highlighted in indigo
- * @property {Object} fieldGroup   - Wrapper for each label+input pair
- * @property {Object} label        - Uppercase small-caps field label
- * @property {Object} input        - Dark-themed text input
- * @property {Object} submit       - Full-width submit button
- * @property {Object} error        - Red-tinted error message box
- * @property {Object} hint         - Muted footer hint text (demo credentials)
- */
 const styles = {
   page: {
     height: "100vh",
@@ -65,8 +31,7 @@ const styles = {
     padding: "4px",
     marginBottom: "24px",
   },
-  /** @param {boolean} active - Whether this tab is the selected one */
-  tab: (active: boolean) => ({
+    tab: (active: boolean) => ({
     flex: 1,
     padding: "8px",
     borderRadius: "6px",
@@ -127,62 +92,25 @@ const styles = {
   },
 } satisfies AppStyleMap;
 
-/**
- * LoginPage component — full-page auth entry point.
- *
- * Manages a single form that switches between login and register modes.
- * On success, AuthContext sets the authenticated user and the app navigates
- * to ChatPage automatically (no explicit redirect needed).
- *
- * @component
- * @returns {JSX.Element} The centered login/register card
- *
- * @example
- * // Rendered by App.tsx when no authenticated user is present
- * <LoginPage />
- */
 export default function LoginPage() {
-  /** @type {{ login: Function, register: Function }} */
-  const { login, register } = useAuth();
+    const { login, register } = useAuth();
 
   const [showForgot, setShowForgot] = useState(false);
 
-  /** @type {["login"|"register", Function]} Current tab mode */
-  const [mode, setMode] = useState<"login" | "register">("login");
+    const [mode, setMode] = useState<"login" | "register">("login");
 
-  /** @type {[string, Function]} Server-side or network error message to display */
-  const [error, setError] = useState("");
+    const [error, setError] = useState("");
 
-  /** @type {[boolean, Function]} True while the auth request is in-flight */
-  const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(false);
 
-  /**
-   * Controlled form state.
-   * `email` and `password` are pre-filled with demo credentials so new visitors
-   * can log in immediately without typing.
-   *
-   * @type {[{ username: string, email: string, password: string }, Function]}
-   */
-  const [form, setForm] = useState({ username: "", email: "alice@demo.com", password: "password123" });
+    const [form, setForm] = useState({ username: "", email: "alice@demo.com", password: "password123" });
 
-  /**
-   * Syncs a changed input field into `form` and clears any visible error.
-   *
-   * @param {React.ChangeEvent<HTMLInputElement>} e - The input change event
-   */
-  function handleChange(e: ChangeEvent<HTMLInputElement>) {
+    function handleChange(e: ChangeEvent<HTMLInputElement>) {
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
     setError("");
   }
 
-  /**
-   * Submits the form by calling the appropriate AuthContext action.
-   * Displays server error messages inline if the request fails.
-   *
-   * @param {React.FormEvent<HTMLFormElement>} e - The form submit event
-   * @returns {Promise<void>}
-   */
-  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
     setError("");
@@ -206,7 +134,7 @@ export default function LoginPage() {
       <div style={styles.card} className="login-card">
         {/* Logo / branding */}
         <div style={styles.logo}>
-          <span style={styles.logoIcon}>💬</span>
+          <span style={styles.logoIcon}>IM</span>
           <div style={styles.logoTitle}>Instant Messenger</div>
           <div style={styles.logoSub}>Real-time public channels</div>
         </div>
@@ -218,9 +146,9 @@ export default function LoginPage() {
         </div>
 
         <form onSubmit={handleSubmit}>
-          {error && <div style={styles.error}>⚠️ {error}</div>}
+          {error && <div style={styles.error}>{error}</div>}
 
-          {/* Username field — only shown in register mode */}
+          {/* Username field - only shown in register mode */}
           {mode === "register" && (
             <div style={styles.fieldGroup}>
               <label htmlFor="reg-username" style={styles.label}>Username</label>
@@ -272,11 +200,11 @@ export default function LoginPage() {
             style={{ ...styles.submit, opacity: loading ? 0.7 : 1 }}
             disabled={loading}
           >
-            {loading ? "⏳ Loading..." : mode === "login" ? "Sign in →" : "Create account →"}
+            {loading ? "Loading..." : mode === "login" ? "Sign in" : "Create account"}
           </button>
         </form>
 
-        {/* Forgot password link — only shown on the login tab */}
+        {/* Forgot password link - only shown on the login tab */}
         {mode === "login" && (
           <div style={{ ...styles.hint, marginTop: "12px" }}>
             <button
@@ -290,7 +218,7 @@ export default function LoginPage() {
           </div>
         )}
 
-        {/* Demo credentials hint — only shown on the login tab */}
+        {/* Demo credentials hint - only shown on the login tab */}
         {mode === "login" && (
           <div style={styles.hint}>Demo account: alice@demo.com / password123</div>
         )}

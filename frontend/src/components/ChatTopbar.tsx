@@ -1,5 +1,6 @@
 import type { Channel, User } from "../types";
 import { s } from "../pages/chatPageStyles";
+import Icon from "./Icons";
 
 type Props = {
   activeChannel:    Channel | null;
@@ -14,12 +15,16 @@ type Props = {
 export default function ChatTopbar({ activeChannel, isDmMode, activeDm, canOpenSettings, onSettings, onSearch, onSidebarOpen }: Props) {
   return (
     <div style={s.topbar} className="topbar-mobile">
-      <button className="hamburger-btn" onClick={onSidebarOpen} title="Menu">☰</button>
+      <button className="hamburger-btn" onClick={onSidebarOpen} title="Menu" aria-label="Open menu">
+        <Icon name="menu" size={18} />
+      </button>
 
       {activeChannel && !isDmMode ? (
         <>
           <div style={s.topbarTitle}>
-            <span style={{ color: "#5c6068" }}>{activeChannel.is_private ? "🔒" : "#"}</span>
+            <span style={{ color: "#5c6068", display: "inline-flex" }}>
+              {activeChannel.is_private ? <Icon name="lock" size={15} /> : <Icon name="hash" size={15} />}
+            </span>
             {activeChannel.name}
           </div>
           {activeChannel.description && (
@@ -31,9 +36,9 @@ export default function ChatTopbar({ activeChannel, isDmMode, activeDm, canOpenS
         </>
       ) : isDmMode && activeDm ? (
         <div style={s.topbarTitle}>
-          <span>{activeDm.avatar || "👤"}</span>
+          <span>{activeDm.avatar || activeDm.username.slice(0, 2).toUpperCase()}</span>
           <span>{activeDm.username}</span>
-          <span style={s.dmBadge}>💬 DM</span>
+          <span style={s.dmBadge}>DM</span>
         </div>
       ) : (
         <span style={{ color: "#5c6068", fontSize: "14px" }}>Loading...</span>
@@ -41,10 +46,13 @@ export default function ChatTopbar({ activeChannel, isDmMode, activeDm, canOpenS
 
       <div style={{ marginLeft: "auto", display: "flex", gap: "8px" }}>
         {canOpenSettings && (
-          <button style={s.settingsBtn} onClick={onSettings} title="Channel settings">⚙️</button>
+          <button style={s.settingsBtn} onClick={onSettings} title="Channel settings" aria-label="Channel settings">
+            <Icon name="settings" size={16} />
+          </button>
         )}
-        <button style={s.searchBtn} onClick={onSearch} title="Ctrl+F">
-          🔍 <span className="search-btn-label">Search</span>
+        <button style={s.searchBtn} onClick={onSearch} title="Search" aria-label="Search">
+          <Icon name="search" size={16} />
+          <span className="search-btn-label">Search</span>
         </button>
       </div>
     </div>

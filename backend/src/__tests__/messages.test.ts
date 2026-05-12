@@ -1,8 +1,3 @@
-/**
- * @fileoverview Integration tests for /api/messages routes
- * Covers: global search, channel history, pinned messages, channel search
- */
-
 import request from "supertest";
 import bcrypt from "bcryptjs";
 
@@ -24,12 +19,10 @@ beforeAll(() => {
 beforeEach(() => clearDb(db));
 afterAll(() => db.close());
 
-// ─── helpers ─────────────────────────────────────────────────────────────────
-
 function seedUser(username = "alice") {
   const hash = bcrypt.hashSync("pw", 1);
   const { lastInsertRowid } = db.prepare(
-    "INSERT INTO users (username, email, password, avatar, role) VALUES (?, ?, ?, '👤', 'member')"
+    "INSERT INTO users (username, email, password, avatar, role) VALUES (?, ?, ?, 'AL', 'member')"
   ).run(username, `${username}@t.com`, hash);
   return { id: lastInsertRowid, username, email: `${username}@t.com`, role: "member" };
 }
@@ -49,8 +42,6 @@ function seedMessage(channelId, userId, content, pinned = 0) {
   ).run(content, channelId, userId, pinned);
   return lastInsertRowid;
 }
-
-// ─── GET /api/messages/search ────────────────────────────────────────────────
 
 describe("GET /api/messages/search", () => {
   let user, token, chId;
@@ -96,8 +87,6 @@ describe("GET /api/messages/search", () => {
     expect(res.status).toBe(401);
   });
 });
-
-// ─── GET /api/messages/:channelId ────────────────────────────────────────────
 
 describe("GET /api/messages/:channelId", () => {
   let user, token, chId;
@@ -166,8 +155,6 @@ describe("GET /api/messages/:channelId", () => {
   });
 });
 
-// ─── GET /api/messages/:channelId/pinned ─────────────────────────────────────
-
 describe("GET /api/messages/:channelId/pinned", () => {
   test("returns only pinned messages", async () => {
     const user  = seedUser("alice");
@@ -194,8 +181,6 @@ describe("GET /api/messages/:channelId/pinned", () => {
     expect(res.body.messages).toEqual([]);
   });
 });
-
-// ─── GET /api/messages/:channelId/search ─────────────────────────────────────
 
 describe("GET /api/messages/:channelId/search", () => {
   let user, token, chId;

@@ -1,14 +1,10 @@
-// ============================================================
-//  pages/InvitePage.tsx — Channel invite landing page
-//  Shows channel info and lets users join as: Guest / Login / Register
-// ============================================================
-
 import { useState, useEffect } from "react";
 import type { FormEvent } from "react";
 import { useAuth } from "../context/AuthContext";
 import { API_BASE as API } from "../config";
 import type { AuthSession } from "../types";
 import { navigateHome } from "../utils/navigation";
+import Icon from "../components/Icons";
 
 type InviteTab = "guest" | "login" | "register";
 type ButtonVariant = "primary" | "ghost" | "secondary";
@@ -26,7 +22,6 @@ interface InviteInfo {
 
 type ApiError = { error?: string };
 
-/** Inline style map used throughout InvitePage. */
 const s = {
   page: {
     minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
@@ -43,7 +38,8 @@ const s = {
     background: "#0f0f1a", border: "1px solid #2d2d3f", borderRadius: "12px",
     padding: "16px 20px", marginBottom: "24px",
   },
-  channelName: { fontSize: "20px", fontWeight: 700, color: "#f2f3f5", marginBottom: "4px" },
+  channelName: { fontSize: "20px", fontWeight: 700, color: "#f2f3f5", marginBottom: "4px", display: "flex", alignItems: "center", gap: "8px" },
+  channelMarker: { color: "#949ba4", display: "inline-flex", flexShrink: 0 },
   channelDesc: { fontSize: "13px", color: "#949ba4", marginBottom: "8px" },
   channelMeta: { fontSize: "12px", color: "#5c6068", display: "flex", gap: "12px", flexWrap: "wrap" },
   tabs: { display: "flex", marginBottom: "20px", border: "1px solid #2d2d3f", borderRadius: "8px", overflow: "hidden" },
@@ -72,28 +68,6 @@ const s = {
   alreadyUser: { textAlign: "center", fontSize: "13px", color: "#5c6068", marginTop: "16px" },
 } satisfies AppStyleMap;
 
-/**
- * InvitePage - Landing page for channel invite links.
- *
- * Fetches invite metadata (channel name, member count, invite limits) from
- * GET /api/invite/:code without requiring authentication so that prospective
- * members can see channel info before deciding to join.
- *
- * Join flows:
- * - Guest   — Creates a temporary account (valid 24 h) via POST /api/auth/guest,
- *             then calls POST /api/invite/:code/join.
- * - Login   — Authenticates an existing account, then joins.
- * - Register — Creates a permanent account, then joins.
- * - Already logged in — Joins directly using the stored token.
- *
- * After a successful join in all cases, the user is redirected to "/" so the
- * App re-renders with the new session.
- *
- * @component
- * @param {Object} props
- * @param {string} props.code - The invite code extracted from the URL path by App.tsx.
- * @returns {JSX.Element}
- */
 export default function InvitePage({ code }: { code: string }) {
   const { user, loginWithToken } = useAuth();
 
@@ -109,7 +83,7 @@ export default function InvitePage({ code }: { code: string }) {
   const [error,   setError]   = useState("");
   const [busy,    setBusy]    = useState(false);
 
-  // Fetch invite info without auth — unauthenticated users need to see channel details
+  // Fetch invite info without auth - unauthenticated users need to see channel details
   useEffect(() => {
     fetch(`${API}/invite/${code}`)
       .then((r) => r.json())
@@ -121,14 +95,7 @@ export default function InvitePage({ code }: { code: string }) {
       .finally(() => setLoading(false));
   }, [code]);
 
-  /**
-   * Sends a POST /api/invite/:code/join request using the provided JWT.
-   * Throws on non-2xx responses so the caller can display the error.
-   *
-   * @param {string} token - The JWT of the user joining.
-   * @returns {Promise<Object>} The join response data.
-   */
-  async function joinWithToken(token: string) {
+    async function joinWithToken(token: string) {
     const res = await fetch(`${API}/invite/${code}/join`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },
@@ -138,8 +105,7 @@ export default function InvitePage({ code }: { code: string }) {
     return data;
   }
 
-  /** Creates a temporary guest account and joins the channel. */
-  async function handleGuest() {
+    async function handleGuest() {
     setBusy(true); setError("");
     try {
       const res  = await fetch(`${API}/auth/guest`, { method: "POST" });
@@ -153,8 +119,7 @@ export default function InvitePage({ code }: { code: string }) {
     finally { setBusy(false); }
   }
 
-  /** Authenticates with an existing account and joins the channel. */
-  async function handleLogin(e: FormEvent<HTMLFormElement>) {
+    async function handleLogin(e: FormEvent<HTMLFormElement>) {
     e.preventDefault(); setBusy(true); setError("");
     try {
       const res  = await fetch(`${API}/auth/login`, {
@@ -171,8 +136,7 @@ export default function InvitePage({ code }: { code: string }) {
     finally { setBusy(false); }
   }
 
-  /** Creates a new account and joins the channel. */
-  async function handleRegister(e: FormEvent<HTMLFormElement>) {
+    async function handleRegister(e: FormEvent<HTMLFormElement>) {
     e.preventDefault(); setBusy(true); setError("");
     try {
       const res  = await fetch(`${API}/auth/register`, {
@@ -189,12 +153,7 @@ export default function InvitePage({ code }: { code: string }) {
     finally { setBusy(false); }
   }
 
-  /**
-   * Joins the channel directly for a user who is already logged in.
-   * Reads the token from storage rather than the auth context to avoid
-   * an extra re-render cycle.
-   */
-  async function handleJoinAsUser() {
+    async function handleJoinAsUser() {
     setBusy(true); setError("");
     const stored = sessionStorage.getItem("im_token") || localStorage.getItem("im_token");
     try {
@@ -208,7 +167,7 @@ export default function InvitePage({ code }: { code: string }) {
   if (loading) {
     return (
       <div style={s.page}>
-        <div style={{ color: "#5c6068", fontSize: "18px" }}>⏳ Loading invite...</div>
+        <div style={{ color: "#5c6068", fontSize: "18px" }}>Loading invite...</div>
       </div>
     );
   }
@@ -217,7 +176,7 @@ export default function InvitePage({ code }: { code: string }) {
     return (
       <div style={s.page}>
         <div style={s.card}>
-          <div style={s.logo}>🔗</div>
+          <div style={s.logo}>Invite</div>
           <div style={s.appName}>Invite</div>
           <div style={s.error}>{invErr}</div>
           <button style={s.btn("secondary")} onClick={() => navigateHome("replace")}>
@@ -231,25 +190,27 @@ export default function InvitePage({ code }: { code: string }) {
   return (
     <div style={s.page}>
       <div style={s.card}>
-        <div style={s.logo}>💬</div>
+        <div style={s.logo}>IM</div>
         <div style={s.appName}>Channel invite</div>
 
-        {/* Channel info card */}
         <div style={s.channelCard}>
           <div style={s.channelName}>
-            {invite.is_private ? "🔒" : "#"} {invite.channel_name}
+            <span style={s.channelMarker} title={invite.is_private ? "Private channel" : "Public channel"}>
+              <Icon name={invite.is_private ? "lock" : "hash"} size={18} />
+            </span>
+            <span>{invite.channel_name}</span>
           </div>
           {invite.channel_description && (
             <div style={s.channelDesc}>{invite.channel_description}</div>
           )}
           <div style={s.channelMeta}>
-            <span>👥 {invite.member_count} {invite.member_count === 1 ? "member" : "members"}</span>
-            <span>📨 Invited by {invite.created_by_username}</span>
+            <span>{invite.member_count} {invite.member_count === 1 ? "member" : "members"}</span>
+            <span>Invited by {invite.created_by_username}</span>
             {invite?.max_uses && (
-              <span>🔢 {invite.uses_count}/{invite.max_uses} uses</span>
+              <span>{invite.uses_count}/{invite.max_uses} uses</span>
             )}
             {invite.expires_at && (
-              <span>⏰ Expires: {new Date(invite.expires_at).toLocaleDateString("en-US")}</span>
+              <span>Expires: {new Date(invite.expires_at).toLocaleDateString("en-US")}</span>
             )}
           </div>
         </div>
@@ -263,7 +224,7 @@ export default function InvitePage({ code }: { code: string }) {
               Signed in as <strong style={{ color: "#f2f3f5" }}>{user.username}</strong>
             </div>
             <button style={s.btn("primary")} onClick={handleJoinAsUser} disabled={busy}>
-              {busy ? "⏳ Joining..." : "✅ Join channel"}
+              {busy ? "Joining..." : "Join channel"}
             </button>
             <button
               style={{ ...s.btn("secondary"), marginTop: "10px", background: "transparent", border: "1px solid #2d2d3f" }}
@@ -276,9 +237,9 @@ export default function InvitePage({ code }: { code: string }) {
           <>
             {/* Join option tabs */}
             <div style={s.tabs}>
-              <button style={s.tab(tab === "guest")}    onClick={() => { setTab("guest");    setError(""); }}>👻 Guest</button>
-              <button style={s.tab(tab === "login")}    onClick={() => { setTab("login");    setError(""); }}>🔑 Login</button>
-              <button style={s.tab(tab === "register")} onClick={() => { setTab("register"); setError(""); }}>📝 Register</button>
+              <button style={s.tab(tab === "guest")}    onClick={() => { setTab("guest");    setError(""); }}>Guest</button>
+              <button style={s.tab(tab === "login")}    onClick={() => { setTab("login");    setError(""); }}>Login</button>
+              <button style={s.tab(tab === "register")} onClick={() => { setTab("register"); setError(""); }}>Register</button>
             </div>
 
             {/* Guest tab */}
@@ -288,7 +249,7 @@ export default function InvitePage({ code }: { code: string }) {
                   Join as a temporary guest without registering. The account is valid for 24 hours.
                 </p>
                 <button style={s.btn("ghost")} onClick={handleGuest} disabled={busy}>
-                  {busy ? "⏳ Joining..." : "👻 Continue as guest"}
+                  {busy ? "Joining..." : "Continue as guest"}
                 </button>
               </div>
             )}
@@ -305,7 +266,7 @@ export default function InvitePage({ code }: { code: string }) {
                   <input style={s.input} type="password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="••••••" />
                 </div>
                 <button type="submit" style={s.btn("primary")} disabled={busy}>
-                  {busy ? "⏳ Signing in..." : "🔑 Sign in and join"}
+                  {busy ? "Signing in..." : "Sign in and join"}
                 </button>
               </form>
             )}
@@ -326,7 +287,7 @@ export default function InvitePage({ code }: { code: string }) {
                   <input style={s.input} type="password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="min. 6 characters" />
                 </div>
                 <button type="submit" style={s.btn("primary")} disabled={busy}>
-                  {busy ? "⏳ Registering..." : "📝 Register and join"}
+                  {busy ? "Registering..." : "Register and join"}
                 </button>
               </form>
             )}

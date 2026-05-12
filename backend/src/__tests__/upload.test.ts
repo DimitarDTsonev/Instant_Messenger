@@ -1,8 +1,3 @@
-/**
- * @fileoverview Integration tests for /api/upload route
- * Covers: auth guard, image upload, generic file upload, unsupported type rejection
- */
-
 import fs from "fs";
 import path from "path";
 import express from "express";

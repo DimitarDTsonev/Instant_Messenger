@@ -1,5 +1,6 @@
 import type { MutableRefObject } from "react";
 import type { Channel, DirectMessage, Message, User } from "../types";
+import { avatarLabel } from "../utils/avatar";
 
 type Setter<T> = React.Dispatch<React.SetStateAction<T>>;
 
@@ -53,7 +54,7 @@ export function useChatHandlers(p: Params) {
     p.addDmMsg(msg);
     p.setSeenByPartner(false);
     const dm = p.activeDmRef.current;
-    if (dm) p.upsertConversation(msg, dm.id, dm.username, dm.avatar || "👤", false);
+    if (dm) p.upsertConversation(msg, dm.id, dm.username, avatarLabel(dm), false);
   }
 
   async function handleCreateChannel(name: string, description: string, is_private: 0 | 1) {

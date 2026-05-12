@@ -1,5 +1,6 @@
 import type { ChangeEvent } from "react";
 import type { User } from "../types";
+import { avatarLabel } from "../utils/avatar";
 import { s } from "../pages/adminStyles";
 
 type Props = {
@@ -37,14 +38,14 @@ export default function AdminUsersTable({ users, currentUser, filter, onFilter, 
             {filtered.map((u) => (
               <tr key={u.id}>
                 <td style={s.td}>
-                  <span style={{ marginRight: "6px" }}>{u.avatar || "👤"}</span>
+                  <span style={{ marginRight: "6px" }}>{avatarLabel(u)}</span>
                   <strong>{u.username}</strong>
                   {u.id === currentUser.id && <span style={{ marginLeft: "6px", fontSize: "11px", color: "#5865f2" }}>(you)</span>}
                 </td>
                 <td style={{ ...s.td, color: "#949ba4" }}>{u.email}</td>
                 <td style={s.td}>
                   <span style={{ color: u.role === "admin" ? "#f0a500" : "#dbdee1", fontSize: "12px" }}>
-                    {u.role === "admin" ? "👑 " : ""}{u.role}
+                    {u.role}
                   </span>
                 </td>
                 <td style={s.td}>

@@ -1,8 +1,3 @@
-/**
- * @fileoverview Tests for LoginPage component
- * Covers: tab switching, form inputs, login call, register call, error display, loading state, demo hint
- */
-
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import LoginPage from "../../pages/LoginPage";

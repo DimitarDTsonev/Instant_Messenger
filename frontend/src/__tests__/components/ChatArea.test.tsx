@@ -1,11 +1,3 @@
-/**
- * @fileoverview Tests for ChatArea component.
- * Covers: empty state, message rendering, username/timestamp, own-message style,
- * admin badge, reply quote, edited tag, pinned badge, reactions, image/file
- * attachments, load-more button, date dividers, edit mode, delete confirmation,
- * DM empty state, typing indicator, and grouped messages.
- */
-
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { vi } from "vitest";
 import { useAuth } from "../../context/AuthContext";
@@ -15,23 +7,21 @@ import ChatArea from "../../components/ChatArea";
 vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
 vi.mock("../../context/SocketContext", () => ({ useSocket: vi.fn() }));
 
-// jsdom does not implement scrollIntoView — stub it globally so ChatArea's
+// jsdom does not implement scrollIntoView - stub it globally so ChatArea's
 // auto-scroll useEffect does not throw.
 window.HTMLElement.prototype.scrollIntoView = vi.fn();
 
-// MarkdownRenderer just renders text content — stub it out to simplify assertions.
+// MarkdownRenderer just renders text content - stub it out to simplify assertions.
 vi.mock("../../components/MarkdownRenderer", () => ({
   default: ({ text }) => <span data-testid="markdown">{text}</span>,
 }));
 
-/** Default auth mock — alice is user id 1. */
 const DEFAULT_AUTH = {
-  user: { id: 1, username: "alice", role: "admin", avatar: "👤" },
+  user: { id: 1, username: "alice", role: "admin", avatar: "AL" },
   token: "tok",
   authFetch: vi.fn().mockResolvedValue({}),
 };
 
-/** Default socket mock — all handlers return a no-op cleanup fn. */
 const DEFAULT_SOCKET = {
   isConnected: true,
   onlineUserIds: [1],
@@ -43,13 +33,12 @@ const DEFAULT_SOCKET = {
   reactToDmMessage: vi.fn(),
 };
 
-/** Builds a minimal valid message object. */
 function makeMsg(overrides = {}) {
   return {
     id: 1,
     user_id: 2,
     username: "bob",
-    avatar: "🐧",
+    avatar: "BO",
     role: "user",
     content: "Hello world",
     created_at: "2024-01-15T10:00:00.000Z",
@@ -65,7 +54,6 @@ function makeMsg(overrides = {}) {
   };
 }
 
-/** Common render helper. */
 function renderChatArea(props = {}) {
   return render(
     <ChatArea
@@ -89,25 +77,19 @@ beforeEach(() => {
   useAuth.mockReturnValue(DEFAULT_AUTH);
   useSocket.mockReturnValue(DEFAULT_SOCKET);
 });
-
-// ─────────────────────────────────────────────────────────
 //  1. Empty state
-// ─────────────────────────────────────────────────────────
 describe("empty state", () => {
   test("shows 'No messages yet' placeholder when messages=[]", () => {
     renderChatArea({ messages: [] });
     expect(screen.getByText(/No messages yet/i)).toBeInTheDocument();
   });
 
-  test("renders 💬 icon in empty state", () => {
+  test("renders empty state label", () => {
     renderChatArea({ messages: [] });
-    expect(screen.getByText("💬")).toBeInTheDocument();
+    expect(screen.getByText("No messages")).toBeInTheDocument();
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  2. Loading state
-// ─────────────────────────────────────────────────────────
 describe("loading state", () => {
   test("shows loading spinner text when loading=true", () => {
     renderChatArea({ loading: true, messages: [] });
@@ -119,10 +101,7 @@ describe("loading state", () => {
     expect(screen.queryByTestId("markdown")).not.toBeInTheDocument();
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  3. Message list renders
-// ─────────────────────────────────────────────────────────
 describe("message list", () => {
   test("renders message content via MarkdownRenderer", () => {
     renderChatArea({ messages: [makeMsg({ content: "Hello world" })] });
@@ -139,10 +118,7 @@ describe("message list", () => {
     expect(rendered).toHaveLength(2);
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  4. Username and timestamp shown for first message in group
-// ─────────────────────────────────────────────────────────
 describe("message header", () => {
   test("shows username for the group leader message", () => {
     renderChatArea({ messages: [makeMsg({ username: "bob" })] });
@@ -150,16 +126,13 @@ describe("message header", () => {
   });
 
   test("shows a timestamp for the group leader", () => {
-    // The timestamp is formatted as HH:MM — just confirm something time-like is present.
+    // The timestamp is formatted as HH:MM - just confirm something time-like is present.
     renderChatArea({ messages: [makeMsg({ created_at: "2024-01-15T14:35:00.000Z" })] });
     // toLocaleTimeString output is locale-dependent; just assert the username block rendered.
     expect(screen.getByText("bob")).toBeInTheDocument();
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  5. Own message has a distinct colour (blue username)
-// ─────────────────────────────────────────────────────────
 describe("own message styling", () => {
   test("own message username uses #7289da colour", () => {
     // alice (id=1) is the current user per DEFAULT_AUTH
@@ -174,26 +147,19 @@ describe("own message styling", () => {
     expect(usernameEl).toHaveStyle({ color: "#f2f3f5" });
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  6. Admin badge
-// ─────────────────────────────────────────────────────────
 describe("admin badge", () => {
-  test("shows crown emoji when message role is admin", () => {
+  test("shows shield marker when message role is admin", () => {
     renderChatArea({ messages: [makeMsg({ role: "admin" })] });
-    // The admin badge renders the 👑 emoji
     expect(screen.getByTitle("Admin")).toBeInTheDocument();
   });
 
-  test("does not show crown for regular users", () => {
+  test("does not show a marker for regular users", () => {
     renderChatArea({ messages: [makeMsg({ role: "user" })] });
     expect(screen.queryByTitle("Admin")).not.toBeInTheDocument();
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  7. Reply quote
-// ─────────────────────────────────────────────────────────
 describe("reply quote", () => {
   test("shows reply author and content when reply_to_id is set", () => {
     const msg = makeMsg({
@@ -221,10 +187,7 @@ describe("reply quote", () => {
     expect(screen.queryByText("[file]")).not.toBeInTheDocument();
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  8. Edited tag
-// ─────────────────────────────────────────────────────────
 describe("edited tag", () => {
   test("shows (edited) tag when is_edited=1", () => {
     renderChatArea({ messages: [makeMsg({ is_edited: 1 })] });
@@ -236,12 +199,9 @@ describe("edited tag", () => {
     expect(screen.queryByText("(edited)")).not.toBeInTheDocument();
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  9. Pinned badge
-// ─────────────────────────────────────────────────────────
 describe("pinned badge", () => {
-  test("shows 📌 pinned badge when is_pinned=1", () => {
+  test("shows Pinned badge when is_pinned=1", () => {
     renderChatArea({ messages: [makeMsg({ is_pinned: 1 })] });
     expect(screen.getByText(/pinned/i)).toBeInTheDocument();
   });
@@ -251,10 +211,7 @@ describe("pinned badge", () => {
     expect(screen.queryByText(/pinned/i)).not.toBeInTheDocument();
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  10. Reactions
-// ─────────────────────────────────────────────────────────
 describe("reactions", () => {
   test("renders reaction pill with emoji and count", () => {
     const msg = makeMsg({ reactions: { "👍": [2, 3] } });
@@ -276,10 +233,7 @@ describe("reactions", () => {
     expect(screen.queryByTitle(/reaction/i)).not.toBeInTheDocument();
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  11. Image attachment
-// ─────────────────────────────────────────────────────────
 describe("image attachment", () => {
   test("renders an img tag for image attachments", () => {
     const msg = makeMsg({
@@ -293,10 +247,7 @@ describe("image attachment", () => {
     expect(img.src).toContain("/uploads/photo.png");
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  12. File attachment
-// ─────────────────────────────────────────────────────────
 describe("file attachment", () => {
   test("renders file name for non-image attachments", () => {
     const msg = makeMsg({
@@ -316,13 +267,10 @@ describe("file attachment", () => {
     });
     renderChatArea({ messages: [msg] });
     // PDF icon
-    expect(screen.getByText("📄")).toBeInTheDocument();
+    expect(screen.getByText("PDF")).toBeInTheDocument();
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  13. Load more button
-// ─────────────────────────────────────────────────────────
 describe("load more button", () => {
   test("shows 'Load older messages' button when hasMore=true", () => {
     renderChatArea({ hasMore: true, messages: [makeMsg()] });
@@ -341,10 +289,7 @@ describe("load more button", () => {
     expect(onLoadMore).toHaveBeenCalledTimes(1);
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  14. Date divider
-// ─────────────────────────────────────────────────────────
 describe("date divider", () => {
   test("renders a 'Today' divider for today's messages", () => {
     const today = new Date().toISOString();
@@ -363,10 +308,7 @@ describe("date divider", () => {
     expect(dividers.length).toBeGreaterThanOrEqual(2);
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  15. Edit mode
-// ─────────────────────────────────────────────────────────
 describe("edit mode", () => {
   test("shows edit textarea when edit button is clicked on own message", async () => {
     // alice (id=1) owns this message
@@ -389,16 +331,13 @@ describe("edit mode", () => {
     expect(screen.getByText("alice")).toBeInTheDocument();
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  16. Delete confirmation
-// ─────────────────────────────────────────────────────────
 describe("delete confirmation", () => {
   test("calls deleteMessage after confirming delete on own message", async () => {
     const deleteMessage = vi.fn();
     useSocket.mockReturnValue({ ...DEFAULT_SOCKET, deleteMessage });
 
-    // Spy on window.confirm — return true to confirm
+    // Spy on window.confirm - return true to confirm
     const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
 
     const msg = makeMsg({ user_id: 1, username: "alice" });
@@ -419,10 +358,7 @@ describe("delete confirmation", () => {
     confirmSpy.mockRestore();
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  17. Typing indicator
-// ─────────────────────────────────────────────────────────
 describe("typing indicator", () => {
   test("shows 'is typing...' when one user is typing", () => {
     renderChatArea({ typingUsers: ["carol"] });
@@ -439,10 +375,7 @@ describe("typing indicator", () => {
     expect(screen.queryByText(/is typing/i)).not.toBeInTheDocument();
   });
 });
-
-// ─────────────────────────────────────────────────────────
-//  18. Message grouping — consecutive messages from same author
-// ─────────────────────────────────────────────────────────
+//  18. Message grouping - consecutive messages from same author
 describe("message grouping", () => {
   test("only renders username once for consecutive messages from same author", () => {
     const msgs = [
@@ -464,15 +397,11 @@ describe("message grouping", () => {
     expect(screen.getByText("carol")).toBeInTheDocument();
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  19. Hover toolbar interactions
-// ─────────────────────────────────────────────────────────
 
-/** Finds the rowRef div by going up from the avatar span. */
 function getMessageRow(username) {
   const avatarSpan = screen.getByTitle(username);
-  return avatarSpan.parentElement.parentElement; // avatarCol → rowRef
+  return avatarSpan.parentElement.parentElement; // avatarCol -> rowRef
 }
 
 describe("hover toolbar", () => {
@@ -609,10 +538,7 @@ describe("hover toolbar", () => {
     vi.restoreAllMocks();
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  20. Reaction pill click
-// ─────────────────────────────────────────────────────────
 describe("reaction pill", () => {
   test("clicking an existing reaction pill calls reactToMessage", () => {
     const reactToMessage = vi.fn();
@@ -625,10 +551,7 @@ describe("reaction pill", () => {
     expect(reactToMessage).toHaveBeenCalledWith(1, "👍", expect.any(Function));
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  21. File preview modal
-// ─────────────────────────────────────────────────────────
 describe("file preview modal", () => {
   test("clicking an image opens the FilePreviewModal", () => {
     const msg = makeMsg({ file_url: "/uploads/photo.png", file_type: "image", file_name: "photo.png" });
@@ -639,7 +562,7 @@ describe("file preview modal", () => {
     expect(screen.getByTitle("Close (Esc)")).toBeInTheDocument();
   });
 
-  test("closing the FilePreviewModal via ✕ button works", () => {
+  test("closing the FilePreviewModal via x button works", () => {
     const msg = makeMsg({ file_url: "/uploads/photo.png", file_type: "image", file_name: "photo.png" });
     renderChatArea({ messages: [msg] });
     fireEvent.click(screen.getByRole("img", { name: /photo\.png/i }));
@@ -658,7 +581,7 @@ describe("file preview modal", () => {
     const msg = makeMsg({ file_url: "/uploads/photo.png", file_type: "image", file_name: "photo.png" });
     renderChatArea({ messages: [msg] });
     fireEvent.click(screen.getByRole("img", { name: /photo\.png/i }));
-    fireEvent.click(screen.getByText("⬇ Download"));
+    fireEvent.click(screen.getByText("Download"));
 
     await waitFor(() => expect(global.fetch).toHaveBeenCalled());
     expect(anchorClickSpy).toHaveBeenCalled();
@@ -673,11 +596,8 @@ describe("file preview modal", () => {
     expect(screen.getByTitle("Close (Esc)")).toBeInTheDocument();
   });
 });
-
-// ─────────────────────────────────────────────────────────
-//  21b. File preview modal — PDF and Office document rendering
-// ─────────────────────────────────────────────────────────
-describe("file preview modal — document rendering", () => {
+//  21b. File preview modal - PDF and Office document rendering
+describe("file preview modal - document rendering", () => {
   test("PDF attachment renders an iframe (not object) in the preview modal", () => {
     const msg = makeMsg({ file_url: "/uploads/doc.pdf", file_type: "file", file_name: "doc.pdf" });
     const { container } = renderChatArea({ messages: [msg] });
@@ -713,14 +633,11 @@ describe("file preview modal — document rendering", () => {
     // Modal should be open but contain no iframe
     expect(screen.getByTitle("Close (Esc)")).toBeInTheDocument();
     expect(container.querySelector("iframe")).not.toBeInTheDocument();
-    // 🗜️ appears in both the chat card and the modal — at least two copies
-    expect(screen.getAllByText("🗜️").length).toBeGreaterThanOrEqual(2);
+    // ZIP appears in both the chat card and the modal - at least two copies
+    expect(screen.getAllByText("ZIP").length).toBeGreaterThanOrEqual(2);
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  22. formatBytes and file size display
-// ─────────────────────────────────────────────────────────
 describe("file size display", () => {
   test("shows formatted file size for file attachments", () => {
     const msg = makeMsg({
@@ -732,16 +649,12 @@ describe("file size display", () => {
     expect(screen.getByText(/KB/i)).toBeInTheDocument();
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  23. Touch action sheet (long-press)
-// ─────────────────────────────────────────────────────────
 describe("touch action sheet", () => {
   beforeEach(() => { vi.useFakeTimers(); });
   afterEach(() => { vi.useRealTimers(); });
 
-  /** Fire a long-press (touchstart → advance 600ms) on a message row. */
-  function longPress(username) {
+    function longPress(username) {
     const row = getMessageRow(username);
     fireEvent.touchStart(row);
     act(() => { vi.advanceTimersByTime(600); });
@@ -876,15 +789,12 @@ describe("touch action sheet", () => {
     expect(screen.queryByTestId("touch-sheet")).not.toBeInTheDocument();
   });
 });
-
-// ---------------------------------------------------------------------------
-// fileIcon — uncovered extension branch (line 27)
-// ---------------------------------------------------------------------------
+// fileIcon - uncovered extension branch (line 27)
 // fileIcon is a module-private helper, but its output is visible through the
 // rendered attachment card. The simplest path: render a message whose
 // file_url ends in .xlsx and confirm the spreadsheet emoji is shown.
  
-describe("ChatArea — fileIcon() spreadsheet extensions", () => {
+describe("ChatArea - fileIcon() spreadsheet extensions", () => {
   const xlsxMessage = {
     id: 9,
     content: "",
@@ -897,7 +807,7 @@ describe("ChatArea — fileIcon() spreadsheet extensions", () => {
     file_name: "report.xlsx",
   };
  
-  it("shows 📊 emoji for .xlsx attachments", () => {
+  it("shows XLS emoji for .xlsx attachments", () => {
     render(
       <ChatArea
         messages={[xlsxMessage]}
@@ -909,10 +819,10 @@ describe("ChatArea — fileIcon() spreadsheet extensions", () => {
         canPin={false}
       />
     );
-    expect(screen.getByText("📊")).toBeInTheDocument();
+    expect(screen.getByText("XLS")).toBeInTheDocument();
   });
  
-  it("shows 📊 emoji for .csv attachments", () => {
+  it("shows XLS emoji for .csv attachments", () => {
     const csvMsg = { ...xlsxMessage, id: 10, file_url: "http://api/uploads/data.csv", file_name: "data.csv" };
     render(
       <ChatArea
@@ -925,46 +835,38 @@ describe("ChatArea — fileIcon() spreadsheet extensions", () => {
         canPin={false}
       />
     );
-    expect(screen.getByText("📊")).toBeInTheDocument();
+    expect(screen.getByText("XLS")).toBeInTheDocument();
   });
 });
- 
-// ---------------------------------------------------------------------------
 // Delete error callback (line 439)
-
-// ---------------------------------------------------------------------------
-// fileIcon — xls/xlsx/csv branch (line 27)
-// ---------------------------------------------------------------------------
-describe("ChatArea — fileIcon() spreadsheet extensions", () => {
+// fileIcon - xls/xlsx/csv branch (line 27)
+describe("ChatArea - fileIcon() spreadsheet extensions", () => {
   const mkMsg = (id, name) => ({
     id, content: "", username: "alice", user_id: 2,
     created_at: new Date().toISOString(), reactions: {},
     file_url: `/uploads/${name}`, file_type: "document", file_name: name,
   });
 
-  it("shows 📊 emoji for .xlsx attachment", () => {
+  it("shows XLS emoji for .xlsx attachment", () => {
     render(<ChatArea messages={[mkMsg(1, "data.xlsx")]} loading={false} hasMore={false}
       onLoadMore={vi.fn()} onReply={vi.fn()} onPin={vi.fn()} canPin={false} />);
-    expect(screen.getByText("📊")).toBeInTheDocument();
+    expect(screen.getByText("XLS")).toBeInTheDocument();
   });
 
-  it("shows 📊 emoji for .xls attachment", () => {
+  it("shows XLS emoji for .xls attachment", () => {
     render(<ChatArea messages={[mkMsg(2, "old.xls")]} loading={false} hasMore={false}
       onLoadMore={vi.fn()} onReply={vi.fn()} onPin={vi.fn()} canPin={false} />);
-    expect(screen.getByText("📊")).toBeInTheDocument();
+    expect(screen.getByText("XLS")).toBeInTheDocument();
   });
 
-  it("shows 📊 emoji for .csv attachment", () => {
+  it("shows XLS emoji for .csv attachment", () => {
     render(<ChatArea messages={[mkMsg(3, "report.csv")]} loading={false} hasMore={false}
       onLoadMore={vi.fn()} onReply={vi.fn()} onPin={vi.fn()} canPin={false} />);
-    expect(screen.getByText("📊")).toBeInTheDocument();
+    expect(screen.getByText("XLS")).toBeInTheDocument();
   });
 });
-
-// ---------------------------------------------------------------------------
 // Delete error callback (line 439)
-// ---------------------------------------------------------------------------
-describe("ChatArea — delete error callback", () => {
+describe("ChatArea - delete error callback", () => {
   beforeEach(() => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     vi.spyOn(window, "confirm").mockReturnValue(true);
@@ -980,7 +882,7 @@ describe("ChatArea — delete error callback", () => {
       deleteDmMessage: mockDeleteMessage,
     });
 
-    // user_id: 1 matches mocked user.id=1 → isOwn=true → shows Delete button
+    // user_id: 1 matches mocked user.id=1 -> isOwn=true -> shows Delete button
     const msg = {
       id: 1, content: "hello", username: "alice", user_id: 1,
       created_at: new Date().toISOString(), reactions: {},
@@ -994,17 +896,14 @@ describe("ChatArea — delete error callback", () => {
     const msgRow = msgText.closest("[style*='position: relative']");
     fireEvent.mouseEnter(msgRow ?? msgText.parentElement.parentElement);
 
-    // Delete button has title="Delete" and emoji 🗑️ as text content
+    // Delete button has title="Delete" and emoji Delete as text content
     fireEvent.click(screen.getByTitle("Delete"));
 
     expect(console.error).toHaveBeenCalledWith("Delete error:", "Delete failed");
   });
 });
-
-// ---------------------------------------------------------------------------
 // React error callback (line 450)
-// ---------------------------------------------------------------------------
-describe("ChatArea — react error callback", () => {
+describe("ChatArea - react error callback", () => {
   beforeEach(() => { vi.spyOn(console, "error").mockImplementation(() => {}); });
   afterEach(() => { vi.restoreAllMocks(); });
 
@@ -1017,7 +916,7 @@ describe("ChatArea — react error callback", () => {
       reactToDmMessage: mockReact,
     });
 
-    // user_id: 2 ≠ mocked user.id=1 → isOwn=false → only React + Reply shown
+    // user_id: 2 ≠ mocked user.id=1 -> isOwn=false -> only React + Reply shown
     const msg = {
       id: 2, content: "world", username: "bob", user_id: 2,
       created_at: new Date().toISOString(), reactions: {},
@@ -1031,20 +930,17 @@ describe("ChatArea — react error callback", () => {
     const msgRow = msgText.closest("[style*='position: relative']");
     fireEvent.mouseEnter(msgRow ?? msgText.parentElement.parentElement);
 
-    // React button: title="React", text content "😊"
+    // React button uses text label
     fireEvent.click(screen.getByTitle("React"));
 
-    // EMOJI_SET = ["👍", "❤️", "😂", ...] — click the first one
+    // EMOJI_SET = ["👍", "❤️", "😂", ...] - click the first one
     fireEvent.click(screen.getByRole("button", { name: "👍" }));
 
     expect(console.error).toHaveBeenCalledWith("React error:", "React failed");
   });
 });
-
-// ---------------------------------------------------------------------------
-// lastOutgoingId — isDm && seenByPartner (line 751)
-// ---------------------------------------------------------------------------
-describe("ChatArea — lastOutgoingId computation", () => {
+// lastOutgoingId - isDm && seenByPartner (line 751)
+describe("ChatArea - lastOutgoingId computation", () => {
   it("shows Seen indicator on the last outgoing message when isDm and seenByPartner", () => {
     const messages = [
       { id: 10, content: "first outgoing", username: "alice", user_id: 1, sender_id: 1,

@@ -1,7 +1,3 @@
-// ============================================================
-//  pages/ForgotPasswordPage.tsx — Request a password reset link
-// ============================================================
-
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { API_BASE } from "../config";
@@ -79,13 +75,6 @@ const s = {
   success: { color: "#23a55a", fontSize: "13px", marginBottom: "12px" },
 } satisfies AppStyleMap;
 
-/**
- * ForgotPasswordPage — Form that requests a password reset email.
- *
- * @component
- * @param {Function} props.onBack - Called when user wants to go back to login.
- * @returns {JSX.Element}
- */
 export default function ForgotPasswordPage({ onBack }: { onBack: () => void }) {
   const [email, setEmail]     = useState("");
   const [loading, setLoading] = useState(false);

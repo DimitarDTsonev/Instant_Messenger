@@ -1,9 +1,3 @@
-/**
- * @fileoverview Vitest global test setup
- * Runs once before every test file. Extends expect with jest-dom matchers
- * and provides global mocks that all component tests rely on.
- */
-
 import "@testing-library/jest-dom";
 
 // Mock socket.io-client so no real WebSocket connection is attempted in tests.

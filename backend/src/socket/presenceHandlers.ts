@@ -1,15 +1,3 @@
-// ============================================================
-//  src/socket/presenceHandlers.ts — Presence and channel room events
-//
-//  Registers handlers for:
-//    channel:join  — switch the socket into a channel room
-//    channel:leave — leave all channel rooms (when entering DM mode)
-//    typing:start  — broadcast typing indicator in a channel
-//    typing:stop   — clear typing indicator in a channel
-//    status:set    — change the user's online status
-//    disconnect    — remove user from the online map
-// ============================================================
-
 import type { Server, Socket } from "socket.io";
 import type { AuthUser } from "../types";
 import { getDb } from "../db/database";
@@ -21,9 +9,7 @@ type StatusPayload  = { status?: OnlineUser["status"] };
 type AckFn = (data: unknown) => void;
 
 export function registerPresenceHandlers(socket: Socket, io: Server, user: AuthUser) {
-  // ----------------------------------------------------------
-  // channel:join — verify access, then switch to the channel room
-  // ----------------------------------------------------------
+  // channel:join - verify access, then switch to the channel room
   socket.on("channel:join", (channelId: number, callback?: AckFn) => {
     const role = getUserRole(getDb(), user.id, channelId);
     if (role === null) {
@@ -36,19 +22,13 @@ export function registerPresenceHandlers(socket: Socket, io: Server, user: AuthU
     socket.join(`channel:${channelId}`);
     callback?.({ success: true });
   });
-
-  // ----------------------------------------------------------
-  // channel:leave — leave all channel rooms without joining another
-  // ----------------------------------------------------------
+  // channel:leave - leave all channel rooms without joining another
   socket.on("channel:leave", () => {
     socket.rooms.forEach((room: string) => {
       if (room !== socket.id && !room.startsWith("notifications:")) socket.leave(room);
     });
   });
-
-  // ----------------------------------------------------------
-  // typing:start / typing:stop — channel typing indicators
-  // ----------------------------------------------------------
+  // typing:start / typing:stop - channel typing indicators
   socket.on("typing:start", ({ channelId }: ChannelPayload) => {
     socket.to(`channel:${channelId}`).emit("typing:update", {
       userId: user.id, username: user.username, isTyping: true,
@@ -60,10 +40,7 @@ export function registerPresenceHandlers(socket: Socket, io: Server, user: AuthU
       userId: user.id, username: user.username, isTyping: false,
     });
   });
-
-  // ----------------------------------------------------------
-  // status:set — update online/away/dnd status
-  // ----------------------------------------------------------
+  // status:set - update online/away/dnd status
   socket.on("status:set", ({ status }: StatusPayload = {}) => {
     const valid: Array<OnlineUser["status"]> = ["online", "away", "dnd"];
     if (!valid.includes(status)) return;
@@ -71,10 +48,7 @@ export function registerPresenceHandlers(socket: Socket, io: Server, user: AuthU
     if (entry) { entry.status = status; onlineUsers.set(user.id, entry); }
     io.emit("users:online", buildOnlinePayload());
   });
-
-  // ----------------------------------------------------------
-  // disconnect — remove user from online map, broadcast update
-  // ----------------------------------------------------------
+  // disconnect - remove user from online map, broadcast update
   socket.on("disconnect", () => {
     console.log(`Disconnected: ${user.username}`);
     onlineUsers.delete(user.id);

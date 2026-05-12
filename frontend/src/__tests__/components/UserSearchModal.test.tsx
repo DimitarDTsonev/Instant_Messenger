@@ -1,8 +1,3 @@
-/**
- * @fileoverview Tests for UserSearchModal component
- * Covers: renders, search input, results, DM and profile actions, Escape close
- */
-
 import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import UserSearchModal from "../../components/UserSearchModal";
@@ -18,7 +13,7 @@ vi.mock("../../hooks/useApi", () => ({
 
 import { useUserSearch } from "../../hooks/useApi";
 
-const ALICE = { id: 2, username: "alice", email: "alice@test.com", avatar: "👤", role: "member" };
+const ALICE = { id: 2, username: "alice", email: "alice@test.com", avatar: "AL", role: "member" };
 
 describe("UserSearchModal", () => {
   test("renders search input", () => {
@@ -34,7 +29,7 @@ describe("UserSearchModal", () => {
   test("calls onClose when ESC button is clicked", () => {
     const onClose = vi.fn();
     render(<UserSearchModal onClose={onClose} onSelectDm={vi.fn()} onViewProfile={vi.fn()} />);
-    fireEvent.click(screen.getByText("ESC"));
+    fireEvent.click(screen.getByRole("button", { name: "Close user search" }));
     expect(onClose).toHaveBeenCalled();
   });
 
@@ -98,7 +93,7 @@ describe("UserSearchModal", () => {
     expect(screen.getByText(/No users found/i)).toBeInTheDocument();
   });
 
-  test("shows admin crown icon for admin users", () => {
+  test("shows admin shield icon for admin users", () => {
     const adminUser = { ...ALICE, role: "admin" };
     useUserSearch.mockReturnValue({
       results: [adminUser], loading: false, search: vi.fn(), clear: vi.fn(),

@@ -3,6 +3,7 @@ import type { MouseEvent } from "react";
 import { SOCKET_URL as BASE_URL } from "../config";
 import { fileIcon } from "../utils/fileUtils";
 import { s } from "./chatAreaStyles";
+import Icon from "./Icons";
 
 const OFFICE_EXTS = ["ppt", "pptx", "doc", "docx", "xls", "xlsx"];
 
@@ -13,11 +14,6 @@ type Props = {
   onClose:   () => void;
 };
 
-/**
- * Full-screen overlay for viewing or downloading a file attachment.
- * Images are shown inline; PDFs/Office docs in iframes; other types show a download button.
- * Pressing Escape or clicking the backdrop closes the modal.
- */
 export default function FilePreviewModal({ fileUrl, fileType, fileName, onClose }: Props) {
   const fullUrl     = `${BASE_URL}${fileUrl}`;
   const isImage     = fileType === "image";
@@ -54,7 +50,9 @@ export default function FilePreviewModal({ fileUrl, fileType, fileName, onClose 
       <div style={s.modalBox} onClick={(e: MouseEvent<HTMLDivElement>) => e.stopPropagation()}>
         <div style={s.modalHeader}>
           <span style={s.modalTitle}>{fileName}</span>
-          <button style={s.modalClose} onClick={onClose} title="Close (Esc)">✕</button>
+          <button style={s.modalClose} onClick={onClose} title="Close (Esc)" aria-label="Close preview">
+            <Icon name="x" size={18} />
+          </button>
         </div>
 
         {isImage ? (
@@ -75,13 +73,17 @@ export default function FilePreviewModal({ fileUrl, fileType, fileName, onClose 
         )}
 
         <div style={s.modalActions}>
-          <button style={s.downloadBtn} onClick={handleDownload}>⬇ Download</button>
+          <button style={s.downloadBtn} onClick={handleDownload}>
+            <Icon name="download" size={16} />
+            <span>Download</span>
+          </button>
           <a
             href={fullUrl} target="_blank" rel="noreferrer"
             style={{ ...s.downloadBtn, background: "#2d2d3f", color: "#949ba4" }}
             onClick={(e: MouseEvent<HTMLAnchorElement>) => e.stopPropagation()}
           >
-            🔗 Open
+            <Icon name="externalLink" size={16} />
+            <span>Open</span>
           </a>
         </div>
       </div>

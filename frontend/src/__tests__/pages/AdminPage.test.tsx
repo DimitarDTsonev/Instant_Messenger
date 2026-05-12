@@ -1,9 +1,3 @@
-/**
- * @fileoverview Tests for AdminPage component.
- * Covers: access control, user list rendering, filtering, ban/unban actions,
- * security logs tab, ban confirmation modal.
- */
-
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { useAuth } from "../../context/AuthContext";
 import AdminPage from "../../pages/AdminPage";
@@ -18,9 +12,9 @@ const ADMIN_USER = { id: 1, username: "alice", role: "admin", email: "alice@exam
 const TOKEN = "admin-token";
 
 const USERS = [
-  { id: 1, username: "alice",  email: "alice@example.com",  role: "admin",  is_banned: 0, ban_reason: null,             avatar: "👤", created_at: "2024-01-01" },
-  { id: 2, username: "bob",    email: "bob@example.com",    role: "member", is_banned: 0, ban_reason: null,             avatar: "👤", created_at: "2024-01-02" },
-  { id: 3, username: "charlie",email: "charlie@example.com",role: "member", is_banned: 1, ban_reason: "rule violation", avatar: "👤", created_at: "2024-01-03" },
+  { id: 1, username: "alice",  email: "alice@example.com",  role: "admin",  is_banned: 0, ban_reason: null,             avatar: "AL", created_at: "2024-01-01" },
+  { id: 2, username: "bob",    email: "bob@example.com",    role: "member", is_banned: 0, ban_reason: null,             avatar: "AL", created_at: "2024-01-02" },
+  { id: 3, username: "charlie",email: "charlie@example.com",role: "member", is_banned: 1, ban_reason: "rule violation", avatar: "AL", created_at: "2024-01-03" },
 ];
 
 const LOGS = [
@@ -54,15 +48,12 @@ beforeEach(() => {
 afterEach(() => {
   vi.restoreAllMocks();
 });
-
-// ─────────────────────────────────────────────────────────
 //  1. Access control
-// ─────────────────────────────────────────────────────────
 describe("access control", () => {
   test("shows 'Admin access required' for non-admins", () => {
     useAuth.mockReturnValue({ user: { id: 2, username: "bob", role: "member" }, token: TOKEN });
     render(<AdminPage />);
-    expect(screen.getByText(/admin access required/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/admin access required/i).length).toBeGreaterThan(0);
   });
 
   test("renders dashboard for admins", async () => {
@@ -70,10 +61,7 @@ describe("access control", () => {
     await waitFor(() => expect(screen.getByText("Admin Dashboard")).toBeInTheDocument());
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  2. Users tab
-// ─────────────────────────────────────────────────────────
 describe("users tab", () => {
   test("renders user table after loading", async () => {
     render(<AdminPage />);
@@ -127,10 +115,7 @@ describe("users tab", () => {
     });
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  3. Ban modal
-// ─────────────────────────────────────────────────────────
 describe("ban confirmation modal", () => {
   test("opens ban modal when ban button clicked", async () => {
     render(<AdminPage />);
@@ -177,10 +162,7 @@ describe("ban confirmation modal", () => {
     await waitFor(() => expect(screen.queryByTestId("ban-modal")).not.toBeInTheDocument());
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  4. Unban
-// ─────────────────────────────────────────────────────────
 describe("unban action", () => {
   test("clicking unban calls the API and refreshes users", async () => {
     render(<AdminPage />);
@@ -194,10 +176,7 @@ describe("unban action", () => {
     );
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  5. Security logs tab
-// ─────────────────────────────────────────────────────────
 describe("security logs tab", () => {
   test("switching to logs tab shows the logs table", async () => {
     render(<AdminPage />);
@@ -225,10 +204,7 @@ describe("security logs tab", () => {
     expect(screen.queryByText("LOGIN_FAIL")).not.toBeInTheDocument();
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  6. Error handling
-// ─────────────────────────────────────────────────────────
 describe("error handling", () => {
   test("shows error when users fetch fails", async () => {
     global.fetch = vi.fn(() => Promise.resolve({ ok: false, json: () => Promise.resolve({ error: "Server error" }) }));
@@ -236,10 +212,7 @@ describe("error handling", () => {
     await waitFor(() => expect(screen.getByTestId("admin-error")).toBeInTheDocument());
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  7. Missing branch coverage
-// ─────────────────────────────────────────────────────────
 describe("additional branch coverage", () => {
   test("shows actionError when unban fails (line 219)", async () => {
     global.fetch = vi.fn((url) => {

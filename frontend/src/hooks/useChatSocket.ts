@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import type { MutableRefObject } from "react";
 import { useSocket } from "../context/SocketContext";
+import { avatarLabel } from "../utils/avatar";
 import { playNotificationSound } from "../utils/notificationSound";
 import type { Channel, DirectMessage, Message, MessagePatch, User } from "../types";
 
@@ -87,7 +88,7 @@ export function useChatSocket(p: Params) {
     const isSelf = fromId === r.current.user?.id;
     if (r.current.activeDmRef.current?.id === fromId) r.current.addDmMsg(msg);
     const sender = r.current.users.find((u) => u.id === fromId);
-    r.current.upsertConversation(msg, fromId, sender?.username || "?", sender?.avatar || "👤", !isSelf);
+    r.current.upsertConversation(msg, fromId, sender?.username || "?", avatarLabel(sender), !isSelf);
     if (!isSelf) playNotificationSound();
   }), [onNewDm]);
 

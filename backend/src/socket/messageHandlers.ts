@@ -1,15 +1,3 @@
-// ============================================================
-//  src/socket/messageHandlers.ts — Channel message socket events
-//
-//  Registers handlers for:
-//    message:send   — post a new channel message
-//    message:edit   — edit an own message
-//    message:delete — delete a message (owner or admin)
-//    message:react  — toggle emoji reaction
-//    message:pin    — pin a message (owner / admin)
-//    message:unpin  — unpin a message
-// ============================================================
-
 import type { Server } from "socket.io";
 import type { AuthUser, Db, MessageRow } from "../types";
 import { getDb } from "../db/database";
@@ -38,9 +26,7 @@ export function registerMessageHandlers(
   io: Server,
   user: AuthUser,
 ) {
-  // ----------------------------------------------------------
   // message:send
-  // ----------------------------------------------------------
   socket.on("message:send", ({ channelId, content, replyToId, fileUrl, fileType, fileName }: MessageSendPayload, callback?: AckFn) => {
     const text = (content || "").trim();
     if (!text && !fileUrl) return ack(callback, { error: "Message cannot be empty" });
@@ -52,7 +38,7 @@ export function registerMessageHandlers(
     if (count >= RATE_BAN) {
       db.prepare("UPDATE users SET is_banned = 1, ban_reason = ? WHERE id = ?")
         .run("Auto-banned: message flooding", user.id);
-      logSecurityEvent(db, { event: "msg_flood_ban", userId: user.id, username: user.username, detail: `${count} messages in 10s — auto-banned` });
+      logSecurityEvent(db, { event: "msg_flood_ban", userId: user.id, username: user.username, detail: `${count} messages in 10s - auto-banned` });
       socket.emit("error", { message: "You have been banned for flooding." });
       socket.disconnect(true);
       return;
@@ -94,10 +80,7 @@ export function registerMessageHandlers(
     if (text && message) notifyMentions(io, db, text, message, user);
     ack(callback, { success: true, message });
   });
-
-  // ----------------------------------------------------------
   // message:edit
-  // ----------------------------------------------------------
   socket.on("message:edit", ({ messageId, content }: MessageEditPayload, callback?: AckFn) => {
     if (!content?.trim()) return ack(callback, { error: "Content cannot be empty" });
 
@@ -114,10 +97,7 @@ export function registerMessageHandlers(
     io.to(`channel:${msg.channel_id}`).emit("message:edited", updated);
     ack(callback, { success: true, message: updated });
   });
-
-  // ----------------------------------------------------------
   // message:delete
-  // ----------------------------------------------------------
   socket.on("message:delete", ({ messageId }: MessageIdPayload, callback?: AckFn) => {
     const db  = getDb();
     const msg = db.prepare("SELECT * FROM messages WHERE id = ?").get(messageId) as MessageRow | undefined;
@@ -132,10 +112,7 @@ export function registerMessageHandlers(
     io.to(`channel:${msg.channel_id}`).emit("message:deleted", { messageId, channelId: msg.channel_id });
     ack(callback, { success: true });
   });
-
-  // ----------------------------------------------------------
   // message:react
-  // ----------------------------------------------------------
   socket.on("message:react", ({ messageId, emoji }: MessageReactionPayload, callback?: AckFn) => {
     const db  = getDb();
     const msg = db.prepare("SELECT channel_id FROM messages WHERE id = ?").get(messageId) as { channel_id: number } | undefined;
@@ -155,10 +132,7 @@ export function registerMessageHandlers(
     io.to(`channel:${msg.channel_id}`).emit("message:reacted", { messageId, reactions });
     ack(callback, { success: true, reactions });
   });
-
-  // ----------------------------------------------------------
   // message:pin
-  // ----------------------------------------------------------
   socket.on("message:pin", ({ messageId }: MessageIdPayload, callback?: AckFn) => {
     const db     = getDb();
     const msg    = db.prepare("SELECT * FROM messages WHERE id = ?").get(messageId) as MessageRow | undefined;
@@ -176,10 +150,7 @@ export function registerMessageHandlers(
     io.to(`channel:${msg.channel_id}`).emit("message:pinned", pinned);
     ack(callback, { success: true, message: pinned });
   });
-
-  // ----------------------------------------------------------
   // message:unpin
-  // ----------------------------------------------------------
   socket.on("message:unpin", ({ messageId }: MessageIdPayload, callback?: AckFn) => {
     const db  = getDb();
     const msg = db.prepare("SELECT channel_id FROM messages WHERE id = ?").get(messageId) as { channel_id: number } | undefined;

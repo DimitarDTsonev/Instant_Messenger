@@ -1,8 +1,3 @@
-/**
- * @fileoverview Integration tests for /api/admin routes.
- * Covers: security-logs listing, ban, unban, auth guards.
- */
-
 import request from "supertest";
 import bcrypt from "bcryptjs";
 
@@ -23,8 +18,6 @@ beforeAll(() => {
 });
 
 beforeEach(() => clearDb(db));
-
-// ── helpers ────────────────────────────────────────────────────────────
 
 function seedUser(username, role = "member") {
   const hash = bcrypt.hashSync("pw", 1);
@@ -47,8 +40,6 @@ function memberToken() {
 function seedLog(event, ip = "1.2.3.4") {
   db.prepare("INSERT INTO security_logs (event, ip, username) VALUES (?, ?, 'test')").run(event, ip);
 }
-
-// ── GET /api/admin/users ──────────────────────────────────────
 
 describe("GET /api/admin/users", () => {
   test("returns 401 without token", async () => {
@@ -79,8 +70,6 @@ describe("GET /api/admin/users", () => {
     expect(found.ban_reason).toBe("test");
   });
 });
-
-// ── GET /api/admin/security-logs ──────────────────────────────
 
 describe("GET /api/admin/security-logs", () => {
   test("returns 401 without token", async () => {
@@ -136,8 +125,6 @@ describe("GET /api/admin/security-logs", () => {
     expect(res.body.logs.length).toBe(3);
   });
 });
-
-// ── POST /api/admin/ban/:userId ────────────────────────────────
 
 describe("POST /api/admin/ban/:userId", () => {
   test("returns 401 without token", async () => {
@@ -206,8 +193,6 @@ describe("POST /api/admin/ban/:userId", () => {
     expect(res.status).toBe(404);
   });
 });
-
-// ── POST /api/admin/unban/:userId ──────────────────────────────
 
 describe("POST /api/admin/unban/:userId", () => {
   test("admin can unban a banned user", async () => {

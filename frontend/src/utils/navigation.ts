@@ -1,7 +1,3 @@
-/**
- * Browser navigation helpers for the app's lightweight path-based routing.
- */
-
 export function getAppPath() {
   const base = import.meta.env.BASE_URL.replace(/\/$/, "");
   return window.location.pathname.slice(base.length) || "/";

@@ -78,7 +78,7 @@ export default function AdminPage() {
   if (!user || user.role !== "admin") {
     return (
       <div style={{ ...s.page, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: "12px" }}>
-        <span style={{ fontSize: "48px" }}>🔒</span>
+        <span style={{ fontSize: "18px", fontWeight: 700 }}>Admin access required</span>
         <span>Admin access required</span>
         <button style={s.backBtn} onClick={() => window.history.back()}>Go back</button>
       </div>

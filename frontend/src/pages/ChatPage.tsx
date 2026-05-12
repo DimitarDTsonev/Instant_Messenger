@@ -124,7 +124,7 @@ export default function ChatPage() {
           </>
         ) : (
           <div style={s.noChannel}>
-            <span style={{ fontSize: "64px" }}>💬</span>
+            <span style={{ fontSize: "48px", fontWeight: 700 }}>IM</span>
             <span style={{ fontSize: "18px", fontWeight: 600, color: "#f2f3f5" }}>Welcome to Instant Messenger</span>
             <span>Select a channel or user from the left menu</span>
           </div>

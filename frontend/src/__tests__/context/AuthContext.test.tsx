@@ -1,13 +1,8 @@
-/**
- * @fileoverview Tests for AuthContext (AuthProvider + useAuth)
- * Covers: initial token validation, login, register, logout, loginWithToken (guest/regular), authFetch
- */
-
 import { AuthProvider, useAuth } from "../../context/AuthContext";
 import { render, screen, act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
  
-// Wrapper helper — renders children inside a real AuthProvider
+// Wrapper helper - renders children inside a real AuthProvider
 const wrapper = ({ children }: { children?: ReactNode }) => (
   <AuthProvider>{children}</AuthProvider>
 );
@@ -87,7 +82,7 @@ describe("AuthContext", () => {
   });
 
   test("login() sets user and token, stores in localStorage", async () => {
-    // No stored token → no initial /me call
+    // No stored token -> no initial /me call
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({ user: { id: 2, username: "bob" }, token: "tok123" }),
@@ -161,7 +156,7 @@ describe("AuthContext", () => {
   });
 
   test("loginWithToken(guest=true) stores token in sessionStorage only", async () => {
-    // loginWithToken will trigger useEffect([token]) → need to mock the /me call
+    // loginWithToken will trigger useEffect([token]) -> need to mock the /me call
     global.fetch = mockMeSuccess("guest");
 
     render(<ContextDisplay />, { wrapper: Wrapper });
@@ -212,7 +207,7 @@ describe("AuthContext", () => {
   });
 
   test("authFetch() throws when server responds with non-2xx", async () => {
-    // No stored token → loading immediately false
+    // No stored token -> loading immediately false
     // authFetch will use token=null (Bearer null) which is fine for this test
     global.fetch = vi.fn().mockResolvedValue({
       ok: false,
@@ -229,20 +224,17 @@ describe("AuthContext", () => {
     );
   });
 });
- 
-// ---------------------------------------------------------------------------
 // register()
-// ---------------------------------------------------------------------------
-describe("AuthContext — register()", () => {
+describe("AuthContext - register()", () => {
   beforeEach(() => {
     localStorage.clear();
     sessionStorage.clear();
   });
  
   it("sets user and token on successful registration", async () => {
-    // No stored token → mount useEffect exits immediately (no /auth/me fetch).
-    // register() succeeds → setToken("new-tok") fires → useEffect re-runs
-    // with the new token → GET /auth/me is called once.
+    // No stored token -> mount useEffect exits immediately (no /auth/me fetch).
+    // register() succeeds -> setToken("new-tok") fires -> useEffect re-runs
+    // with the new token -> GET /auth/me is called once.
     global.fetch = vi.fn()
       // POST /auth/register
       .mockResolvedValueOnce({
@@ -260,7 +252,7 @@ describe("AuthContext — register()", () => {
 
     const { result } = renderHook(() => useAuth(), { wrapper });
 
-    // Wait for initial loading to finish (no token → immediate)
+    // Wait for initial loading to finish (no token -> immediate)
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     await act(async () => {
@@ -305,11 +297,8 @@ describe("AuthContext — register()", () => {
     ).rejects.toThrow("Registration error");
   });
 });
- 
-// ---------------------------------------------------------------------------
-// loginWithToken() — isGuest branch
-// ---------------------------------------------------------------------------
-describe("AuthContext — loginWithToken()", () => {
+// loginWithToken() - isGuest branch
+describe("AuthContext - loginWithToken()", () => {
   beforeEach(() => {
     localStorage.clear();
     sessionStorage.clear();
@@ -330,7 +319,7 @@ describe("AuthContext — loginWithToken()", () => {
       result.current.loginWithToken(
         { id: 5, username: "guest" },
         "guest-tok",
-        true   // isGuest = true  ← the uncovered branch
+        true   // isGuest = true  <- the uncovered branch
       );
     });
  
@@ -352,11 +341,8 @@ describe("AuthContext — loginWithToken()", () => {
     expect(sessionStorage.getItem("im_token")).toBeNull();
   });
 });
- 
-// ---------------------------------------------------------------------------
-// authFetch() — non-ok response throws
-// ---------------------------------------------------------------------------
-describe("AuthContext — authFetch()", () => {
+// authFetch() - non-ok response throws
+describe("AuthContext - authFetch()", () => {
   beforeEach(() => {
     localStorage.setItem("im_token", "stored-tok");
     // First fetch is the /auth/me validation on mount
@@ -401,11 +387,8 @@ describe("AuthContext — authFetch()", () => {
     ).rejects.toThrow("Error");
   });
 });
- 
-// ---------------------------------------------------------------------------
-// useAuth() — used outside AuthProvider
-// ---------------------------------------------------------------------------
-describe("AuthContext — useAuth() outside provider", () => {
+// useAuth() - used outside AuthProvider
+describe("AuthContext - useAuth() outside provider", () => {
   it("throws a descriptive error when used outside AuthProvider", () => {
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     const suppressExpectedError = (event: ErrorEvent) => {

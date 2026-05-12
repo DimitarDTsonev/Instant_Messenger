@@ -1,18 +1,3 @@
-// ============================================================
-//  src/routes/channels/index.ts — Channel CRUD + sub-router mounting
-//
-//  All routes require a valid Bearer token (authMiddleware).
-//  Sub-routers handle members, permissions, and invites.
-//
-//  Routes defined here:
-//    GET    /     — list visible channels
-//    POST   /     — create a channel
-//    PATCH  /:id  — update channel settings (owner only)
-//    DELETE /:id  — delete a channel (owner or admin)
-//
-//  Re-exports getUserRole and getPerms for use by socket/handlers.
-// ============================================================
-
 import express from "express";
 import { getDb } from "../../db/database";
 import { authMiddleware } from "../../middleware/auth";
@@ -28,14 +13,11 @@ type ChannelRow = { id: number; created_by: number };
 const router = express.Router();
 router.use(authMiddleware);
 
-// Mount sub-routers — mergeParams propagates :id to each sub-router
+// Mount sub-routers - mergeParams propagates :id to each sub-router
 router.use("/:id/members",     membersRouter);
 router.use("/:id/permissions", permissionsRouter);
 router.use("/:id/invites",     invitesRouter);
-
-// ----------------------------------------------------------
-// GET / — list all channels visible to the authenticated user
-// ----------------------------------------------------------
+// GET / - list all channels visible to the authenticated user
 router.get("/", (req, res) => {
   const db = getDb();
   const me = req.user.id;
@@ -61,10 +43,7 @@ router.get("/", (req, res) => {
 
   return res.json({ channels });
 });
-
-// ----------------------------------------------------------
-// POST / — create a new channel
-// ----------------------------------------------------------
+// POST / - create a new channel
 router.post("/", (req, res) => {
   const { name, description = "", is_private = 0 } = req.body;
   if (!name || name.trim().length < 2)
@@ -86,10 +65,7 @@ router.post("/", (req, res) => {
   const channel = db.prepare("SELECT c.*, 'owner' AS user_role FROM channels c WHERE c.id = ?").get(lastInsertRowid);
   return res.status(201).json({ channel });
 });
-
-// ----------------------------------------------------------
-// PATCH /:id — update channel description / privacy (owner)
-// ----------------------------------------------------------
+// PATCH /:id - update channel description / privacy (owner)
 router.patch("/:id", (req, res) => {
   const db   = getDb();
   const id   = req.params.id;
@@ -109,10 +85,7 @@ router.patch("/:id", (req, res) => {
   const channel = db.prepare("SELECT * FROM channels WHERE id = ?").get(id);
   return res.json({ channel });
 });
-
-// ----------------------------------------------------------
-// DELETE /:id — permanently delete a channel (owner or admin)
-// ----------------------------------------------------------
+// DELETE /:id - permanently delete a channel (owner or admin)
 router.delete("/:id", (req, res) => {
   const db  = getDb();
   const ch  = db.prepare("SELECT * FROM channels WHERE id = ?").get(req.params.id) as ChannelRow | undefined;

@@ -7,6 +7,7 @@ import type { DirectMessage, Message, User } from "../types";
 import { fileIcon } from "../utils/fileUtils";
 import { useDebounce } from "../hooks/useDebounce";
 import EmojiPicker     from "./EmojiPicker";
+import Icon            from "./Icons";
 import MentionDropdown from "./MentionDropdown";
 import { s }           from "./messageInputStyles";
 
@@ -166,34 +167,44 @@ export default function MessageInput({
 
       {replyTo && (
         <div style={s.replyBar}>
-          <span style={s.replyIcon}>↩</span>
+          <span style={s.replyIcon}><Icon name="reply" size={16} /></span>
           <span>Replying to </span>
           <span style={{ color: "#7289da", fontWeight: 600 }}>{replyTo.username}</span>
           <span style={s.replyText}>: {(replyTo.content || "").slice(0, 60)}</span>
-          <button style={s.replyClose} onClick={onClearReply}>✕</button>
+          <button style={s.replyClose} onClick={onClearReply} title="Cancel reply" aria-label="Cancel reply">
+            <Icon name="x" size={14} />
+          </button>
         </div>
       )}
 
       {(fileData || uploading) && (
         <div style={{ ...s.filePreview, borderRadius: replyTo ? "0" : "8px 8px 0 0" }}>
-          {uploading ? <span>⏳ Uploading...</span> : (
+          {uploading ? <span>Uploading...</span> : (
             <>
               {fileData.type === "image" && fileData.previewUrl ? <img src={fileData.previewUrl} style={s.fileImg} alt="preview" /> : <span style={s.fileIcon}>{fileIcon(fileData.name)}</span>}
               <span style={{ flex: 1, color: "#f2f3f5", fontSize: "13px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{fileData.name}</span>
-              <button style={s.fileRemove} onClick={() => setFileData(null)}>✕</button>
+              <button style={s.fileRemove} onClick={() => setFileData(null)} title="Remove attachment" aria-label="Remove attachment">
+                <Icon name="x" size={14} />
+              </button>
             </>
           )}
         </div>
       )}
 
       <div style={{ ...s.wrapper, ...(hasTop ? s.wrapperWithTop : {}) }}>
-        <button style={{ ...s.iconBtn, color: showEmoji ? "#7289da" : "#5c6068" }} title="Emoji" onClick={() => setShowEmoji((v) => !v)}>😊</button>
-        <button style={s.iconBtn} title="Attach file" onClick={() => fileInputRef.current?.click()} disabled={uploading}>📎</button>
+        <button style={{ ...s.iconBtn, color: showEmoji ? "#7289da" : "#5c6068", background: showEmoji ? "#5865f215" : "transparent" }} aria-label="Emoji picker" title="Emoji picker" onClick={() => setShowEmoji((v) => !v)}>
+          <Icon name="smile" />
+        </button>
+        <button style={s.iconBtn} aria-label="Attach file" title="Attach file" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
+          <Icon name="paperclip" />
+        </button>
         <input ref={fileInputRef} type="file" accept={ACCEPTED_TYPES} style={{ display: "none" }} onChange={handleFileChange} />
         <textarea ref={textareaRef} style={{ ...s.textarea, cursor: isBlocked ? "not-allowed" : undefined }} value={text} onChange={handleChange} onKeyDown={handleKeyDown} placeholder={placeholder} disabled={isBlocked || sending} rows={1} />
-        <button style={s.sendBtn(!!(text.trim() || fileData) && !sending)} onClick={handleSend} disabled={!(text.trim() || fileData) || sending} title="Send (Enter)">➤</button>
+        <button style={s.sendBtn(!!(text.trim() || fileData) && !sending)} aria-label="Send" onClick={handleSend} disabled={!(text.trim() || fileData) || sending} title="Send (Enter)">
+          <Icon name="send" size={17} />
+        </button>
       </div>
-      <div style={s.hint}>Enter — send &nbsp;·&nbsp; Shift+Enter — new line &nbsp;·&nbsp; @ — mention</div>
+      <div style={s.hint}>Enter to send &nbsp;·&nbsp; Shift+Enter for a new line &nbsp;·&nbsp; @ to mention</div>
     </div>
   );
 }

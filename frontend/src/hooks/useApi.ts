@@ -1,4 +1,4 @@
-// Barrel re-export — imports from this file continue to work unchanged.
+// Barrel re-export - imports from this file continue to work unchanged.
 export { useChannels }                          from "./useChannels";
 export { useMessages, usePinnedMessages }       from "./useMessages";
 export { useDm, useConversations }              from "./useDm";

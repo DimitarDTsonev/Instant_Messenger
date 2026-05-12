@@ -1,36 +1,18 @@
-/**
- * @fileoverview Tests for SocketContext (SocketProvider + useSocket)
- * Covers: provider renders children, connection lifecycle, emit helpers (connected
- * and disconnected), event subscription / unsubscribe helpers, and the guard that
- * throws when useSocket is called outside a provider.
- */
-
 import { render, screen, act, waitFor } from "@testing-library/react";
 import { io } from "socket.io-client";
 import { SocketProvider, useSocket } from "../../context/SocketContext";
-
-// ---------------------------------------------------------------------------
-// Mock AuthContext — must be declared before the import so Vitest hoists it
-// ---------------------------------------------------------------------------
+// Mock AuthContext - must be declared before the import so Vitest hoists it
 vi.mock("../../context/AuthContext", () => ({
   useAuth: vi.fn(),
 }));
 
 import { useAuth } from "../../context/AuthContext";
-
-// ---------------------------------------------------------------------------
 // Helpers
-// ---------------------------------------------------------------------------
 
-/** Returns the mock socket instance created by the most recent io() call. */
 function getMockSocket() {
   return io.mock.results[io.mock.results.length - 1].value;
 }
 
-/**
- * Minimal child that reads every value from the socket context and exposes
- * them through data-testid attributes so tests can assert on them.
- */
 function SocketConsumer() {
   const ctx = useSocket();
   return (
@@ -43,7 +25,6 @@ function SocketConsumer() {
   );
 }
 
-/** Convenience wrapper that provides both AuthContext mock and SocketProvider. */
 function renderWithSocket(authValue = { token: "tok", user: { id: 1 } }) {
   useAuth.mockReturnValue(authValue);
   return render(
@@ -53,24 +34,17 @@ function renderWithSocket(authValue = { token: "tok", user: { id: 1 } }) {
   );
 }
 
-/** Retrieve the context object stored by SocketConsumer. */
 function getCtx() {
   return screen.getByTestId("ctx").__ctx;
 }
-
-// ---------------------------------------------------------------------------
 // Setup / teardown
-// ---------------------------------------------------------------------------
 
 beforeEach(() => {
   vi.clearAllMocks();
   // Default: authenticated
   useAuth.mockReturnValue({ token: "test-token", user: { id: 42 } });
 });
-
-// ---------------------------------------------------------------------------
 // Tests
-// ---------------------------------------------------------------------------
 
 describe("SocketProvider", () => {
   // --- rendering -----------------------------------------------------------
@@ -82,7 +56,7 @@ describe("SocketProvider", () => {
 
   test("provides isConnected=false before the 'connect' event fires", () => {
     renderWithSocket();
-    // The mock socket's on() is vi.fn() — 'connect' event has not fired yet
+    // The mock socket's on() is vi.fn() - 'connect' event has not fired yet
     expect(screen.getByTestId("isConnected").textContent).toBe("false");
   });
 
@@ -427,7 +401,7 @@ describe("SocketProvider", () => {
 
     expect(handler).toHaveBeenCalledWith({ id: 1, content: "hi" });
 
-    // After unsubscribe the ref is null — subsequent invocations are no-ops
+    // After unsubscribe the ref is null - subsequent invocations are no-ops
     unsub();
     socketHandler({ id: 2, content: "after unsub" });
     expect(handler).toHaveBeenCalledTimes(1);
@@ -655,19 +629,14 @@ describe("SocketProvider", () => {
       const mockSocket = getMockSocket();
   });
 });
-
-// ---------------------------------------------------------------------------
-// SocketContext — emit helpers when socket is NOT connected (lines 223, 234, 266, 277, 289)
+// SocketContext - emit helpers when socket is NOT connected (lines 223, 234, 266, 277, 289)
 // Uses the same renderWithSocket() / getMockSocket() / getCtx() helpers
 // that are already defined at the top of this file.
-// ---------------------------------------------------------------------------
-describe("SocketContext — emit helpers when socket is NOT connected", () => {
+describe("SocketContext - emit helpers when socket is NOT connected", () => {
   function renderDisconnected() {
     renderWithSocket();               // creates socket via io()
     getMockSocket().connected = false; // mark it disconnected
   }
-
-  // ── pinMessage (line 223) ─────────────────────────────────────────────────
   test("pinMessage calls callback with {error} when not connected", () => {
     renderDisconnected();
     const cb = vi.fn();
@@ -680,8 +649,6 @@ describe("SocketContext — emit helpers when socket is NOT connected", () => {
     renderDisconnected();
     expect(() => { act(() => getCtx().pinMessage(10)); }).not.toThrow();
   });
-
-  // ── unpinMessage (line 234) ───────────────────────────────────────────────
   test("unpinMessage calls callback with {error} when not connected", () => {
     renderDisconnected();
     const cb = vi.fn();
@@ -694,8 +661,6 @@ describe("SocketContext — emit helpers when socket is NOT connected", () => {
     renderDisconnected();
     expect(() => { act(() => getCtx().unpinMessage(10)); }).not.toThrow();
   });
-
-  // ── editDmMessage (line 266) ──────────────────────────────────────────────
   test("editDmMessage calls callback with {error} when not connected", () => {
     renderDisconnected();
     const cb = vi.fn();
@@ -708,8 +673,6 @@ describe("SocketContext — emit helpers when socket is NOT connected", () => {
     renderDisconnected();
     expect(() => { act(() => getCtx().editDmMessage(5, "text")); }).not.toThrow();
   });
-
-  // ── deleteDmMessage (line 277) ────────────────────────────────────────────
   test("deleteDmMessage calls callback with {error} when not connected", () => {
     renderDisconnected();
     const cb = vi.fn();
@@ -722,8 +685,6 @@ describe("SocketContext — emit helpers when socket is NOT connected", () => {
     renderDisconnected();
     expect(() => { act(() => getCtx().deleteDmMessage(7)); }).not.toThrow();
   });
-
-  // ── reactToDmMessage (line 289) ───────────────────────────────────────────
   test("reactToDmMessage calls callback with {error} when not connected", () => {
     renderDisconnected();
     const cb = vi.fn();
@@ -737,11 +698,8 @@ describe("SocketContext — emit helpers when socket is NOT connected", () => {
     expect(() => { act(() => getCtx().reactToDmMessage(3, "👍")); }).not.toThrow();
   });
 });
-
-// ---------------------------------------------------------------------------
-// users:online — object payload branch (lines 192-196)
-// ---------------------------------------------------------------------------
-describe("SocketContext — users:online with {id, status} object payload", () => {
+// users:online - object payload branch (lines 192-196)
+describe("SocketContext - users:online with {id, status} object payload", () => {
   test("updates onlineUserIds and userStatuses from object array payload", async () => {
     renderWithSocket();
     const mockSocket = getMockSocket();
