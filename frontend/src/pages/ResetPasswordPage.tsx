@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { API_BASE } from "../config";
 import { navigateHome } from "../utils/navigation";
+import { validatePassword } from "../utils/validatePassword";
 
 const s = {
   page: {
@@ -88,7 +89,8 @@ export default function ResetPasswordPage() {
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!password.trim()) { setError("Password is required"); return; }
-    if (password.length < 6) { setError("Password must be at least 6 characters"); return; }
+    const pwError = validatePassword(password);
+    if (pwError) { setError(pwError); return; }
     if (password !== confirm) { setError("Passwords do not match"); return; }
     if (!token) { setError("Missing reset token. Use the link from the email."); return; }
 

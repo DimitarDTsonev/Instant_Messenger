@@ -56,7 +56,7 @@ describe("LoginPage", () => {
 
   test("calls login() with entered credentials on submit", async () => {
     const mockLogin = vi.fn().mockResolvedValue({});
-    useAuth.mockReturnValue({ login: mockLogin, register: vi.fn() });
+    vi.mocked(useAuth).mockReturnValue({ login: mockLogin, register: vi.fn() });
 
     render(<LoginPage />);
     const emailInput = screen.getByLabelText(/email/i);
@@ -73,7 +73,7 @@ describe("LoginPage", () => {
 
   test("calls register() with all fields in register mode", async () => {
     const mockRegister = vi.fn().mockResolvedValue({});
-    useAuth.mockReturnValue({ login: vi.fn(), register: mockRegister });
+    vi.mocked(useAuth).mockReturnValue({ login: vi.fn(), register: mockRegister });
 
     render(<LoginPage />);
     fireEvent.click(screen.getByText("Register"));
@@ -84,16 +84,16 @@ describe("LoginPage", () => {
     await userEvent.type(emailInput, "new@test.com");
     const passInput = screen.getByLabelText(/password/i);
     await userEvent.clear(passInput);
-    await userEvent.type(passInput, "newpass");
+    await userEvent.type(passInput, "Newpass1!");
 
     fireEvent.submit(screen.getByRole("button", { name: /create account/i }).closest("form"));
     await waitFor(() =>
-      expect(mockRegister).toHaveBeenCalledWith("newuser", "new@test.com", "newpass")
+      expect(mockRegister).toHaveBeenCalledWith("newuser", "new@test.com", "Newpass1!")
     );
   });
 
   test("displays error message when login fails", async () => {
-    useAuth.mockReturnValue({
+    vi.mocked(useAuth).mockReturnValue({
       login:    vi.fn().mockRejectedValue(new Error("Invalid credentials")),
       register: vi.fn(),
     });
@@ -104,19 +104,22 @@ describe("LoginPage", () => {
   });
 
   test("displays error message when registration fails", async () => {
-    useAuth.mockReturnValue({
+    vi.mocked(useAuth).mockReturnValue({
       login:    vi.fn(),
       register: vi.fn().mockRejectedValue(new Error("Username taken")),
     });
 
     render(<LoginPage />);
     fireEvent.click(screen.getByText("Register"));
+    const passInput = screen.getByLabelText(/password/i);
+    await userEvent.clear(passInput);
+    await userEvent.type(passInput, "Password1!");
     fireEvent.submit(screen.getByRole("button", { name: /create account/i }).closest("form"));
     await waitFor(() => expect(screen.getByText(/Username taken/i)).toBeInTheDocument());
   });
 
   test("shows loading state while request is in flight", async () => {
-    useAuth.mockReturnValue({
+    vi.mocked(useAuth).mockReturnValue({
       login:    vi.fn(() => new Promise(() => {})),
       register: vi.fn(),
     });
@@ -127,7 +130,7 @@ describe("LoginPage", () => {
   });
 
   test("submit button is disabled while loading", async () => {
-    useAuth.mockReturnValue({
+    vi.mocked(useAuth).mockReturnValue({
       login:    vi.fn(() => new Promise(() => {})),
       register: vi.fn(),
     });
@@ -139,7 +142,7 @@ describe("LoginPage", () => {
   });
 
   test("clears error message when user starts typing", async () => {
-    useAuth.mockReturnValue({
+    vi.mocked(useAuth).mockReturnValue({
       login:    vi.fn().mockRejectedValue(new Error("Bad credentials")),
       register: vi.fn(),
     });

@@ -30,19 +30,19 @@ describe("App routing", () => {
   });
 
   test("shows loading spinner while auth is being validated", () => {
-    useAuth.mockReturnValue({ user: null, loading: true });
+    vi.mocked(useAuth).mockReturnValue({ user: null, loading: true });
     render(<App />);
     expect(screen.getByText(/Loading/i)).toBeInTheDocument();
   });
 
   test("renders LoginPage when not authenticated", () => {
-    useAuth.mockReturnValue({ user: null, loading: false });
+    vi.mocked(useAuth).mockReturnValue({ user: null, loading: false });
     render(<App />);
     expect(screen.getByText("LoginPage")).toBeInTheDocument();
   });
 
   test("renders ChatPage when authenticated", () => {
-    useAuth.mockReturnValue({ user: { id: 1, username: "alice" }, loading: false });
+    vi.mocked(useAuth).mockReturnValue({ user: { id: 1, username: "alice" }, loading: false });
     render(<App />);
     expect(screen.getByText("ChatPage")).toBeInTheDocument();
   });
@@ -50,7 +50,7 @@ describe("App routing", () => {
   test("renders InvitePage with code when path is /invite/abc123", () => {
     window.history.pushState({}, "", "/invite/abc123");
 
-    useAuth.mockReturnValue({ user: null, loading: false });
+    vi.mocked(useAuth).mockReturnValue({ user: null, loading: false });
     render(<App />);
     expect(screen.getByText("InvitePage:abc123")).toBeInTheDocument();
   });
@@ -58,7 +58,7 @@ describe("App routing", () => {
   test("renders ResetPasswordPage when path is /reset-password", () => {
     window.history.pushState({}, "", "/reset-password");
 
-    useAuth.mockReturnValue({ user: null, loading: false });
+    vi.mocked(useAuth).mockReturnValue({ user: null, loading: false });
     render(<App />);
     expect(screen.getByText("ResetPasswordPage")).toBeInTheDocument();
   });
@@ -66,7 +66,7 @@ describe("App routing", () => {
   test("renders AdminPage when path is /admin and user is authenticated", () => {
     window.history.pushState({}, "", "/admin");
 
-    useAuth.mockReturnValue({ user: { id: 1, username: "alice" }, loading: false });
+    vi.mocked(useAuth).mockReturnValue({ user: { id: 1, username: "alice" }, loading: false });
     render(<App />);
     expect(screen.getByText("AdminPage")).toBeInTheDocument();
   });

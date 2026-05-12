@@ -12,6 +12,13 @@ vi.mock("../../context/AuthContext", () => ({
 }));
 
 import { useAuth } from "../../context/AuthContext";
+<<<<<<< Updated upstream
+=======
+
+declare const global: typeof globalThis;
+
+// ---------------------------------------------------------------------------
+>>>>>>> Stashed changes
 // Shared test data
 
 const INVITE_CODE = "ABC123";
@@ -27,7 +34,7 @@ const mockInvite = {
   expires_at: null,
 };
 
-const mockUser = { id: 1, username: "alice" };
+const mockUser = { id: 1, username: "alice", email: "alice@demo.com", role: "user" };
 const mockToken = "jwt-token-abc";
 // Helpers
 
@@ -56,13 +63,36 @@ function postOk(body = {}) {
 function postErr(message = "Server error") {
   return { ok: false, json: () => Promise.resolve({ error: message }) };
 }
+<<<<<<< Updated upstream
+=======
+
+// ---------------------------------------------------------------------------
+// Helpers — build a complete AuthContextValue with sensible defaults
+// ---------------------------------------------------------------------------
+
+function authMock(overrides: Record<string, unknown> = {}) {
+  return {
+    user: null,
+    token: null,
+    loading: false,
+    login: vi.fn(),
+    register: vi.fn(),
+    logout: vi.fn(),
+    loginWithToken: vi.fn(),
+    authFetch: vi.fn(),
+    ...overrides,
+  };
+}
+
+// ---------------------------------------------------------------------------
+>>>>>>> Stashed changes
 // Setup / teardown
 
 beforeEach(() => {
   vi.clearAllMocks();
 
   // Default: not logged in
-  useAuth.mockReturnValue({ user: null, loginWithToken: vi.fn() });
+  vi.mocked(useAuth).mockReturnValue(authMock());
 
   localStorage.clear();
   sessionStorage.clear();
@@ -210,7 +240,7 @@ describe("InvitePage", () => {
 
   test("guest join: calls POST /api/auth/guest then POST /api/invite/:code/join on success", async () => {
     const loginWithToken = vi.fn();
-    useAuth.mockReturnValue({ user: null, loginWithToken });
+    vi.mocked(useAuth).mockReturnValue(authMock({ loginWithToken }));
 
     const fetchMock = vi.fn()
       // GET /api/invite/ABC123 - initial invite fetch
@@ -274,7 +304,11 @@ describe("InvitePage", () => {
     await waitFor(() => expect(screen.getByText(/Already a member/i)).toBeInTheDocument());
   });
 
+<<<<<<< Updated upstream
   test("guest join: button shows 'Joining...' while in flight", async () => {
+=======
+  test("guest join: button shows ' Joining...' while in flight", async () => {
+>>>>>>> Stashed changes
     global.fetch = vi.fn()
       .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ invite: mockInvite }) })
       // guest auth hangs
@@ -284,14 +318,18 @@ describe("InvitePage", () => {
     await waitFor(() => screen.getByRole("button", { name: /Continue as guest/i }));
 
     fireEvent.click(screen.getByRole("button", { name: /Continue as guest/i }));
+<<<<<<< Updated upstream
     await waitFor(() => expect(screen.getByText(/Joining.../i)).toBeInTheDocument());
+=======
+    await waitFor(() => expect(screen.getByText(/ Joining.../i)).toBeInTheDocument());
+>>>>>>> Stashed changes
   });
 
   // --- login flow -----------------------------------------------------------
 
   test("login: calls POST /api/auth/login then join and redirects on success", async () => {
     const loginWithToken = vi.fn();
-    useAuth.mockReturnValue({ user: null, loginWithToken });
+    vi.mocked(useAuth).mockReturnValue(authMock({ loginWithToken }));
 
     const fetchMock = vi.fn()
       .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ invite: mockInvite }) })
@@ -302,7 +340,11 @@ describe("InvitePage", () => {
     render(<InvitePage code={INVITE_CODE} />);
     await waitFor(() => screen.getByText(/general/i));
 
+<<<<<<< Updated upstream
     fireEvent.click(screen.getByRole("button", { name: /Login/ }));
+=======
+    fireEvent.click(screen.getByRole("button", { name: / Login/ }));
+>>>>>>> Stashed changes
 
     await userEvent.type(screen.getByPlaceholderText(/you@example.com/i), "alice@test.com");
     await userEvent.type(screen.getByPlaceholderText(/••••••/), "secret123");
@@ -332,7 +374,11 @@ describe("InvitePage", () => {
 
     render(<InvitePage code={INVITE_CODE} />);
     await waitFor(() => screen.getByText(/general/i));
+<<<<<<< Updated upstream
     fireEvent.click(screen.getByRole("button", { name: /Login/ }));
+=======
+    fireEvent.click(screen.getByRole("button", { name: / Login/ }));
+>>>>>>> Stashed changes
 
     await act(async () => {
       fireEvent.submit(screen.getByRole("button", { name: /Sign in and join/i }).closest("form"));
@@ -345,7 +391,7 @@ describe("InvitePage", () => {
 
   test("register: calls POST /api/auth/register then join and redirects on success", async () => {
     const loginWithToken = vi.fn();
-    useAuth.mockReturnValue({ user: null, loginWithToken });
+    vi.mocked(useAuth).mockReturnValue(authMock({ loginWithToken }));
 
     const fetchMock = vi.fn()
       .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ invite: mockInvite }) })
@@ -356,11 +402,15 @@ describe("InvitePage", () => {
     render(<InvitePage code={INVITE_CODE} />);
     await waitFor(() => screen.getByText(/general/i));
 
+<<<<<<< Updated upstream
     fireEvent.click(screen.getByRole("button", { name: /Register/ }));
+=======
+    fireEvent.click(screen.getByRole("button", { name: / Register/ }));
+>>>>>>> Stashed changes
 
     await userEvent.type(screen.getByPlaceholderText(/^username$/i), "newuser");
     await userEvent.type(screen.getByPlaceholderText(/you@example.com/i), "new@test.com");
-    await userEvent.type(screen.getByPlaceholderText(/min\. 6 characters/i), "newpass1");
+    await userEvent.type(screen.getByPlaceholderText(/min\. 6 characters/i), "Newpass1!");
 
     await act(async () => {
       fireEvent.submit(screen.getByRole("button", { name: /Register and join/i }).closest("form"));
@@ -387,7 +437,15 @@ describe("InvitePage", () => {
 
     render(<InvitePage code={INVITE_CODE} />);
     await waitFor(() => screen.getByText(/general/i));
+<<<<<<< Updated upstream
     fireEvent.click(screen.getByRole("button", { name: /Register/ }));
+=======
+    fireEvent.click(screen.getByRole("button", { name: / Register/ }));
+
+    await userEvent.type(screen.getByPlaceholderText(/^username$/i), "newuser");
+    await userEvent.type(screen.getByPlaceholderText(/you@example.com/i), "new@test.com");
+    await userEvent.type(screen.getByPlaceholderText(/min\. 6 characters/i), "Newpass1!");
+>>>>>>> Stashed changes
 
     await act(async () => {
       fireEvent.submit(screen.getByRole("button", { name: /Register and join/i }).closest("form"));
@@ -399,7 +457,7 @@ describe("InvitePage", () => {
   // --- already logged in ----------------------------------------------------
 
   test("shows 'Signed in as {username}' and 'Join channel' button when user is logged in", async () => {
-    useAuth.mockReturnValue({ user: mockUser, loginWithToken: vi.fn() });
+    vi.mocked(useAuth).mockReturnValue(authMock({ user: mockUser }));
 
     global.fetch = fetchOk();
     render(<InvitePage code={INVITE_CODE} />);
@@ -412,19 +470,24 @@ describe("InvitePage", () => {
   });
 
   test("does not show tabs when user is already logged in", async () => {
-    useAuth.mockReturnValue({ user: mockUser, loginWithToken: vi.fn() });
+    vi.mocked(useAuth).mockReturnValue(authMock({ user: mockUser }));
 
     global.fetch = fetchOk();
     render(<InvitePage code={INVITE_CODE} />);
     await waitFor(() => screen.getByText(/general/i));
 
     // Tab buttons should not be present for logged-in users
+<<<<<<< Updated upstream
     expect(screen.queryByRole("button", { name: /Guest/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Login/ })).not.toBeInTheDocument();
+=======
+    expect(screen.queryByRole("button", { name: / Guest/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: / Login/ })).not.toBeInTheDocument();
+>>>>>>> Stashed changes
   });
 
   test("already logged in: calls POST /api/invite/:code/join with stored token", async () => {
-    useAuth.mockReturnValue({ user: mockUser, loginWithToken: vi.fn() });
+    vi.mocked(useAuth).mockReturnValue(authMock({ user: mockUser }));
     localStorage.setItem("im_token", "stored-token");
 
     const fetchMock = vi.fn()
@@ -451,7 +514,7 @@ describe("InvitePage", () => {
   });
 
   test("already logged in: shows error when join fails", async () => {
-    useAuth.mockReturnValue({ user: mockUser, loginWithToken: vi.fn() });
+    vi.mocked(useAuth).mockReturnValue(authMock({ user: mockUser }));
     localStorage.setItem("im_token", "stored-token");
 
     global.fetch = vi.fn()
@@ -469,7 +532,7 @@ describe("InvitePage", () => {
   });
 
   test("already logged in: uses sessionStorage token when localStorage token is absent", async () => {
-    useAuth.mockReturnValue({ user: mockUser, loginWithToken: vi.fn() });
+    vi.mocked(useAuth).mockReturnValue(authMock({ user: mockUser }));
     sessionStorage.setItem("im_token", "session-token");
 
     const fetchMock = vi.fn()
@@ -510,8 +573,13 @@ describe("InvitePage", () => {
     });
     await waitFor(() => screen.getByText(/Guest accounts disabled/i));
 
+<<<<<<< Updated upstream
     // Switch tab -> error should be cleared
     fireEvent.click(screen.getByRole("button", { name: /Login/ }));
+=======
+    // Switch tab → error should be cleared
+    fireEvent.click(screen.getByRole("button", { name: / Login/ }));
+>>>>>>> Stashed changes
     expect(screen.queryByText(/Guest accounts disabled/i)).not.toBeInTheDocument();
   });
 });

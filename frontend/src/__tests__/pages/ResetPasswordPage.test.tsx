@@ -11,7 +11,7 @@ function mockSearch(token = "abc123") {
 }
 
 function mockFetch(ok = true, body = { success: true }) {
-  global.fetch = vi.fn(() =>
+  (global as any).fetch = vi.fn(() =>
     Promise.resolve({ ok, json: () => Promise.resolve(body) })
   );
 }
@@ -46,16 +46,16 @@ test("shows error when password is too short", async () => {
 
 test("shows error when passwords do not match", async () => {
   render(<ResetPasswordPage />);
-  fireEvent.change(screen.getByTestId("rp-password"), { target: { value: "password1" } });
-  fireEvent.change(screen.getByTestId("rp-confirm"), { target: { value: "password2" } });
+  fireEvent.change(screen.getByTestId("rp-password"), { target: { value: "Newpass1!" } });
+  fireEvent.change(screen.getByTestId("rp-confirm"), { target: { value: "Newpass2!" } });
   await act(async () => { fireEvent.click(screen.getByTestId("rp-submit")); });
   await waitFor(() => expect(screen.getByTestId("rp-error")).toHaveTextContent(/do not match/i));
 });
 
 test("shows success message after successful reset", async () => {
   render(<ResetPasswordPage />);
-  fireEvent.change(screen.getByTestId("rp-password"), { target: { value: "newpass1" } });
-  fireEvent.change(screen.getByTestId("rp-confirm"), { target: { value: "newpass1" } });
+  fireEvent.change(screen.getByTestId("rp-password"), { target: { value: "Newpass1!" } });
+  fireEvent.change(screen.getByTestId("rp-confirm"), { target: { value: "Newpass1!" } });
   await act(async () => { fireEvent.click(screen.getByTestId("rp-submit")); });
   await waitFor(() => expect(screen.getByTestId("reset-success")).toBeInTheDocument());
 });
@@ -63,8 +63,8 @@ test("shows success message after successful reset", async () => {
 test("shows API error on failed reset", async () => {
   mockFetch(false, { error: "Invalid or expired reset token" });
   render(<ResetPasswordPage />);
-  fireEvent.change(screen.getByTestId("rp-password"), { target: { value: "newpass1" } });
-  fireEvent.change(screen.getByTestId("rp-confirm"), { target: { value: "newpass1" } });
+  fireEvent.change(screen.getByTestId("rp-password"), { target: { value: "Newpass1!" } });
+  fireEvent.change(screen.getByTestId("rp-confirm"), { target: { value: "Newpass1!" } });
   await act(async () => { fireEvent.click(screen.getByTestId("rp-submit")); });
   await waitFor(() => expect(screen.getByTestId("rp-error")).toHaveTextContent(/expired/i));
 });
@@ -77,8 +77,8 @@ test("shows invalid token warning when no token in URL", () => {
 
 test("clicking go to login button redirects to login page", async () => {
   render(<ResetPasswordPage />);
-  fireEvent.change(screen.getByTestId("rp-password"), { target: { value: "newpass1" } });
-  fireEvent.change(screen.getByTestId("rp-confirm"), { target: { value: "newpass1" } });
+  fireEvent.change(screen.getByTestId("rp-password"), { target: { value: "Newpass1!" } });
+  fireEvent.change(screen.getByTestId("rp-confirm"), { target: { value: "Newpass1!" } });
   await act(async () => { fireEvent.click(screen.getByTestId("rp-submit")); });
   await waitFor(() => expect(screen.getByTestId("go-to-login")).toBeInTheDocument());
   fireEvent.click(screen.getByTestId("go-to-login"));

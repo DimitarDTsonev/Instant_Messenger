@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { useAuth } from "../context/AuthContext";
 import ForgotPasswordPage from "./ForgotPasswordPage";
+import { validatePassword } from "../utils/validatePassword";
 
 const styles = {
   page: {
@@ -112,6 +113,10 @@ export default function LoginPage() {
 
     async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (mode === "register") {
+      const pwError = validatePassword(form.password);
+      if (pwError) { setError(pwError); return; }
+    }
     setLoading(true);
     setError("");
     try {
@@ -200,7 +205,11 @@ export default function LoginPage() {
             style={{ ...styles.submit, opacity: loading ? 0.7 : 1 }}
             disabled={loading}
           >
+<<<<<<< Updated upstream
             {loading ? "Loading..." : mode === "login" ? "Sign in" : "Create account"}
+=======
+            {loading ? " Loading..." : mode === "login" ? "Sign in →" : "Create account →"}
+>>>>>>> Stashed changes
           </button>
         </form>
 
