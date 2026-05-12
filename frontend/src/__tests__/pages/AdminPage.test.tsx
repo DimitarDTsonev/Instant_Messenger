@@ -1,5 +1,8 @@
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
+import { vi } from "vitest";
 import { useAuth } from "../../context/AuthContext";
+
+declare const global: typeof globalThis;
 import AdminPage from "../../pages/AdminPage";
 import { navigateHome } from "../../utils/navigation";
 
@@ -22,26 +25,26 @@ const LOGS = [
   { id: 2, event: "LOGIN_FAIL",   username: "bob",     ip: "5.6.7.8", detail: "attempt 1",             created_at: "2024-06-01T09:00:00" },
 ];
 
+function jsonResponse(body: Record<string, unknown>, ok = true): Response {
+  return new Response(JSON.stringify(body), {
+    status: ok ? 200 : 400,
+    statusText: ok ? "OK" : "Bad Request",
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
 function mockFetch(usersRes = USERS, logsRes = LOGS) {
-  global.fetch = vi.fn((url) => {
-    if (url.includes("/admin/users")) {
-      return Promise.resolve({ ok: true, json: () => Promise.resolve({ users: usersRes }) });
-    }
-    if (url.includes("/admin/security-logs")) {
-      return Promise.resolve({ ok: true, json: () => Promise.resolve({ logs: logsRes }) });
-    }
-    if (url.includes("/admin/ban/")) {
-      return Promise.resolve({ ok: true, json: () => Promise.resolve({ success: true }) });
-    }
-    if (url.includes("/admin/unban/")) {
-      return Promise.resolve({ ok: true, json: () => Promise.resolve({ success: true }) });
-    }
-    return Promise.resolve({ ok: false, json: () => Promise.resolve({ error: "Unknown" }) });
+  global.fetch = vi.fn((url: RequestInfo | URL) => {
+    const href = String(url);
+    if (href.includes("/admin/users")) return Promise.resolve(jsonResponse({ users: usersRes }));
+    if (href.includes("/admin/security-logs")) return Promise.resolve(jsonResponse({ logs: logsRes }));
+    if (href.includes("/admin/ban/") || href.includes("/admin/unban/")) return Promise.resolve(jsonResponse({ success: true }));
+    return Promise.resolve(jsonResponse({ error: "Unknown" }, false));
   });
 }
 
 beforeEach(() => {
-  useAuth.mockReturnValue({ user: ADMIN_USER, token: TOKEN });
+  (vi.mocked(useAuth) as any).mockReturnValue({ user: ADMIN_USER, token: TOKEN });
   mockFetch();
 });
 
@@ -51,7 +54,7 @@ afterEach(() => {
 //  1. Access control
 describe("access control", () => {
   test("shows 'Admin access required' for non-admins", () => {
-    useAuth.mockReturnValue({ user: { id: 2, username: "bob", role: "member" }, token: TOKEN });
+    (vi.mocked(useAuth) as any).mockReturnValue({ user: { id: 2, username: "bob", role: "member" }, token: TOKEN });
     render(<AdminPage />);
     expect(screen.getAllByText(/admin access required/i).length).toBeGreaterThan(0);
   });
@@ -207,7 +210,7 @@ describe("security logs tab", () => {
 //  6. Error handling
 describe("error handling", () => {
   test("shows error when users fetch fails", async () => {
-    global.fetch = vi.fn(() => Promise.resolve({ ok: false, json: () => Promise.resolve({ error: "Server error" }) }));
+    global.fetch = vi.fn(() => Promise.resolve(jsonResponse({ error: "Server error" }, false)));
     render(<AdminPage />);
     await waitFor(() => expect(screen.getByTestId("admin-error")).toBeInTheDocument());
   });
@@ -215,12 +218,11 @@ describe("error handling", () => {
 //  7. Missing branch coverage
 describe("additional branch coverage", () => {
   test("shows actionError when unban fails (line 219)", async () => {
-    global.fetch = vi.fn((url) => {
-      if (url.includes("/admin/users"))
-        return Promise.resolve({ ok: true, json: () => Promise.resolve({ users: USERS }) });
-      if (url.includes("/admin/unban/"))
-        return Promise.resolve({ ok: false, json: () => Promise.resolve({ error: "Cannot unban system user" }) });
-      return Promise.resolve({ ok: false, json: () => Promise.resolve({ error: "Unknown" }) });
+    global.fetch = vi.fn((url: RequestInfo | URL) => {
+      const href = String(url);
+      if (href.includes("/admin/users")) return Promise.resolve(jsonResponse({ users: USERS }));
+      if (href.includes("/admin/unban/")) return Promise.resolve(jsonResponse({ error: "Cannot unban system user" }, false));
+      return Promise.resolve(jsonResponse({ error: "Unknown" }, false));
     });
 
     render(<AdminPage />);
@@ -233,7 +235,7 @@ describe("additional branch coverage", () => {
   });
 
   test("Go back button calls window.history.back() for non-admins (line 228)", () => {
-    useAuth.mockReturnValue({ user: { id: 2, username: "bob", role: "member" }, token: TOKEN });
+    (vi.mocked(useAuth) as any).mockReturnValue({ user: { id: 2, username: "bob", role: "member" }, token: TOKEN });
     const backSpy = vi.spyOn(window.history, "back").mockImplementation(() => {});
 
     render(<AdminPage />);
@@ -263,12 +265,11 @@ describe("additional branch coverage", () => {
   });
 
   test("shows error when fetching logs fails (line 180)", async () => {
-    global.fetch = vi.fn((url) => {
-      if (url.includes("/admin/users"))
-        return Promise.resolve({ ok: true, json: () => Promise.resolve({ users: USERS }) });
-      if (url.includes("/admin/security-logs"))
-        return Promise.resolve({ ok: false, json: () => Promise.resolve({ error: "Failed to load logs" }) });
-      return Promise.resolve({ ok: false, json: () => Promise.resolve({ error: "Unknown" }) });
+    global.fetch = vi.fn((url: RequestInfo | URL) => {
+      const href = String(url);
+      if (href.includes("/admin/users")) return Promise.resolve(jsonResponse({ users: USERS }));
+      if (href.includes("/admin/security-logs")) return Promise.resolve(jsonResponse({ error: "Failed to load logs" }, false));
+      return Promise.resolve(jsonResponse({ error: "Unknown" }, false));
     });
 
     render(<AdminPage />);
@@ -281,12 +282,11 @@ describe("additional branch coverage", () => {
   });
 
   test("shows actionError when banning a user fails (line 204)", async () => {
-    global.fetch = vi.fn((url) => {
-      if (url.includes("/admin/users"))
-        return Promise.resolve({ ok: true, json: () => Promise.resolve({ users: USERS }) });
-      if (url.includes("/admin/ban/"))
-        return Promise.resolve({ ok: false, json: () => Promise.resolve({ error: "Cannot ban admin user" }) });
-      return Promise.resolve({ ok: true, json: () => Promise.resolve({ success: true }) });
+    global.fetch = vi.fn((url: RequestInfo | URL) => {
+      const href = String(url);
+      if (href.includes("/admin/users")) return Promise.resolve(jsonResponse({ users: USERS }));
+      if (href.includes("/admin/ban/")) return Promise.resolve(jsonResponse({ error: "Cannot ban admin user" }, false));
+      return Promise.resolve(jsonResponse({ success: true }));
     });
 
     render(<AdminPage />);

@@ -18,7 +18,7 @@ import { useAuth } from "../../context/AuthContext";
 describe("UserProfileModal", () => {
   test("shows loading state initially", () => {
     // authFetch never resolves - still loading
-    useAuth.mockReturnValue({
+    (vi.mocked(useAuth) as any).mockReturnValue({
       user: { id: 1, username: "alice", role: "admin" },
       authFetch: vi.fn(() => new Promise(() => {})),
     });
@@ -27,7 +27,7 @@ describe("UserProfileModal", () => {
   });
 
   test("shows user profile after fetch resolves", async () => {
-    useAuth.mockReturnValue({
+    (vi.mocked(useAuth) as any).mockReturnValue({
       user: { id: 1, username: "alice", role: "admin" },
       authFetch: vi.fn().mockResolvedValue({ user: MOCK_PROFILE }),
     });
@@ -37,7 +37,7 @@ describe("UserProfileModal", () => {
   });
 
   test("shows 'not found' when fetch returns no user", async () => {
-    useAuth.mockReturnValue({
+    (vi.mocked(useAuth) as any).mockReturnValue({
       user: { id: 1, username: "alice", role: "admin" },
       authFetch: vi.fn().mockRejectedValue(new Error("not found")),
     });
@@ -46,7 +46,7 @@ describe("UserProfileModal", () => {
   });
 
   test("shows online indicator when isOnline is true", async () => {
-    useAuth.mockReturnValue({
+    (vi.mocked(useAuth) as any).mockReturnValue({
       user: { id: 1, username: "alice", role: "admin" },
       authFetch: vi.fn().mockResolvedValue({ user: MOCK_PROFILE }),
     });
@@ -55,7 +55,7 @@ describe("UserProfileModal", () => {
   });
 
   test("shows offline indicator when isOnline is false", async () => {
-    useAuth.mockReturnValue({
+    (vi.mocked(useAuth) as any).mockReturnValue({
       user: { id: 1, username: "alice", role: "admin" },
       authFetch: vi.fn().mockResolvedValue({ user: MOCK_PROFILE }),
     });
@@ -64,7 +64,7 @@ describe("UserProfileModal", () => {
   });
 
   test("DM button calls onStartDm and onClose", async () => {
-    useAuth.mockReturnValue({
+    (vi.mocked(useAuth) as any).mockReturnValue({
       user: { id: 1, username: "alice", role: "admin" },
       authFetch: vi.fn().mockResolvedValue({ user: MOCK_PROFILE }),
     });
@@ -78,7 +78,7 @@ describe("UserProfileModal", () => {
   });
 
   test("hides DM button when viewing own profile", async () => {
-    useAuth.mockReturnValue({
+    (vi.mocked(useAuth) as any).mockReturnValue({
       // me.id === userId = 2
       user: { id: 2, username: "bob", role: "admin" },
       authFetch: vi.fn().mockResolvedValue({ user: MOCK_PROFILE }),
@@ -89,7 +89,7 @@ describe("UserProfileModal", () => {
   });
 
   test("admin sees role management section for other users", async () => {
-    useAuth.mockReturnValue({
+    (vi.mocked(useAuth) as any).mockReturnValue({
       user: { id: 1, username: "alice", role: "admin" },
       authFetch: vi.fn().mockResolvedValue({ user: MOCK_PROFILE }),
     });
@@ -98,7 +98,7 @@ describe("UserProfileModal", () => {
   });
 
   test("non-admin does not see role management section", async () => {
-    useAuth.mockReturnValue({
+    (vi.mocked(useAuth) as any).mockReturnValue({
       user: { id: 1, username: "alice", role: "member" },
       authFetch: vi.fn().mockResolvedValue({ user: MOCK_PROFILE }),
     });
@@ -108,7 +108,7 @@ describe("UserProfileModal", () => {
   });
 
   test("close button calls onClose", async () => {
-    useAuth.mockReturnValue({
+    (vi.mocked(useAuth) as any).mockReturnValue({
       user: { id: 1, username: "alice", role: "admin" },
       authFetch: vi.fn().mockResolvedValue({ user: MOCK_PROFILE }),
     });
@@ -120,7 +120,7 @@ describe("UserProfileModal", () => {
   });
 
   test("Escape key calls onClose", () => {
-    useAuth.mockReturnValue({
+    (vi.mocked(useAuth) as any).mockReturnValue({
       user: { id: 1, username: "alice", role: "admin" },
       authFetch: vi.fn().mockResolvedValue({ user: MOCK_PROFILE }),
     });
@@ -131,7 +131,7 @@ describe("UserProfileModal", () => {
   });
 
   test("clicking overlay backdrop calls onClose", async () => {
-    useAuth.mockReturnValue({
+    (vi.mocked(useAuth) as any).mockReturnValue({
       user: { id: 1, username: "alice", role: "admin" },
       authFetch: vi.fn().mockResolvedValue({ user: MOCK_PROFILE }),
     });
@@ -148,7 +148,7 @@ describe("UserProfileModal", () => {
     const patchFetch = vi.fn()
       .mockResolvedValueOnce({ user: MOCK_PROFILE }) // initial profile load
       .mockResolvedValueOnce({});                    // PATCH role
-    useAuth.mockReturnValue({
+    (vi.mocked(useAuth) as any).mockReturnValue({
       user: { id: 1, username: "alice", role: "admin" },
       authFetch: patchFetch,
     });
@@ -170,7 +170,7 @@ describe("UserProfileModal", () => {
     const patchFetch = vi.fn()
       .mockResolvedValueOnce({ user: MOCK_PROFILE })
       .mockRejectedValueOnce(new Error("Forbidden"));
-    useAuth.mockReturnValue({
+    (vi.mocked(useAuth) as any).mockReturnValue({
       user: { id: 1, username: "alice", role: "admin" },
       authFetch: patchFetch,
     });
@@ -186,7 +186,7 @@ describe("UserProfileModal", () => {
 
   test("handleSaveRole does nothing when selected role equals current role", async () => {
     const authFetch = vi.fn().mockResolvedValue({ user: MOCK_PROFILE });
-    useAuth.mockReturnValue({
+    (vi.mocked(useAuth) as any).mockReturnValue({
       user: { id: 1, username: "alice", role: "admin" },
       authFetch,
     });

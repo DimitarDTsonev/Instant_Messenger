@@ -3,6 +3,7 @@ import { vi } from "vitest";
 import { useAuth } from "../../context/AuthContext";
 import { useSocket } from "../../context/SocketContext";
 import ChatArea from "../../components/ChatArea";
+import { createMockSocketContext, createMockAuthUser, createMockMessage } from "../../test-utils/mocks";
 
 vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
 vi.mock("../../context/SocketContext", () => ({ useSocket: vi.fn() }));
@@ -16,42 +17,21 @@ vi.mock("../../components/MarkdownRenderer", () => ({
   default: ({ text }) => <span data-testid="markdown">{text}</span>,
 }));
 
-const DEFAULT_AUTH = {
-  user: { id: 1, username: "alice", role: "admin", avatar: "AL" },
+declare const global: typeof globalThis;
+
+const DEFAULT_AUTH: any = {
+  user: createMockAuthUser({ id: 1, username: "alice" }),
   token: "tok",
   authFetch: vi.fn().mockResolvedValue({}),
 };
 
-const DEFAULT_SOCKET = {
+const DEFAULT_SOCKET = createMockSocketContext({
   isConnected: true,
   onlineUserIds: [1],
-  editMessage: vi.fn(),
-  deleteMessage: vi.fn(),
-  reactToMessage: vi.fn(),
-  editDmMessage: vi.fn(),
-  deleteDmMessage: vi.fn(),
-  reactToDmMessage: vi.fn(),
-};
+});
 
 function makeMsg(overrides = {}) {
-  return {
-    id: 1,
-    user_id: 2,
-    username: "bob",
-    avatar: "BO",
-    role: "user",
-    content: "Hello world",
-    created_at: "2024-01-15T10:00:00.000Z",
-    reactions: {},
-    is_edited: 0,
-    is_pinned: 0,
-    reply_to_id: null,
-    file_url: null,
-    file_type: null,
-    file_name: null,
-    file_size: null,
-    ...overrides,
-  };
+  return createMockMessage(overrides);
 }
 
 function renderChatArea(props = {}) {
@@ -74,8 +54,8 @@ function renderChatArea(props = {}) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  useAuth.mockReturnValue(DEFAULT_AUTH);
-  useSocket.mockReturnValue(DEFAULT_SOCKET);
+  vi.mocked(useAuth).mockReturnValue(DEFAULT_AUTH);
+  vi.mocked(useSocket).mockReturnValue(DEFAULT_SOCKET);
 });
 //  1. Empty state
 describe("empty state", () => {
@@ -242,7 +222,7 @@ describe("image attachment", () => {
       file_name: "photo.png",
     });
     renderChatArea({ messages: [msg] });
-    const img = screen.getByRole("img", { name: /photo\.png/i });
+    const img = screen.getByRole("img", { name: /photo\.png/i }) as HTMLImageElement;
     expect(img).toBeInTheDocument();
     expect(img.src).toContain("/uploads/photo.png");
   });
@@ -335,7 +315,7 @@ describe("edit mode", () => {
 describe("delete confirmation", () => {
   test("calls deleteMessage after confirming delete on own message", async () => {
     const deleteMessage = vi.fn();
-    useSocket.mockReturnValue({ ...DEFAULT_SOCKET, deleteMessage });
+    vi.mocked(useSocket).mockReturnValue({ ...DEFAULT_SOCKET, deleteMessage });
 
     // Spy on window.confirm - return true to confirm
     const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
@@ -432,7 +412,7 @@ describe("hover toolbar", () => {
 
   test("clicking an emoji in the picker calls reactToMessage", () => {
     const reactToMessage = vi.fn();
-    useSocket.mockReturnValue({ ...DEFAULT_SOCKET, reactToMessage });
+    vi.mocked(useSocket).mockReturnValue({ ...DEFAULT_SOCKET, reactToMessage });
     renderChatArea({ messages: [makeMsg()] });
     const row = getMessageRow("bob");
     fireEvent.mouseEnter(row);
@@ -479,7 +459,7 @@ describe("hover toolbar", () => {
 
   test("clicking Save in edit mode calls editMessage", () => {
     const editMessage = vi.fn();
-    useSocket.mockReturnValue({ ...DEFAULT_SOCKET, editMessage });
+    vi.mocked(useSocket).mockReturnValue({ ...DEFAULT_SOCKET, editMessage });
     renderChatArea({ messages: [makeMsg({ user_id: 1, username: "alice", content: "My msg" })] });
     const row = getMessageRow("alice");
     fireEvent.mouseEnter(row);
@@ -493,7 +473,7 @@ describe("hover toolbar", () => {
 
   test("pressing Enter in edit textarea saves the edit", () => {
     const editMessage = vi.fn();
-    useSocket.mockReturnValue({ ...DEFAULT_SOCKET, editMessage });
+    vi.mocked(useSocket).mockReturnValue({ ...DEFAULT_SOCKET, editMessage });
     renderChatArea({ messages: [makeMsg({ user_id: 1, username: "alice", content: "My msg" })] });
     const row = getMessageRow("alice");
     fireEvent.mouseEnter(row);
@@ -529,7 +509,7 @@ describe("hover toolbar", () => {
   test("clicking Delete calls deleteMessage after confirm", () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
     const deleteMessage = vi.fn();
-    useSocket.mockReturnValue({ ...DEFAULT_SOCKET, deleteMessage });
+    vi.mocked(useSocket).mockReturnValue({ ...DEFAULT_SOCKET, deleteMessage });
     renderChatArea({ messages: [makeMsg({ user_id: 1, username: "alice" })] });
     const row = getMessageRow("alice");
     fireEvent.mouseEnter(row);
@@ -542,7 +522,7 @@ describe("hover toolbar", () => {
 describe("reaction pill", () => {
   test("clicking an existing reaction pill calls reactToMessage", () => {
     const reactToMessage = vi.fn();
-    useSocket.mockReturnValue({ ...DEFAULT_SOCKET, reactToMessage });
+    vi.mocked(useSocket).mockReturnValue({ ...DEFAULT_SOCKET, reactToMessage });
     const msg = makeMsg({ reactions: { "👍": [2, 3] } });
     renderChatArea({ messages: [msg] });
     // The reaction pill with 👍 is always visible (no hover needed)
@@ -731,7 +711,7 @@ describe("touch action sheet", () => {
   test("clicking Delete in sheet calls deleteMessage after confirm", () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
     const deleteMessage = vi.fn();
-    useSocket.mockReturnValue({ ...DEFAULT_SOCKET, deleteMessage });
+    vi.mocked(useSocket).mockReturnValue({ ...DEFAULT_SOCKET, deleteMessage });
     renderChatArea({ messages: [makeMsg({ user_id: 1, username: "alice" })] });
     longPress("alice");
     fireEvent.click(screen.getByTestId("touch-delete-btn"));
@@ -778,7 +758,7 @@ describe("touch action sheet", () => {
 
   test("clicking an emoji in the sheet calls reactToMessage and closes sheet", () => {
     const reactToMessage = vi.fn();
-    useSocket.mockReturnValue({ ...DEFAULT_SOCKET, reactToMessage });
+    vi.mocked(useSocket).mockReturnValue({ ...DEFAULT_SOCKET, reactToMessage });
     renderChatArea({ messages: [makeMsg()] });
     longPress("bob");
     fireEvent.click(screen.getByTestId("touch-react-btn"));
@@ -801,7 +781,7 @@ describe("ChatArea - fileIcon() spreadsheet extensions", () => {
     username: "alice",
     user_id: 2,
     created_at: new Date().toISOString(),
-    reactions: [],
+    reactions: {},
     file_url: "http://api/uploads/report.xlsx",
     file_type: "document",
     file_name: "report.xlsx",
@@ -876,7 +856,7 @@ describe("ChatArea - delete error callback", () => {
   it("logs error when doDelete callback receives an error", async () => {
     const mockDeleteMessage = vi.fn((_id, cb) => cb({ error: "Delete failed" }));
     const { useSocket } = await import("../../context/SocketContext");
-    useSocket.mockReturnValue({
+    vi.mocked(useSocket).mockReturnValue({
       ...useSocket(),
       deleteMessage: mockDeleteMessage,
       deleteDmMessage: mockDeleteMessage,
@@ -910,7 +890,7 @@ describe("ChatArea - react error callback", () => {
   it("logs error when doReact callback receives an error", async () => {
     const mockReact = vi.fn((_id, _emoji, cb) => cb({ error: "React failed" }));
     const { useSocket } = await import("../../context/SocketContext");
-    useSocket.mockReturnValue({
+    vi.mocked(useSocket).mockReturnValue({
       ...useSocket(),
       reactToMessage: mockReact,
       reactToDmMessage: mockReact,

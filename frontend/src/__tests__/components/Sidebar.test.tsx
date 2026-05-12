@@ -2,24 +2,25 @@ import { render, screen, fireEvent, within } from "@testing-library/react";
 import { useAuth } from "../../context/AuthContext";
 import { useSocket } from "../../context/SocketContext";
 import Sidebar from "../../components/Sidebar";
+import { createMockSocketContext } from "../../test-utils/mocks";
 
 vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
 vi.mock("../../context/SocketContext", () => ({ useSocket: vi.fn() }));
 
 const LOGOUT = vi.fn();
 
-const DEFAULT_AUTH = {
+const DEFAULT_AUTH: any = {
   user: { id: 1, username: "alice", role: "admin", avatar: "AL", email: "alice@example.com" },
   token: "tok",
   logout: LOGOUT,
 };
 
-const DEFAULT_SOCKET = {
+const DEFAULT_SOCKET = createMockSocketContext({
   isConnected: true,
   onlineUserIds: [1, 2],
   userStatuses: {},
   setStatus: vi.fn(),
-};
+});
 
 const CHANNELS = [
   { id: 10, name: "general",   description: "General chat", is_private: 0, created_by: 1, user_role: "owner" },
@@ -34,8 +35,8 @@ const USERS = [
 ];
 
 const CONVERSATIONS = [
-  { partner_id: 2, unread_count: 3 },
-  { partner_id: 3, unread_count: 0 },
+  { partner_id: 2, partner_username: "bob", partner_avatar: "BO", unread_count: 3 },
+  { partner_id: 3, partner_username: "carol", partner_avatar: "🦊", unread_count: 0 },
 ];
 
 function buildProps(overrides = {}) {
@@ -58,8 +59,8 @@ function buildProps(overrides = {}) {
 }
 
 beforeEach(() => {
-  useAuth.mockReturnValue(DEFAULT_AUTH);
-  useSocket.mockReturnValue(DEFAULT_SOCKET);
+  vi.mocked(useAuth).mockReturnValue(DEFAULT_AUTH);
+  vi.mocked(useSocket).mockReturnValue(DEFAULT_SOCKET);
   LOGOUT.mockReset();
 });
 //  1. Channel list renders
@@ -98,7 +99,7 @@ describe("active channel highlight", () => {
     const randomEl = screen.getByText("random");
     const item = randomEl.closest("div[style]");
     // Non-active channel has transparent border, not the accent colour
-    expect(item.style.borderLeft).not.toBe("2px solid #5865f2");
+    expect((item as HTMLElement).style.borderLeft).not.toBe("2px solid #5865f2");
   });
 });
 //  3. Clicking channel calls onSelectChannel
@@ -234,7 +235,7 @@ describe("connection status dot", () => {
   });
 
   test("renders a Disconnected title when isConnected=false", () => {
-    useSocket.mockReturnValue({ isConnected: false, onlineUserIds: [] });
+    vi.mocked(useSocket).mockReturnValue({ ...DEFAULT_SOCKET, isConnected: false, onlineUserIds: [] });
     render(<Sidebar {...buildProps()} />);
     expect(screen.getByTitle("Disconnected")).toBeInTheDocument();
   });
@@ -270,7 +271,7 @@ describe("user profile footer", () => {
   });
 
   test("shows 'Temporary account' label for guest users", () => {
-    useAuth.mockReturnValue({
+    vi.mocked(useAuth).mockReturnValue({
       ...DEFAULT_AUTH,
       user: { ...DEFAULT_AUTH.user, email: "tmp123@guest.local", is_guest: true },
     });
@@ -376,7 +377,7 @@ describe("mobile open prop", () => {
 //  18. Status picker
 describe("status picker", () => {
   test("avatar button shows current status in title", () => {
-    useSocket.mockReturnValue({ ...DEFAULT_SOCKET, userStatuses: { 1: "away" } });
+    vi.mocked(useSocket).mockReturnValue({ ...DEFAULT_SOCKET, userStatuses: { 1: "away" } });
     render(<Sidebar {...buildProps()} />);
     expect(screen.getByTitle("Status: Away")).toBeInTheDocument();
   });
@@ -392,7 +393,7 @@ describe("status picker", () => {
 
   test("clicking a status option calls setStatus and hides picker", () => {
     const setStatus = vi.fn();
-    useSocket.mockReturnValue({ ...DEFAULT_SOCKET, setStatus });
+    vi.mocked(useSocket).mockReturnValue({ ...DEFAULT_SOCKET, setStatus });
     render(<Sidebar {...buildProps()} />);
     fireEvent.click(screen.getByTitle("Status: Online"));
     fireEvent.click(screen.getByTitle("Away"));
@@ -401,7 +402,7 @@ describe("status picker", () => {
   });
 
   test("status dot reflects userStatuses for DM users", () => {
-    useSocket.mockReturnValue({ ...DEFAULT_SOCKET, userStatuses: { 2: "dnd" } });
+    vi.mocked(useSocket).mockReturnValue({ ...DEFAULT_SOCKET, userStatuses: { 2: "dnd" } });
     render(<Sidebar {...buildProps()} />);
     const dots = document.querySelectorAll("[title='Do not disturb']");
     expect(dots.length).toBeGreaterThan(0);

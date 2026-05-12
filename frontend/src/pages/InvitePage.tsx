@@ -4,11 +4,8 @@ import { useAuth } from "../context/AuthContext";
 import { API_BASE as API } from "../config";
 import type { AuthSession } from "../types";
 import { navigateHome } from "../utils/navigation";
-<<<<<<< Updated upstream
 import Icon from "../components/Icons";
-=======
 import { validatePassword } from "../utils/validatePassword";
->>>>>>> Stashed changes
 
 type InviteTab = "guest" | "login" | "register";
 type ButtonVariant = "primary" | "ghost" | "secondary";
@@ -140,17 +137,11 @@ export default function InvitePage({ code }: { code: string }) {
     finally { setBusy(false); }
   }
 
-<<<<<<< Updated upstream
-    async function handleRegister(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault(); setBusy(true); setError("");
-=======
-  /** Creates a new account and joins the channel. */
   async function handleRegister(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const pwError = validatePassword(password);
     if (pwError) { setError(pwError); return; }
     setBusy(true); setError("");
->>>>>>> Stashed changes
     try {
       const res  = await fetch(`${API}/auth/register`, {
         method: "POST",

@@ -1,4 +1,5 @@
 import { render, screen, fireEvent } from "@testing-library/react";
+import { vi } from "vitest";
 import PinnedBanner from "../../components/PinnedBanner";
 
 // Mock both contexts
@@ -14,8 +15,8 @@ vi.mock("../../context/SocketContext", () => ({
   })),
 }));
 
-const PIN1 = { id: 10, username: "alice", content: "first pinned message", file_url: null };
-const PIN2 = { id: 11, username: "bob",   content: "second pinned message", file_url: null };
+const PIN1 = { id: 10, username: "alice", content: "first pinned message", file_url: null, created_at: "2024-01-15T10:00:00.000Z" };
+const PIN2 = { id: 11, username: "bob",   content: "second pinned message", file_url: null, created_at: "2024-01-15T10:01:00.000Z" };
 
 describe("PinnedBanner", () => {
   test("renders nothing when pinnedMessages is empty", () => {
@@ -83,13 +84,13 @@ describe("PinnedBanner", () => {
   });
 
   test("shows [image] for messages with file_url instead of content", () => {
-    const imagePin = { id: 12, username: "alice", content: "", file_url: "/uploads/img.png" };
+    const imagePin = { id: 12, username: "alice", content: "", file_url: "/uploads/img.png", created_at: "2024-01-15T10:02:00.000Z" };
     render(<PinnedBanner pinnedMessages={[imagePin]} channelCreatedBy={1} onUnpin={vi.fn()} />);
     expect(screen.getByText(/\[image\]/)).toBeInTheDocument();
   });
 
   test("truncates long content at 120 characters", () => {
-    const longPin = { id: 13, username: "alice", content: "a".repeat(200), file_url: null };
+    const longPin = { id: 13, username: "alice", content: "a".repeat(200), file_url: null, created_at: "2024-01-15T10:03:00.000Z" };
     render(<PinnedBanner pinnedMessages={[longPin]} channelCreatedBy={1} onUnpin={vi.fn()} />);
     // Should show 120 chars + ellipsis, not the full 200
     const content = screen.getAllByText(/a+\.\.\./)[0];

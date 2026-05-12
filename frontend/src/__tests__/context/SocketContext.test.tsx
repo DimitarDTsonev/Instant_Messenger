@@ -10,7 +10,7 @@ import { useAuth } from "../../context/AuthContext";
 // Helpers
 
 function getMockSocket() {
-  return io.mock.results[io.mock.results.length - 1].value;
+  return vi.mocked(io).mock.results[vi.mocked(io).mock.results.length - 1].value;
 }
 
 function SocketConsumer() {
@@ -20,13 +20,13 @@ function SocketConsumer() {
       <span data-testid="isConnected">{String(ctx.isConnected)}</span>
       <span data-testid="onlineUserIds">{JSON.stringify(ctx.onlineUserIds)}</span>
       {/* Expose helpers so tests can call them via refs stored on the element */}
-      <span data-testid="ctx" style={{ display: "none" }} ref={(el) => { if (el) el.__ctx = ctx; }} />
+      <span data-testid="ctx" style={{ display: "none" }} ref={(el) => { if (el) (el as any).__ctx = ctx; }} />
     </div>
   );
 }
 
 function renderWithSocket(authValue = { token: "tok", user: { id: 1 } }) {
-  useAuth.mockReturnValue(authValue);
+  (vi.mocked(useAuth) as any).mockReturnValue(authValue);
   return render(
     <SocketProvider>
       <SocketConsumer />
@@ -35,14 +35,14 @@ function renderWithSocket(authValue = { token: "tok", user: { id: 1 } }) {
 }
 
 function getCtx() {
-  return screen.getByTestId("ctx").__ctx;
+  return (screen.getByTestId("ctx") as any).__ctx;
 }
 // Setup / teardown
 
 beforeEach(() => {
   vi.clearAllMocks();
   // Default: authenticated
-  useAuth.mockReturnValue({ token: "test-token", user: { id: 42 } });
+  (vi.mocked(useAuth) as any).mockReturnValue({ token: "test-token", user: { id: 42 } });
 });
 // Tests
 
@@ -162,7 +162,7 @@ describe("SocketProvider", () => {
     const { rerender } = renderWithSocket({ token: "tok", user: { id: 1 } });
     const mockSocket = getMockSocket();
 
-    useAuth.mockReturnValue({ token: null, user: { id: 1 } });
+    (vi.mocked(useAuth) as any).mockReturnValue({ token: null, user: { id: 1 } });
     await act(async () => {
       rerender(
         <SocketProvider>

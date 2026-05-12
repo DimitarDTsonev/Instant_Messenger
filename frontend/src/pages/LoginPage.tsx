@@ -205,11 +205,7 @@ export default function LoginPage() {
             style={{ ...styles.submit, opacity: loading ? 0.7 : 1 }}
             disabled={loading}
           >
-<<<<<<< Updated upstream
-            {loading ? "Loading..." : mode === "login" ? "Sign in" : "Create account"}
-=======
             {loading ? " Loading..." : mode === "login" ? "Sign in →" : "Create account →"}
->>>>>>> Stashed changes
           </button>
         </form>
 

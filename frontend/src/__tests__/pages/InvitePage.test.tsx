@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Tests for InvitePage component
+ * Covers: loading state, invite error state, invite details rendering,
+ * guest join (success + error), login tab (success + error), register tab
+ * (success + error), already-logged-in flow (success + error), channel meta
+ * (member count, expiry, max_uses), and tab switching.
+ */
+
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import InvitePage from "../../pages/InvitePage";
@@ -6,20 +14,21 @@ import { navigateHome } from "../../utils/navigation";
 vi.mock("../../utils/navigation", () => ({
   navigateHome: vi.fn(),
 }));
+
+// ---------------------------------------------------------------------------
 // Mock AuthContext
+// ---------------------------------------------------------------------------
 vi.mock("../../context/AuthContext", () => ({
   useAuth: vi.fn(),
 }));
 
 import { useAuth } from "../../context/AuthContext";
-<<<<<<< Updated upstream
-=======
 
 declare const global: typeof globalThis;
 
 // ---------------------------------------------------------------------------
->>>>>>> Stashed changes
 // Shared test data
+// ---------------------------------------------------------------------------
 
 const INVITE_CODE = "ABC123";
 
@@ -36,8 +45,15 @@ const mockInvite = {
 
 const mockUser = { id: 1, username: "alice", email: "alice@demo.com", role: "user" };
 const mockToken = "jwt-token-abc";
-// Helpers
 
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Builds a minimal fetch mock for the initial GET /api/invite/:code request.
+ * Subsequent fetch calls return a sensible 200 by default unless overridden.
+ */
 function fetchOk(invite = mockInvite) {
   return vi.fn().mockResolvedValue({
     ok: true,
@@ -56,6 +72,7 @@ function fetchNetworkError() {
   return vi.fn().mockRejectedValue(new Error("Network error"));
 }
 
+/** Resolves a fake POST response (login / register / guest / join). */
 function postOk(body = {}) {
   return { ok: true, json: () => Promise.resolve(body) };
 }
@@ -63,12 +80,6 @@ function postOk(body = {}) {
 function postErr(message = "Server error") {
   return { ok: false, json: () => Promise.resolve({ error: message }) };
 }
-<<<<<<< Updated upstream
-=======
-
-// ---------------------------------------------------------------------------
-// Helpers — build a complete AuthContextValue with sensible defaults
-// ---------------------------------------------------------------------------
 
 function authMock(overrides: Record<string, unknown> = {}) {
   return {
@@ -81,12 +92,12 @@ function authMock(overrides: Record<string, unknown> = {}) {
     loginWithToken: vi.fn(),
     authFetch: vi.fn(),
     ...overrides,
-  };
+  } as any;
 }
 
 // ---------------------------------------------------------------------------
->>>>>>> Stashed changes
 // Setup / teardown
+// ---------------------------------------------------------------------------
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -97,13 +108,16 @@ beforeEach(() => {
   localStorage.clear();
   sessionStorage.clear();
 });
+
+// ---------------------------------------------------------------------------
 // Tests
+// ---------------------------------------------------------------------------
 
 describe("InvitePage", () => {
   // --- loading state --------------------------------------------------------
 
   test("shows loading spinner while invite is being fetched", () => {
-    // Never resolves -> stays in loading state
+    // Never resolves → stays in loading state
     global.fetch = vi.fn().mockReturnValue(new Promise(() => {}));
     render(<InvitePage code={INVITE_CODE} />);
     expect(screen.getByText(/Loading invite/i)).toBeInTheDocument();
@@ -201,9 +215,9 @@ describe("InvitePage", () => {
     render(<InvitePage code={INVITE_CODE} />);
     await waitFor(() => screen.getByText(/general/i));
     // Use exact tab button text to avoid ambiguity with content inside the active tab
-    expect(screen.getByRole("button", { name: /Guest/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Login/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Register/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Guest$/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Login$/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Register$/ })).toBeInTheDocument();
   });
 
   test("Guest tab is active by default and shows 'Continue as guest' button", async () => {
@@ -218,8 +232,8 @@ describe("InvitePage", () => {
     render(<InvitePage code={INVITE_CODE} />);
     await waitFor(() => screen.getByText(/general/i));
 
-    fireEvent.click(screen.getByRole("button", { name: /Login/ }));
-    // Labels in InvitePage have no htmlFor - match by placeholder text
+    fireEvent.click(screen.getByRole("button", { name: /^Login$/ }));
+    // Labels in InvitePage have no htmlFor — match by placeholder text
     expect(screen.getByPlaceholderText(/you@example.com/i)).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/••••••/)).toBeInTheDocument();
   });
@@ -229,8 +243,8 @@ describe("InvitePage", () => {
     render(<InvitePage code={INVITE_CODE} />);
     await waitFor(() => screen.getByText(/general/i));
 
-    fireEvent.click(screen.getByRole("button", { name: /Register/ }));
-    // Labels in InvitePage have no htmlFor - match by placeholder text
+    fireEvent.click(screen.getByRole("button", { name: /^Register$/ }));
+    // Labels in InvitePage have no htmlFor — match by placeholder text
     expect(screen.getByPlaceholderText(/^username$/i)).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/you@example.com/i)).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/min\. 6 characters/i)).toBeInTheDocument();
@@ -243,7 +257,7 @@ describe("InvitePage", () => {
     vi.mocked(useAuth).mockReturnValue(authMock({ loginWithToken }));
 
     const fetchMock = vi.fn()
-      // GET /api/invite/ABC123 - initial invite fetch
+      // GET /api/invite/ABC123 — initial invite fetch
       .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ invite: mockInvite }) })
       // POST /api/auth/guest
       .mockResolvedValueOnce(postOk({ user: mockUser, token: mockToken }))
@@ -304,11 +318,7 @@ describe("InvitePage", () => {
     await waitFor(() => expect(screen.getByText(/Already a member/i)).toBeInTheDocument());
   });
 
-<<<<<<< Updated upstream
-  test("guest join: button shows 'Joining...' while in flight", async () => {
-=======
   test("guest join: button shows ' Joining...' while in flight", async () => {
->>>>>>> Stashed changes
     global.fetch = vi.fn()
       .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ invite: mockInvite }) })
       // guest auth hangs
@@ -318,11 +328,7 @@ describe("InvitePage", () => {
     await waitFor(() => screen.getByRole("button", { name: /Continue as guest/i }));
 
     fireEvent.click(screen.getByRole("button", { name: /Continue as guest/i }));
-<<<<<<< Updated upstream
-    await waitFor(() => expect(screen.getByText(/Joining.../i)).toBeInTheDocument());
-=======
-    await waitFor(() => expect(screen.getByText(/ Joining.../i)).toBeInTheDocument());
->>>>>>> Stashed changes
+    await waitFor(() => expect(screen.getByText(/Joining\.\.\./i)).toBeInTheDocument());
   });
 
   // --- login flow -----------------------------------------------------------
@@ -340,11 +346,7 @@ describe("InvitePage", () => {
     render(<InvitePage code={INVITE_CODE} />);
     await waitFor(() => screen.getByText(/general/i));
 
-<<<<<<< Updated upstream
-    fireEvent.click(screen.getByRole("button", { name: /Login/ }));
-=======
-    fireEvent.click(screen.getByRole("button", { name: / Login/ }));
->>>>>>> Stashed changes
+    fireEvent.click(screen.getByRole("button", { name: /^Login$/ }));
 
     await userEvent.type(screen.getByPlaceholderText(/you@example.com/i), "alice@test.com");
     await userEvent.type(screen.getByPlaceholderText(/••••••/), "secret123");
@@ -374,11 +376,7 @@ describe("InvitePage", () => {
 
     render(<InvitePage code={INVITE_CODE} />);
     await waitFor(() => screen.getByText(/general/i));
-<<<<<<< Updated upstream
-    fireEvent.click(screen.getByRole("button", { name: /Login/ }));
-=======
-    fireEvent.click(screen.getByRole("button", { name: / Login/ }));
->>>>>>> Stashed changes
+    fireEvent.click(screen.getByRole("button", { name: /^Login$/ }));
 
     await act(async () => {
       fireEvent.submit(screen.getByRole("button", { name: /Sign in and join/i }).closest("form"));
@@ -402,11 +400,7 @@ describe("InvitePage", () => {
     render(<InvitePage code={INVITE_CODE} />);
     await waitFor(() => screen.getByText(/general/i));
 
-<<<<<<< Updated upstream
-    fireEvent.click(screen.getByRole("button", { name: /Register/ }));
-=======
-    fireEvent.click(screen.getByRole("button", { name: / Register/ }));
->>>>>>> Stashed changes
+    fireEvent.click(screen.getByRole("button", { name: /^Register$/ }));
 
     await userEvent.type(screen.getByPlaceholderText(/^username$/i), "newuser");
     await userEvent.type(screen.getByPlaceholderText(/you@example.com/i), "new@test.com");
@@ -437,15 +431,11 @@ describe("InvitePage", () => {
 
     render(<InvitePage code={INVITE_CODE} />);
     await waitFor(() => screen.getByText(/general/i));
-<<<<<<< Updated upstream
-    fireEvent.click(screen.getByRole("button", { name: /Register/ }));
-=======
-    fireEvent.click(screen.getByRole("button", { name: / Register/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^Register$/ }));
 
     await userEvent.type(screen.getByPlaceholderText(/^username$/i), "newuser");
     await userEvent.type(screen.getByPlaceholderText(/you@example.com/i), "new@test.com");
     await userEvent.type(screen.getByPlaceholderText(/min\. 6 characters/i), "Newpass1!");
->>>>>>> Stashed changes
 
     await act(async () => {
       fireEvent.submit(screen.getByRole("button", { name: /Register and join/i }).closest("form"));
@@ -464,7 +454,7 @@ describe("InvitePage", () => {
     await waitFor(() => screen.getByText(/general/i));
 
     expect(screen.getByText(/Signed in as/i)).toBeInTheDocument();
-    // "alice" appears twice (channel meta + signed-in label) - confirm at least one is present
+    // "alice" appears twice (channel meta + signed-in label) — confirm at least one is present
     expect(screen.getAllByText(/alice/).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByRole("button", { name: /Join channel/i })).toBeInTheDocument();
   });
@@ -477,13 +467,8 @@ describe("InvitePage", () => {
     await waitFor(() => screen.getByText(/general/i));
 
     // Tab buttons should not be present for logged-in users
-<<<<<<< Updated upstream
-    expect(screen.queryByRole("button", { name: /Guest/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Login/ })).not.toBeInTheDocument();
-=======
-    expect(screen.queryByRole("button", { name: / Guest/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: / Login/ })).not.toBeInTheDocument();
->>>>>>> Stashed changes
+    expect(screen.queryByRole("button", { name: /^Guest$/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Login$/ })).not.toBeInTheDocument();
   });
 
   test("already logged in: calls POST /api/invite/:code/join with stored token", async () => {
@@ -573,13 +558,8 @@ describe("InvitePage", () => {
     });
     await waitFor(() => screen.getByText(/Guest accounts disabled/i));
 
-<<<<<<< Updated upstream
-    // Switch tab -> error should be cleared
-    fireEvent.click(screen.getByRole("button", { name: /Login/ }));
-=======
     // Switch tab → error should be cleared
-    fireEvent.click(screen.getByRole("button", { name: / Login/ }));
->>>>>>> Stashed changes
+    fireEvent.click(screen.getByRole("button", { name: /^Login$/ }));
     expect(screen.queryByText(/Guest accounts disabled/i)).not.toBeInTheDocument();
   });
 });

@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
+import { vi } from "vitest";
 import { useAuth } from "../../context/AuthContext";
 import { useSocket } from "../../context/SocketContext";
 import {
@@ -11,6 +12,7 @@ import {
   useChannelPermissions,
 } from "../../hooks/useApi";
 import ChatPage from "../../pages/ChatPage";
+import { createMockSocketContext } from "../../test-utils/mocks";
 vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
 vi.mock("../../context/SocketContext", () => ({ useSocket: vi.fn() }));
 vi.mock("../../hooks/useApi", () => ({
@@ -54,7 +56,7 @@ vi.mock("../../components/ChatArea", () => ({
 vi.mock("../../components/MessageInput", () => ({
   default: (props) => (
     <div data-testid="message-input">
-      <button data-testid="input-dm-sent"    onClick={() => props.onAddMessage?.({ id: 99, content: "hi" })} />
+      <button data-testid="input-dm-sent"    onClick={() => props.onAddMessage?.({ id: 99, content: "hi", created_at: new Date().toISOString() })} />
       <button data-testid="input-clear-reply" onClick={() => props.onClearReply?.()} />
     </div>
   ),
@@ -81,7 +83,7 @@ vi.mock("../../components/UserSearchModal", () => ({
   default: ({ onClose, onSelectDm, onViewProfile }) => (
     <div data-testid="user-search-modal">
       <button onClick={onClose}>Close user search</button>
-      <button data-testid="user-search-select-dm"      onClick={() => onSelectDm?.({ id: 2, username: "bob", avatar: "BO" })}>Select DM</button>
+      <button data-testid="user-search-select-dm"      onClick={() => onSelectDm?.({ id: 2, username: "bob", avatar: "BO", email: "bob@example.com", role: "user" })}>Select DM</button>
       <button data-testid="user-search-view-profile"   onClick={() => onViewProfile?.(2)}>View profile</button>
     </div>
   ),
@@ -90,7 +92,7 @@ vi.mock("../../components/UserProfileModal", () => ({
   default: ({ onClose, onStartDm }) => (
     <div data-testid="user-profile-modal">
       <button onClick={onClose}>Close profile</button>
-      <button data-testid="profile-start-dm" onClick={() => onStartDm?.({ id: 2, username: "bob", avatar: "BO" })}>Start DM</button>
+      <button data-testid="profile-start-dm" onClick={() => onStartDm?.({ id: 2, username: "bob", avatar: "BO", email: "bob@example.com", role: "user" })}>Start DM</button>
     </div>
   ),
 }));
@@ -108,19 +110,19 @@ const CHANNELS = [
 ];
 
 const USERS = [
-  { id: 1, username: "alice", avatar: "AL", role: "admin" },
-  { id: 2, username: "bob",   avatar: "BO", role: "user"  },
+  { id: 1, username: "alice", avatar: "AL", role: "admin", email: "alice@example.com" },
+  { id: 2, username: "bob",   avatar: "BO", role: "user", email: "bob@example.com"  },
 ];
 
 const CONVERSATIONS = [
-  { partner_id: 2, unread_count: 4, last_message: "hey" },
+  { partner_id: 2, partner_username: "bob", partner_avatar: "BO", unread_count: 4, last_content: "hey" },
 ];
 
 const PINNED_MESSAGES = [];
 
 const noopCleanup = () => vi.fn(() => vi.fn());
 
-const DEFAULT_SOCKET = {
+const DEFAULT_SOCKET = createMockSocketContext({
   isConnected: true,
   onlineUserIds: [1, 2],
   joinChannel: vi.fn(),
@@ -139,15 +141,6 @@ const DEFAULT_SOCKET = {
   emitTypingStop: vi.fn(),
   emitDmTypingStart: vi.fn(),
   emitDmTypingStop: vi.fn(),
-  onNewMessage:      vi.fn(() => vi.fn()),
-  onTypingUpdate:    vi.fn(() => vi.fn()),
-  onNewDm:           vi.fn(() => vi.fn()),
-  onMessageEdited:   vi.fn(() => vi.fn()),
-  onMessageDeleted:  vi.fn(() => vi.fn()),
-  onMessageReacted:  vi.fn(() => vi.fn()),
-  onChannelNotify:   vi.fn(() => vi.fn()),
-  onMessagePinned:   vi.fn(() => vi.fn()),
-  onMessageUnpinned: vi.fn(() => vi.fn()),
   onUserMentioned:   vi.fn(() => vi.fn()),
   onDmEdited:        vi.fn(() => vi.fn()),
   onDmDeleted:       vi.fn(() => vi.fn()),
@@ -157,27 +150,31 @@ const DEFAULT_SOCKET = {
   sendDmRead:        vi.fn(),
   userStatuses:      {},
   setStatus:         vi.fn(),
+}) as ReturnType<typeof createMockSocketContext> & {
+  pinMessage: ReturnType<typeof vi.fn>;
+  unpinMessage: ReturnType<typeof vi.fn>;
 };
 
-const DEFAULT_AUTH = {
+const DEFAULT_AUTH: any = {
   user: { id: 1, username: "alice", role: "admin", avatar: "AL" },
   token: "tok",
   authFetch: vi.fn().mockResolvedValue({}),
 };
 
-function setupDefaultMocks(overrides = {}) {
-  useAuth.mockReturnValue(DEFAULT_AUTH);
-  useSocket.mockReturnValue({ ...DEFAULT_SOCKET, ...overrides.socket });
+function setupDefaultMocks(overrides: any = {}) {
+  vi.mocked(useAuth).mockReturnValue(DEFAULT_AUTH);
+  vi.mocked(useSocket).mockReturnValue({ ...DEFAULT_SOCKET, ...overrides.socket });
 
-  useChannels.mockReturnValue({
+  vi.mocked(useChannels).mockReturnValue({
     channels: overrides.channels ?? CHANNELS,
     loading: overrides.channelsLoading ?? false,
+    reload: vi.fn(),
     createChannel: vi.fn(),
     updateChannel: vi.fn(),
     deleteChannel: vi.fn(),
   });
 
-  useMessages.mockReturnValue({
+  vi.mocked(useMessages).mockReturnValue({
     messages: overrides.messages ?? [],
     loading: false,
     hasMore: false,
@@ -187,9 +184,9 @@ function setupDefaultMocks(overrides = {}) {
     removeMessage: vi.fn(),
   });
 
-  useUsers.mockReturnValue({ users: overrides.users ?? USERS });
+  vi.mocked(useUsers).mockReturnValue({ users: overrides.users ?? USERS });
 
-  useDm.mockReturnValue({
+  vi.mocked(useDm).mockReturnValue({
     messages: [],
     loading: false,
     hasMore: false,
@@ -200,19 +197,20 @@ function setupDefaultMocks(overrides = {}) {
     removeMessage: vi.fn(),
   });
 
-  useConversations.mockReturnValue({
+  vi.mocked(useConversations).mockReturnValue({
     conversations: overrides.conversations ?? CONVERSATIONS,
+    reload: vi.fn(),
     markRead: vi.fn(),
     upsertConversation: vi.fn(),
   });
 
-  usePinnedMessages.mockReturnValue({
+  vi.mocked(usePinnedMessages).mockReturnValue({
     pinnedMessages: overrides.pinnedMessages ?? PINNED_MESSAGES,
     addPinned: vi.fn(),
     removePin: vi.fn(),
   });
 
-  useChannelPermissions.mockReturnValue({
+  vi.mocked(useChannelPermissions).mockReturnValue({
     permissions: { owner: { can_write: 1 }, manager: { can_write: 1 }, member: { can_write: 1 } },
     updateRole: vi.fn(),
   });
@@ -485,7 +483,7 @@ describe("handler coverage", () => {
   test("handleCreateChannel creates and selects new channel", async () => {
     const newChannel = { id: 99, name: "new-ch", description: "desc", is_private: 0, user_role: "owner" };
     const createChannel = vi.fn().mockResolvedValue(newChannel);
-    useChannels.mockReturnValue({ channels: CHANNELS, loading: false, createChannel, updateChannel: vi.fn(), deleteChannel: vi.fn() });
+    vi.mocked(useChannels).mockReturnValue({ channels: CHANNELS, loading: false, reload: vi.fn(), createChannel, updateChannel: vi.fn(), deleteChannel: vi.fn() });
 
     render(<ChatPage />);
     fireEvent.click(screen.getByTestId("sidebar-create-channel"));
@@ -495,8 +493,8 @@ describe("handler coverage", () => {
 
   test("handleDeleteChannel calls deleteChannel when confirmed", async () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
-    const deleteChannel = vi.fn().mockResolvedValue();
-    useChannels.mockReturnValue({ channels: CHANNELS, loading: false, createChannel: vi.fn(), updateChannel: vi.fn(), deleteChannel });
+    const deleteChannel = vi.fn().mockResolvedValue(undefined);
+    vi.mocked(useChannels).mockReturnValue({ channels: CHANNELS, loading: false, reload: vi.fn(), createChannel: vi.fn(), updateChannel: vi.fn(), deleteChannel });
 
     render(<ChatPage />);
     fireEvent.click(screen.getByTestId("sidebar-delete-channel"));
@@ -508,7 +506,7 @@ describe("handler coverage", () => {
   test("handleDeleteChannel does nothing when user cancels", async () => {
     vi.spyOn(window, "confirm").mockReturnValue(false);
     const deleteChannel = vi.fn();
-    useChannels.mockReturnValue({ channels: CHANNELS, loading: false, createChannel: vi.fn(), updateChannel: vi.fn(), deleteChannel });
+    vi.mocked(useChannels).mockReturnValue({ channels: CHANNELS, loading: false, reload: vi.fn(), createChannel: vi.fn(), updateChannel: vi.fn(), deleteChannel });
 
     render(<ChatPage />);
     fireEvent.click(screen.getByTestId("sidebar-delete-channel"));
@@ -536,7 +534,7 @@ describe("handler coverage", () => {
 
   test("handleDmSent adds DM message in DM mode", async () => {
     const addMessage = vi.fn();
-    useDm.mockReturnValue({
+    vi.mocked(useDm).mockReturnValue({
       messages: [], loading: false, hasMore: false,
       partner: { id: 2, username: "bob" },
       loadMore: vi.fn(), addMessage, updateMessage: vi.fn(), removeMessage: vi.fn(),
@@ -552,7 +550,7 @@ describe("handler coverage", () => {
 
   test("handlePin calls pinMessage for unpinned message", async () => {
     const pinMessage = vi.fn();
-    useSocket.mockReturnValue({ ...DEFAULT_SOCKET, pinMessage, unpinMessage: vi.fn() });
+    vi.mocked(useSocket).mockReturnValue({ ...DEFAULT_SOCKET, pinMessage, unpinMessage: vi.fn() });
 
     render(<ChatPage />);
     fireEvent.click(screen.getByTestId("sidebar-select-channel"));
@@ -564,7 +562,7 @@ describe("handler coverage", () => {
 
   test("handleUnpinFromBanner calls unpinMessage", async () => {
     const unpinMessage = vi.fn();
-    useSocket.mockReturnValue({ ...DEFAULT_SOCKET, pinMessage: vi.fn(), unpinMessage });
+    vi.mocked(useSocket).mockReturnValue({ ...DEFAULT_SOCKET, pinMessage: vi.fn(), unpinMessage });
 
     render(<ChatPage />);
     fireEvent.click(screen.getByTestId("sidebar-select-channel"));
@@ -689,15 +687,15 @@ describe("socket handler branches", () => {
   function captureHandler(eventName) {
     let captured;
     const override = { [eventName]: vi.fn((h) => { captured = h; return vi.fn(); }) };
-    useSocket.mockReturnValue({ ...DEFAULT_SOCKET, ...override });
+    vi.mocked(useSocket).mockReturnValue({ ...DEFAULT_SOCKET, ...override });
     return () => captured;
   }
 
   test("onNewMessage adds msg when channel_id matches active channel", async () => {
     const addMessage = vi.fn();
     let msgHandler;
-    useMessages.mockReturnValue({ messages: [], loading: false, hasMore: false, loadMore: vi.fn(), addMessage, updateMessage: vi.fn(), removeMessage: vi.fn() });
-    useSocket.mockReturnValue({ ...DEFAULT_SOCKET, onNewMessage: vi.fn((h) => { msgHandler = h; return vi.fn(); }) });
+    vi.mocked(useMessages).mockReturnValue({ messages: [], loading: false, hasMore: false, loadMore: vi.fn(), addMessage, updateMessage: vi.fn(), removeMessage: vi.fn() });
+    vi.mocked(useSocket).mockReturnValue({ ...DEFAULT_SOCKET, onNewMessage: vi.fn((h) => { msgHandler = h; return vi.fn(); }) });
 
     render(<ChatPage />);
     await waitFor(() => expect(msgHandler).toBeDefined());
@@ -709,8 +707,8 @@ describe("socket handler branches", () => {
   test("onNewMessage ignores msg for a different channel", async () => {
     const addMessage = vi.fn();
     let msgHandler;
-    useMessages.mockReturnValue({ messages: [], loading: false, hasMore: false, loadMore: vi.fn(), addMessage, updateMessage: vi.fn(), removeMessage: vi.fn() });
-    useSocket.mockReturnValue({ ...DEFAULT_SOCKET, onNewMessage: vi.fn((h) => { msgHandler = h; return vi.fn(); }) });
+    vi.mocked(useMessages).mockReturnValue({ messages: [], loading: false, hasMore: false, loadMore: vi.fn(), addMessage, updateMessage: vi.fn(), removeMessage: vi.fn() });
+    vi.mocked(useSocket).mockReturnValue({ ...DEFAULT_SOCKET, onNewMessage: vi.fn((h) => { msgHandler = h; return vi.fn(); }) });
 
     render(<ChatPage />);
     await waitFor(() => expect(msgHandler).toBeDefined());
@@ -722,8 +720,8 @@ describe("socket handler branches", () => {
   test("onMessageEdited updates active channel message", async () => {
     const updateMessage = vi.fn();
     let editHandler;
-    useMessages.mockReturnValue({ messages: [], loading: false, hasMore: false, loadMore: vi.fn(), addMessage: vi.fn(), updateMessage, removeMessage: vi.fn() });
-    useSocket.mockReturnValue({ ...DEFAULT_SOCKET, onMessageEdited: vi.fn((h) => { editHandler = h; return vi.fn(); }) });
+    vi.mocked(useMessages).mockReturnValue({ messages: [], loading: false, hasMore: false, loadMore: vi.fn(), addMessage: vi.fn(), updateMessage, removeMessage: vi.fn() });
+    vi.mocked(useSocket).mockReturnValue({ ...DEFAULT_SOCKET, onMessageEdited: vi.fn((h) => { editHandler = h; return vi.fn(); }) });
 
     render(<ChatPage />);
     await waitFor(() => expect(editHandler).toBeDefined());
@@ -735,8 +733,8 @@ describe("socket handler branches", () => {
   test("onMessageDeleted removes message from active channel", async () => {
     const removeMessage = vi.fn();
     let deleteHandler;
-    useMessages.mockReturnValue({ messages: [], loading: false, hasMore: false, loadMore: vi.fn(), addMessage: vi.fn(), updateMessage: vi.fn(), removeMessage });
-    useSocket.mockReturnValue({ ...DEFAULT_SOCKET, onMessageDeleted: vi.fn((h) => { deleteHandler = h; return vi.fn(); }) });
+    vi.mocked(useMessages).mockReturnValue({ messages: [], loading: false, hasMore: false, loadMore: vi.fn(), addMessage: vi.fn(), updateMessage: vi.fn(), removeMessage });
+    vi.mocked(useSocket).mockReturnValue({ ...DEFAULT_SOCKET, onMessageDeleted: vi.fn((h) => { deleteHandler = h; return vi.fn(); }) });
 
     render(<ChatPage />);
     await waitFor(() => expect(deleteHandler).toBeDefined());
@@ -748,8 +746,8 @@ describe("socket handler branches", () => {
   test("onMessageDeleted does not remove from wrong channel", async () => {
     const removeMessage = vi.fn();
     let deleteHandler;
-    useMessages.mockReturnValue({ messages: [], loading: false, hasMore: false, loadMore: vi.fn(), addMessage: vi.fn(), updateMessage: vi.fn(), removeMessage });
-    useSocket.mockReturnValue({ ...DEFAULT_SOCKET, onMessageDeleted: vi.fn((h) => { deleteHandler = h; return vi.fn(); }) });
+    vi.mocked(useMessages).mockReturnValue({ messages: [], loading: false, hasMore: false, loadMore: vi.fn(), addMessage: vi.fn(), updateMessage: vi.fn(), removeMessage });
+    vi.mocked(useSocket).mockReturnValue({ ...DEFAULT_SOCKET, onMessageDeleted: vi.fn((h) => { deleteHandler = h; return vi.fn(); }) });
 
     render(<ChatPage />);
     await waitFor(() => expect(deleteHandler).toBeDefined());
@@ -761,8 +759,8 @@ describe("socket handler branches", () => {
   test("onMessageReacted updates message reactions", async () => {
     const updateMessage = vi.fn();
     let reactHandler;
-    useMessages.mockReturnValue({ messages: [], loading: false, hasMore: false, loadMore: vi.fn(), addMessage: vi.fn(), updateMessage, removeMessage: vi.fn() });
-    useSocket.mockReturnValue({ ...DEFAULT_SOCKET, onMessageReacted: vi.fn((h) => { reactHandler = h; return vi.fn(); }) });
+    vi.mocked(useMessages).mockReturnValue({ messages: [], loading: false, hasMore: false, loadMore: vi.fn(), addMessage: vi.fn(), updateMessage, removeMessage: vi.fn() });
+    vi.mocked(useSocket).mockReturnValue({ ...DEFAULT_SOCKET, onMessageReacted: vi.fn((h) => { reactHandler = h; return vi.fn(); }) });
 
     render(<ChatPage />);
     await waitFor(() => expect(reactHandler).toBeDefined());
@@ -773,7 +771,7 @@ describe("socket handler branches", () => {
 
   test("onChannelNotify increments unread count for non-active channel", async () => {
     let notifyHandler;
-    useSocket.mockReturnValue({ ...DEFAULT_SOCKET, onChannelNotify: vi.fn((h) => { notifyHandler = h; return vi.fn(); }) });
+    vi.mocked(useSocket).mockReturnValue({ ...DEFAULT_SOCKET, onChannelNotify: vi.fn((h) => { notifyHandler = h; return vi.fn(); }) });
 
     render(<ChatPage />);
     await waitFor(() => expect(notifyHandler).toBeDefined());
@@ -786,7 +784,7 @@ describe("socket handler branches", () => {
 
   test("onChannelNotify ignores notification for the currently active channel", async () => {
     let notifyHandler;
-    useSocket.mockReturnValue({ ...DEFAULT_SOCKET, onChannelNotify: vi.fn((h) => { notifyHandler = h; return vi.fn(); }) });
+    vi.mocked(useSocket).mockReturnValue({ ...DEFAULT_SOCKET, onChannelNotify: vi.fn((h) => { notifyHandler = h; return vi.fn(); }) });
 
     render(<ChatPage />);
     await waitFor(() => expect(notifyHandler).toBeDefined());
@@ -797,7 +795,7 @@ describe("socket handler branches", () => {
 
   test("onTypingUpdate adds typing username when isTyping=true", async () => {
     let typingHandler;
-    useSocket.mockReturnValue({ ...DEFAULT_SOCKET, onTypingUpdate: vi.fn((h) => { typingHandler = h; return vi.fn(); }) });
+    vi.mocked(useSocket).mockReturnValue({ ...DEFAULT_SOCKET, onTypingUpdate: vi.fn((h) => { typingHandler = h; return vi.fn(); }) });
 
     render(<ChatPage />);
     await waitFor(() => expect(typingHandler).toBeDefined());
@@ -812,7 +810,7 @@ describe("socket handler branches", () => {
 
   test("onTypingUpdate removes typing username when isTyping=false", async () => {
     let typingHandler;
-    useSocket.mockReturnValue({ ...DEFAULT_SOCKET, onTypingUpdate: vi.fn((h) => { typingHandler = h; return vi.fn(); }) });
+    vi.mocked(useSocket).mockReturnValue({ ...DEFAULT_SOCKET, onTypingUpdate: vi.fn((h) => { typingHandler = h; return vi.fn(); }) });
 
     render(<ChatPage />);
     await waitFor(() => expect(typingHandler).toBeDefined());
@@ -827,7 +825,7 @@ describe("socket handler branches", () => {
 
   test("onTypingUpdate does not duplicate already-present username", async () => {
     let typingHandler;
-    useSocket.mockReturnValue({ ...DEFAULT_SOCKET, onTypingUpdate: vi.fn((h) => { typingHandler = h; return vi.fn(); }) });
+    vi.mocked(useSocket).mockReturnValue({ ...DEFAULT_SOCKET, onTypingUpdate: vi.fn((h) => { typingHandler = h; return vi.fn(); }) });
 
     render(<ChatPage />);
     await waitFor(() => expect(typingHandler).toBeDefined());
@@ -841,7 +839,7 @@ describe("socket handler branches", () => {
 
   test("onDmTypingUpdate shows typing in DM mode", async () => {
     let dmTypingHandler;
-    useSocket.mockReturnValue({ ...DEFAULT_SOCKET, onDmTypingUpdate: vi.fn((h) => { dmTypingHandler = h; return vi.fn(); }) });
+    vi.mocked(useSocket).mockReturnValue({ ...DEFAULT_SOCKET, onDmTypingUpdate: vi.fn((h) => { dmTypingHandler = h; return vi.fn(); }) });
 
     render(<ChatPage />);
     await waitFor(() => expect(dmTypingHandler).toBeDefined());
@@ -857,7 +855,7 @@ describe("socket handler branches", () => {
 
   test("onDmTypingUpdate removes typing user when isTyping=false", async () => {
     let dmTypingHandler;
-    useSocket.mockReturnValue({ ...DEFAULT_SOCKET, onDmTypingUpdate: vi.fn((h) => { dmTypingHandler = h; return vi.fn(); }) });
+    vi.mocked(useSocket).mockReturnValue({ ...DEFAULT_SOCKET, onDmTypingUpdate: vi.fn((h) => { dmTypingHandler = h; return vi.fn(); }) });
 
     render(<ChatPage />);
     await waitFor(() => expect(dmTypingHandler).toBeDefined());
@@ -875,7 +873,7 @@ describe("socket handler branches", () => {
 
   test("onDmRead sets seenByPartner when readBy matches active DM", async () => {
     let dmReadHandler;
-    useSocket.mockReturnValue({ ...DEFAULT_SOCKET, onDmRead: vi.fn((h) => { dmReadHandler = h; return vi.fn(); }) });
+    vi.mocked(useSocket).mockReturnValue({ ...DEFAULT_SOCKET, onDmRead: vi.fn((h) => { dmReadHandler = h; return vi.fn(); }) });
 
     render(<ChatPage />);
     await waitFor(() => expect(dmReadHandler).toBeDefined());
@@ -891,7 +889,7 @@ describe("socket handler branches", () => {
 
   test("onDmRead ignores readBy from a different user", async () => {
     let dmReadHandler;
-    useSocket.mockReturnValue({ ...DEFAULT_SOCKET, onDmRead: vi.fn((h) => { dmReadHandler = h; return vi.fn(); }) });
+    vi.mocked(useSocket).mockReturnValue({ ...DEFAULT_SOCKET, onDmRead: vi.fn((h) => { dmReadHandler = h; return vi.fn(); }) });
 
     render(<ChatPage />);
     await waitFor(() => expect(dmReadHandler).toBeDefined());
@@ -903,9 +901,9 @@ describe("socket handler branches", () => {
   });
 
   test("seenByPartner initialises from is_read=1 on loaded DM messages", async () => {
-    useDm.mockReturnValue({
-      messages: [{ id: 1, sender_id: 1, receiver_id: 2, content: "hi", is_read: 1 }],
-      loading: false, hasMore: false, loadMore: vi.fn(),
+    vi.mocked(useDm).mockReturnValue({
+      messages: [{ id: 1, sender_id: 1, receiver_id: 2, content: "hi", is_read: 1, created_at: "2024-01-15T10:00:00.000Z" }],
+      loading: false, hasMore: false, partner: null, loadMore: vi.fn(),
       addMessage: vi.fn(), updateMessage: vi.fn(), removeMessage: vi.fn(),
     });
 
@@ -919,7 +917,7 @@ describe("socket handler branches", () => {
 
   test("seenByPartner resets to false on new outgoing message (handleDmSent)", async () => {
     let dmReadHandler;
-    useSocket.mockReturnValue({ ...DEFAULT_SOCKET, onDmRead: vi.fn((h) => { dmReadHandler = h; return vi.fn(); }) });
+    vi.mocked(useSocket).mockReturnValue({ ...DEFAULT_SOCKET, onDmRead: vi.fn((h) => { dmReadHandler = h; return vi.fn(); }) });
 
     render(<ChatPage />);
     fireEvent.click(screen.getByTestId("sidebar-select-dm"));
@@ -937,8 +935,8 @@ describe("socket handler branches", () => {
   test("onNewDm adds message when sender is the active DM partner", async () => {
     const addMessage = vi.fn();
     let dmHandler;
-    useDm.mockReturnValue({ messages: [], loading: false, hasMore: false, loadMore: vi.fn(), addMessage, updateMessage: vi.fn(), removeMessage: vi.fn() });
-    useSocket.mockReturnValue({ ...DEFAULT_SOCKET, onNewDm: vi.fn((h) => { dmHandler = h; return vi.fn(); }) });
+    vi.mocked(useDm).mockReturnValue({ messages: [], loading: false, hasMore: false, partner: null, loadMore: vi.fn(), addMessage, updateMessage: vi.fn(), removeMessage: vi.fn() });
+    vi.mocked(useSocket).mockReturnValue({ ...DEFAULT_SOCKET, onNewDm: vi.fn((h) => { dmHandler = h; return vi.fn(); }) });
 
     render(<ChatPage />);
     fireEvent.click(screen.getByTestId("sidebar-select-dm"));
@@ -951,8 +949,8 @@ describe("socket handler branches", () => {
   test("onNewDm does not add message when sender is not the active DM partner", async () => {
     const addMessage = vi.fn();
     let dmHandler;
-    useDm.mockReturnValue({ messages: [], loading: false, hasMore: false, loadMore: vi.fn(), addMessage, updateMessage: vi.fn(), removeMessage: vi.fn() });
-    useSocket.mockReturnValue({ ...DEFAULT_SOCKET, onNewDm: vi.fn((h) => { dmHandler = h; return vi.fn(); }) });
+    vi.mocked(useDm).mockReturnValue({ messages: [], loading: false, hasMore: false, partner: null, loadMore: vi.fn(), addMessage, updateMessage: vi.fn(), removeMessage: vi.fn() });
+    vi.mocked(useSocket).mockReturnValue({ ...DEFAULT_SOCKET, onNewDm: vi.fn((h) => { dmHandler = h; return vi.fn(); }) });
 
     render(<ChatPage />);
     fireEvent.click(screen.getByTestId("sidebar-select-dm"));
@@ -966,8 +964,8 @@ describe("socket handler branches", () => {
 describe("delete active channel", () => {
   test("deleting the active channel selects the next available channel", async () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
-    const deleteChannel = vi.fn().mockResolvedValue();
-    useChannels.mockReturnValue({ channels: CHANNELS, loading: false, createChannel: vi.fn(), updateChannel: vi.fn(), deleteChannel });
+    const deleteChannel = vi.fn().mockResolvedValue(undefined);
+    vi.mocked(useChannels).mockReturnValue({ channels: CHANNELS, loading: false, reload: vi.fn(), createChannel: vi.fn(), updateChannel: vi.fn(), deleteChannel });
 
     render(<ChatPage />);
     // Auto-restore selects channel 10 (general); deleting it should switch to channel 11 (random)
@@ -982,7 +980,7 @@ describe("delete active channel", () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
     vi.spyOn(window, "alert").mockImplementation(() => {});
     const deleteChannel = vi.fn().mockRejectedValue(new Error("Server error"));
-    useChannels.mockReturnValue({ channels: CHANNELS, loading: false, createChannel: vi.fn(), updateChannel: vi.fn(), deleteChannel });
+    vi.mocked(useChannels).mockReturnValue({ channels: CHANNELS, loading: false, reload: vi.fn(), createChannel: vi.fn(), updateChannel: vi.fn(), deleteChannel });
 
     render(<ChatPage />);
     await waitFor(() => screen.getByTestId("chat-area"));
@@ -995,7 +993,7 @@ describe("delete active channel", () => {
   test("handleCreateChannel shows alert on error", async () => {
     vi.spyOn(window, "alert").mockImplementation(() => {});
     const createChannel = vi.fn().mockRejectedValue(new Error("Name taken"));
-    useChannels.mockReturnValue({ channels: CHANNELS, loading: false, createChannel, updateChannel: vi.fn(), deleteChannel: vi.fn() });
+    vi.mocked(useChannels).mockReturnValue({ channels: CHANNELS, loading: false, reload: vi.fn(), createChannel, updateChannel: vi.fn(), deleteChannel: vi.fn() });
 
     render(<ChatPage />);
     fireEvent.click(screen.getByTestId("sidebar-create-channel"));
@@ -1023,13 +1021,13 @@ describe("ChatPage - onDmDeleted socket event", () => {
     capturedOnDmDeleted = null;
     mockRemoveDmMsg = vi.fn();
 
-    useDm.mockReturnValue({
+    vi.mocked(useDm).mockReturnValue({
       messages: [], loading: false, hasMore: false, partner: null,
       loadMore: vi.fn(), addMessage: vi.fn(),
       updateMessage: vi.fn(), removeMessage: mockRemoveDmMsg,
     });
 
-    useSocket.mockReturnValue({
+    vi.mocked(useSocket).mockReturnValue({
       ...DEFAULT_SOCKET,
       onDmDeleted: (cb) => { capturedOnDmDeleted = cb; return vi.fn(); },
     });
@@ -1081,13 +1079,13 @@ describe("ChatPage - onDmReacted socket event", () => {
     capturedOnDmReacted = null;
     mockUpdateDmMsg = vi.fn();
 
-    useDm.mockReturnValue({
+    vi.mocked(useDm).mockReturnValue({
       messages: [], loading: false, hasMore: false, partner: null,
       loadMore: vi.fn(), addMessage: vi.fn(),
       updateMessage: mockUpdateDmMsg, removeMessage: vi.fn(),
     });
 
-    useSocket.mockReturnValue({
+    vi.mocked(useSocket).mockReturnValue({
       ...DEFAULT_SOCKET,
       onDmReacted: (cb) => { capturedOnDmReacted = cb; return vi.fn(); },
     });
@@ -1148,13 +1146,13 @@ describe("ChatPage - onDmEdited socket event", () => {
     capturedOnDmEdited = null;
     mockUpdateDmMsg = vi.fn();
 
-    useDm.mockReturnValue({
+    vi.mocked(useDm).mockReturnValue({
       messages: [], loading: false, hasMore: false, partner: null,
       loadMore: vi.fn(), addMessage: vi.fn(),
       updateMessage: mockUpdateDmMsg, removeMessage: vi.fn(),
     });
 
-    useSocket.mockReturnValue({
+    vi.mocked(useSocket).mockReturnValue({
       ...DEFAULT_SOCKET,
       onDmEdited: (cb) => { capturedOnDmEdited = cb; return vi.fn(); },
     });
@@ -1200,7 +1198,7 @@ describe("ChatPage - onUserMentioned Notification", () => {
   beforeEach(() => {
     capturedOnUserMentioned = null;
 
-    useSocket.mockReturnValue({
+    vi.mocked(useSocket).mockReturnValue({
       ...DEFAULT_SOCKET,
       onUserMentioned: (cb) => { capturedOnUserMentioned = cb; return vi.fn(); },
     });
@@ -1211,7 +1209,9 @@ describe("ChatPage - onUserMentioned Notification", () => {
   });
 
   it("fires a Notification when Notification.permission is granted", async () => {
-    const MockNotification = vi.fn();
+    const MockNotification = vi.fn() as ReturnType<typeof vi.fn> & {
+      requestPermission: ReturnType<typeof vi.fn>;
+    };
     MockNotification.requestPermission = vi.fn().mockResolvedValue("granted");
     Object.defineProperty(window, "Notification", {
       value: MockNotification, writable: true, configurable: true,
@@ -1237,7 +1237,9 @@ describe("ChatPage - onUserMentioned Notification", () => {
   });
 
   it("does not fire Notification when permission is not granted", async () => {
-    const MockNotification = vi.fn();
+    const MockNotification = vi.fn() as ReturnType<typeof vi.fn> & {
+      requestPermission: ReturnType<typeof vi.fn>;
+    };
     MockNotification.requestPermission = vi.fn().mockResolvedValue("default");
     Object.defineProperty(window, "Notification", {
       value: MockNotification, writable: true, configurable: true,

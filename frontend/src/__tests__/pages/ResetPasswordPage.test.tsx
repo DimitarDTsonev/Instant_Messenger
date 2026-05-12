@@ -1,6 +1,10 @@
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
+import { vi } from "vitest";
 import ResetPasswordPage from "../../pages/ResetPasswordPage";
 import { navigateHome } from "../../utils/navigation";
+import { createMockFetch } from "../../test-utils/mocks";
+
+declare const global: typeof globalThis;
 
 vi.mock("../../utils/navigation", () => ({
   navigateHome: vi.fn(),
@@ -10,10 +14,8 @@ function mockSearch(token = "abc123") {
   window.history.pushState({}, "", `/reset-password${token ? `?token=${token}` : ""}`);
 }
 
-function mockFetch(ok = true, body = { success: true }) {
-  (global as any).fetch = vi.fn(() =>
-    Promise.resolve({ ok, json: () => Promise.resolve(body) })
-  );
+function mockFetch(ok = true, body: Record<string, unknown> = { success: true }) {
+  global.fetch = createMockFetch(ok, body);
 }
 
 beforeEach(() => {

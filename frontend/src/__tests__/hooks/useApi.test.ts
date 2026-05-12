@@ -1,4 +1,5 @@
 import { renderHook, act, waitFor } from "@testing-library/react";
+import { vi } from "vitest";
 import {
   useChannels,
   useMessages,
@@ -19,9 +20,10 @@ vi.mock("../../context/AuthContext", () => ({
 }));
 
 import { useAuth } from "../../context/AuthContext";
+import type { Message } from "../../types";
 
-function setupAuthFetch(impl) {
-  useAuth.mockReturnValue({ authFetch: impl });
+function setupAuthFetch(impl: ReturnType<typeof vi.fn>) {
+  (useAuth as any).mockReturnValue({ authFetch: impl });
 }
 
 describe("useChannels", () => {
@@ -107,7 +109,7 @@ describe("useChannels", () => {
 
 describe("useMessages", () => {
   test("fetches messages when channelId is provided", async () => {
-    const msgs = [{ id: 1, content: "hello" }];
+    const msgs = [{ id: 1, content: "hello", created_at: "2024-01-15T10:00:00.000Z" }];
     setupAuthFetch(vi.fn().mockResolvedValue({ messages: msgs, hasMore: false }));
     const { result } = renderHook(() => useMessages(1));
     await waitFor(() => expect(result.current.loading).toBe(false));
@@ -125,36 +127,36 @@ describe("useMessages", () => {
     setupAuthFetch(vi.fn().mockResolvedValue({ messages: [], hasMore: false }));
     const { result } = renderHook(() => useMessages(1));
     await waitFor(() => expect(result.current.loading).toBe(false));
-    act(() => { result.current.addMessage({ id: 5, content: "new" }); });
+    act(() => { result.current.addMessage({ id: 5, content: "new", created_at: "2024-01-15T10:00:00.000Z" }); });
     expect(result.current.messages).toHaveLength(1);
     expect(result.current.messages[0].content).toBe("new");
   });
 
   test("updateMessage merges partial into matching message", async () => {
     setupAuthFetch(vi.fn().mockResolvedValue({
-      messages: [{ id: 1, content: "old", is_edited: 0 }], hasMore: false,
+      messages: [{ id: 1, content: "old", created_at: "2024-01-15T10:00:00.000Z", is_edited: 0 }], hasMore: false,
     }));
     const { result } = renderHook(() => useMessages(1));
     await waitFor(() => expect(result.current.loading).toBe(false));
-    act(() => { result.current.updateMessage({ id: 1, content: "edited", is_edited: 1 }); });
+    act(() => { result.current.updateMessage({ id: 1, content: "edited", created_at: "2024-01-15T10:00:00.000Z", is_edited: 1 }); });
     expect(result.current.messages[0].content).toBe("edited");
     expect(result.current.messages[0].is_edited).toBe(1);
   });
 
   test("updateMessage leaves non-matching messages unchanged", async () => {
     setupAuthFetch(vi.fn().mockResolvedValue({
-      messages: [{ id: 1, content: "old" }, { id: 2, content: "keep" }],
+      messages: [{ id: 1, content: "old", created_at: "2024-01-15T10:00:00.000Z" }, { id: 2, content: "keep", created_at: "2024-01-15T10:00:00.000Z" }],
       hasMore: false,
     }));
     const { result } = renderHook(() => useMessages(1));
     await waitFor(() => expect(result.current.loading).toBe(false));
-    act(() => { result.current.updateMessage({ id: 1, content: "edited" }); });
+    act(() => { result.current.updateMessage({ id: 1, content: "edited", created_at: "2024-01-15T10:00:00.000Z" }); });
     expect(result.current.messages[1].content).toBe("keep");
   });
 
   test("removeMessage filters by id", async () => {
     setupAuthFetch(vi.fn().mockResolvedValue({
-      messages: [{ id: 1, content: "keep" }, { id: 2, content: "delete" }], hasMore: false,
+      messages: [{ id: 1, content: "keep", created_at: "2024-01-15T10:00:00.000Z" }, { id: 2, content: "delete", created_at: "2024-01-15T10:00:00.000Z" }], hasMore: false,
     }));
     const { result } = renderHook(() => useMessages(1));
     await waitFor(() => expect(result.current.loading).toBe(false));
@@ -174,8 +176,8 @@ describe("useMessages", () => {
 
   test("loadMore fetches older messages when hasMore is true", async () => {
     const mockFetch = vi.fn()
-      .mockResolvedValueOnce({ messages: [{ id: 5, content: "msg5" }], hasMore: true })
-      .mockResolvedValueOnce({ messages: [{ id: 1, content: "older" }], hasMore: false });
+      .mockResolvedValueOnce({ messages: [{ id: 5, content: "msg5", created_at: "2024-01-15T10:00:00.000Z" }], hasMore: true })
+      .mockResolvedValueOnce({ messages: [{ id: 1, content: "older", created_at: "2024-01-15T10:00:00.000Z" }], hasMore: false });
     setupAuthFetch(mockFetch);
     const { result } = renderHook(() => useMessages(1));
     await waitFor(() => expect(result.current.hasMore).toBe(true));
@@ -212,7 +214,7 @@ describe("useUsers", () => {
 
 describe("useDm", () => {
   test("fetches DMs on mount when partnerId is provided", async () => {
-    const dms = [{ id: 1, content: "hey" }];
+    const dms = [{ id: 1, content: "hey", created_at: "2024-01-15T10:00:00.000Z" }];
     setupAuthFetch(vi.fn().mockResolvedValue({ messages: dms, hasMore: false, partner: { id: 2 } }));
     const { result } = renderHook(() => useDm(2));
     await waitFor(() => expect(result.current.loading).toBe(false));
@@ -231,29 +233,29 @@ describe("useDm", () => {
     setupAuthFetch(vi.fn().mockResolvedValue({ messages: [], hasMore: false, partner: null }));
     const { result } = renderHook(() => useDm(2));
     await waitFor(() => expect(result.current.loading).toBe(false));
-    act(() => { result.current.addMessage({ id: 99, content: "new dm" }); });
+    act(() => { result.current.addMessage({ id: 99, sender_id: 1, receiver_id: 2, content: "new dm", created_at: "2024-01-15T10:00:00.000Z" }); });
     expect(result.current.messages[0].content).toBe("new dm");
   });
 
   test("updateMessage merges partial", async () => {
     setupAuthFetch(vi.fn().mockResolvedValue({
-      messages: [{ id: 1, content: "old" }], hasMore: false, partner: null,
+      messages: [{ id: 1, content: "old", created_at: "2024-01-15T10:00:00.000Z" }], hasMore: false, partner: null,
     }));
     const { result } = renderHook(() => useDm(2));
     await waitFor(() => expect(result.current.loading).toBe(false));
-    act(() => { result.current.updateMessage({ id: 1, content: "edited" }); });
+    act(() => { result.current.updateMessage({ id: 1, content: "edited", created_at: "2024-01-15T10:00:00.000Z" }); });
     expect(result.current.messages[0].content).toBe("edited");
   });
 
   test("updateMessage keeps non-matching DMs unchanged", async () => {
     setupAuthFetch(vi.fn().mockResolvedValue({
-      messages: [{ id: 1, content: "old" }, { id: 2, content: "keep" }],
+      messages: [{ id: 1, content: "old", created_at: "2024-01-15T10:00:00.000Z" }, { id: 2, content: "keep", created_at: "2024-01-15T10:00:00.000Z" }],
       hasMore: false,
       partner: null,
     }));
     const { result } = renderHook(() => useDm(2));
     await waitFor(() => expect(result.current.loading).toBe(false));
-    act(() => { result.current.updateMessage({ id: 1, content: "edited" }); });
+    act(() => { result.current.updateMessage({ id: 1, content: "edited", created_at: "2024-01-15T10:00:00.000Z" }); });
     expect(result.current.messages[1].content).toBe("keep");
   });
 
@@ -329,7 +331,7 @@ describe("useConversations", () => {
     await waitFor(() => expect(result.current.conversations).toHaveLength(1));
     act(() => {
       result.current.upsertConversation(
-        { content: "new", created_at: new Date().toISOString() },
+        { id: 1, content: "new", created_at: new Date().toISOString() },
         2, "bob", "AL"
       );
     });
@@ -345,7 +347,7 @@ describe("useConversations", () => {
     await waitFor(() => expect(result.current.conversations).toHaveLength(1));
     act(() => {
       result.current.upsertConversation(
-        { content: "new", created_at: new Date().toISOString() },
+        { id: 1, content: "new", created_at: new Date().toISOString() },
         2, "bob", "AL", false
       );
     });
@@ -358,7 +360,7 @@ describe("useConversations", () => {
     await waitFor(() => expect(result.current.conversations).toEqual([]));
     act(() => {
       result.current.upsertConversation(
-        { content: "hello", created_at: new Date().toISOString() },
+        { id: 1, content: "hello", created_at: new Date().toISOString() },
         99, "carol", "🦊"
       );
     });
@@ -372,7 +374,7 @@ describe("useConversations", () => {
     await waitFor(() => expect(result.current.conversations).toEqual([]));
     act(() => {
       result.current.upsertConversation(
-        { content: "hello", created_at: new Date().toISOString() },
+        { id: 1, content: "hello", created_at: new Date().toISOString() },
         99, "carol", null, false
       );
     });
@@ -390,7 +392,7 @@ describe("useConversations", () => {
 
 describe("usePinnedMessages", () => {
   test("fetches pinned messages when channelId is set", async () => {
-    const msgs = [{ id: 3, content: "pinned" }];
+    const msgs = [{ id: 3, content: "pinned", created_at: "2024-01-15T10:00:00.000Z" }];
     setupAuthFetch(vi.fn().mockResolvedValue({ messages: msgs }));
     const { result } = renderHook(() => usePinnedMessages(1));
     await waitFor(() => expect(result.current.pinnedMessages).toEqual(msgs));
@@ -412,15 +414,15 @@ describe("usePinnedMessages", () => {
     setupAuthFetch(vi.fn().mockResolvedValue({ messages: [] }));
     const { result } = renderHook(() => usePinnedMessages(1));
     await waitFor(() => expect(result.current.pinnedMessages).toEqual([]));
-    act(() => { result.current.addPinned({ id: 7, content: "new pin" }); });
+    act(() => { result.current.addPinned({ id: 7, content: "new pin", created_at: "2024-01-15T10:00:00.000Z" }); });
     expect(result.current.pinnedMessages).toHaveLength(1);
   });
 
   test("addPinned does not add duplicates", async () => {
-    setupAuthFetch(vi.fn().mockResolvedValue({ messages: [{ id: 7, content: "pin" }] }));
+    setupAuthFetch(vi.fn().mockResolvedValue({ messages: [{ id: 7, content: "pin", created_at: "2024-01-15T10:00:00.000Z" }] }));
     const { result } = renderHook(() => usePinnedMessages(1));
     await waitFor(() => expect(result.current.pinnedMessages).toHaveLength(1));
-    act(() => { result.current.addPinned({ id: 7, content: "pin" }); });
+    act(() => { result.current.addPinned({ id: 7, content: "pin", created_at: "2024-01-15T10:00:00.000Z" }); });
     expect(result.current.pinnedMessages).toHaveLength(1);
   });
 
@@ -487,7 +489,7 @@ describe("useUserSearch", () => {
 
 describe("useGlobalSearch", () => {
   test("search with 2+ chars returns results and sets query", async () => {
-    const results = [{ id: 1, content: "hello" }];
+    const results = [{ id: 1, content: "hello", created_at: "2024-01-15T10:00:00.000Z" }];
     setupAuthFetch(vi.fn().mockResolvedValue({ results }));
     const { result } = renderHook(() => useGlobalSearch());
     await act(async () => { await result.current.search("hi"); });
@@ -644,7 +646,7 @@ describe("useChannelInvites", () => {
 
 describe("useSearch", () => {
   test("search with 2+ chars returns results", async () => {
-    const results = [{ id: 1, content: "match" }];
+    const results = [{ id: 1, content: "match", created_at: "2024-01-15T10:00:00.000Z" }];
     setupAuthFetch(vi.fn().mockResolvedValue({ results }));
     const { result } = renderHook(() => useSearch(1));
     await act(async () => { await result.current.search("ma"); });
@@ -683,14 +685,14 @@ describe("useGlobalSearch", () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
   });
   afterEach(() => {
-    console.error.mockRestore?.();
+    vi.mocked(console.error).mockRestore?.();
     vi.restoreAllMocks();
   });
 
   it("logs error and keeps loading false when authFetch throws", async () => {
     // Override the authFetch mock to reject
     const { useAuth } = await import("../../context/AuthContext");
-    useAuth.mockReturnValue({
+    (vi.mocked(useAuth) as any).mockReturnValue({
       authFetch: vi.fn().mockRejectedValue(new Error("search network fail")),
       token: "tok",
     });
@@ -715,7 +717,7 @@ describe("useGlobalSearch", () => {
   it("returns empty results and does NOT fetch when query is shorter than 2 chars", async () => {
     const mockFetch = vi.fn();
     const { useAuth } = await import("../../context/AuthContext");
-    useAuth.mockReturnValue({ authFetch: mockFetch, token: "tok" });
+    (vi.mocked(useAuth) as any).mockReturnValue({ authFetch: mockFetch, token: "tok" });
 
     const { result } = renderHook(() => useGlobalSearch());
 
@@ -729,7 +731,7 @@ describe("useGlobalSearch", () => {
 
   it("clearSearch resets results and query", async () => {
     const { useAuth } = await import("../../context/AuthContext");
-    useAuth.mockReturnValue({
+    (vi.mocked(useAuth) as any).mockReturnValue({
       authFetch: vi.fn().mockResolvedValue({ results: [{ id: 1 }] }),
       token: "tok",
     });
@@ -759,7 +761,7 @@ describe("useChannelMembers", () => {
 
   it("logs error when fetching members fails", async () => {
     const { useAuth } = await import("../../context/AuthContext");
-    useAuth.mockReturnValue({
+    (vi.mocked(useAuth) as any).mockReturnValue({
       authFetch: vi.fn().mockRejectedValue(new Error("members network fail")),
       token: "tok",
     });
@@ -780,7 +782,7 @@ describe("useChannelMembers", () => {
   it("sets members to [] and skips fetch when channelId is null", async () => {
     const mockFetch = vi.fn();
     const { useAuth } = await import("../../context/AuthContext");
-    useAuth.mockReturnValue({ authFetch: mockFetch, token: "tok" });
+    (vi.mocked(useAuth) as any).mockReturnValue({ authFetch: mockFetch, token: "tok" });
 
     const { result } = renderHook(() => useChannelMembers(null));
 
@@ -844,7 +846,7 @@ describe("useConversations - upsertConversation incrementUnread=false branch", (
     await waitFor(() => expect(result.current.conversations).toHaveLength(1));
     act(() => {
       result.current.upsertConversation(
-        { content: "new", created_at: new Date().toISOString() },
+        { id: 1, content: "new", created_at: new Date().toISOString() },
         2, "bob", "AL", false
       );
     });
@@ -858,7 +860,7 @@ describe("useConversations - upsertConversation incrementUnread=false branch", (
     await waitFor(() => expect(result.current.conversations).toEqual([]));
     act(() => {
       result.current.upsertConversation(
-        { content: "hi", created_at: new Date().toISOString() },
+        { id: 1, content: "hi", created_at: new Date().toISOString() },
         99, "carol", "🦊", false
       );
     });

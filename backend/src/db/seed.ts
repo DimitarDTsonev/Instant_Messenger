@@ -14,7 +14,7 @@ async function seed() {
     DELETE FROM users;
   `);
 
-  const password = bcrypt.hashSync("password123", 10);
+  const password = bcrypt.hashSync("Password@123", 10);
 
   const insertUser = db.prepare(`
     INSERT INTO users (username, email, password, avatar)
@@ -83,7 +83,7 @@ async function seed() {
 
   console.log(`\n   ${seedMessages.length} messages inserted`);
   console.log("\n Done! You can log in with:");
-  console.log("   Email: alice@demo.com | Password: password123\n");
+  console.log("   Email: alice@demo.com | Password: Password@123\n");
 }
 
 seed().catch(console.error);

@@ -1,4 +1,5 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import { vi } from "vitest";
 import App from "../App";
 
 // Mock heavy pages and contexts so the test only exercises App routing logic
@@ -13,7 +14,7 @@ vi.mock("../context/SocketContext", () => ({
 
 // Control AuthProvider behaviour by mocking useAuth inside AuthProvider
 vi.mock("../context/AuthContext", async (importOriginal) => {
-  const mod = await importOriginal();
+  const mod = await importOriginal() as Record<string, unknown>;
   return {
     ...mod,
     // Replace the hook only; keep AuthProvider as a thin pass-through
@@ -24,25 +25,39 @@ vi.mock("../context/AuthContext", async (importOriginal) => {
 
 import { useAuth } from "../context/AuthContext";
 
+function authMock(overrides: Record<string, unknown> = {}) {
+  return {
+    user: null,
+    token: null,
+    loading: false,
+    login: vi.fn(),
+    register: vi.fn(),
+    logout: vi.fn(),
+    loginWithToken: vi.fn(),
+    authFetch: vi.fn(),
+    ...overrides,
+  } as any;
+}
+
 describe("App routing", () => {
   beforeEach(() => {
     window.history.pushState({}, "", "/");
   });
 
   test("shows loading spinner while auth is being validated", () => {
-    vi.mocked(useAuth).mockReturnValue({ user: null, loading: true });
+    vi.mocked(useAuth).mockReturnValue(authMock({ loading: true }));
     render(<App />);
     expect(screen.getByText(/Loading/i)).toBeInTheDocument();
   });
 
   test("renders LoginPage when not authenticated", () => {
-    vi.mocked(useAuth).mockReturnValue({ user: null, loading: false });
+    vi.mocked(useAuth).mockReturnValue(authMock());
     render(<App />);
     expect(screen.getByText("LoginPage")).toBeInTheDocument();
   });
 
   test("renders ChatPage when authenticated", () => {
-    vi.mocked(useAuth).mockReturnValue({ user: { id: 1, username: "alice" }, loading: false });
+    vi.mocked(useAuth).mockReturnValue(authMock({ user: { id: 1, username: "alice", email: "alice@demo.com", role: "user" } }));
     render(<App />);
     expect(screen.getByText("ChatPage")).toBeInTheDocument();
   });
@@ -50,7 +65,7 @@ describe("App routing", () => {
   test("renders InvitePage with code when path is /invite/abc123", () => {
     window.history.pushState({}, "", "/invite/abc123");
 
-    vi.mocked(useAuth).mockReturnValue({ user: null, loading: false });
+    vi.mocked(useAuth).mockReturnValue(authMock());
     render(<App />);
     expect(screen.getByText("InvitePage:abc123")).toBeInTheDocument();
   });
@@ -58,7 +73,7 @@ describe("App routing", () => {
   test("renders ResetPasswordPage when path is /reset-password", () => {
     window.history.pushState({}, "", "/reset-password");
 
-    vi.mocked(useAuth).mockReturnValue({ user: null, loading: false });
+    vi.mocked(useAuth).mockReturnValue(authMock());
     render(<App />);
     expect(screen.getByText("ResetPasswordPage")).toBeInTheDocument();
   });
@@ -66,7 +81,7 @@ describe("App routing", () => {
   test("renders AdminPage when path is /admin and user is authenticated", () => {
     window.history.pushState({}, "", "/admin");
 
-    vi.mocked(useAuth).mockReturnValue({ user: { id: 1, username: "alice" }, loading: false });
+    vi.mocked(useAuth).mockReturnValue(authMock({ user: { id: 1, username: "alice", email: "alice@demo.com", role: "user" } }));
     render(<App />);
     expect(screen.getByText("AdminPage")).toBeInTheDocument();
   });

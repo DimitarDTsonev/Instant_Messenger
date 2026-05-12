@@ -15,6 +15,20 @@ vi.mock("../../pages/ForgotPasswordPage", () => ({
 
 import { useAuth } from "../../context/AuthContext";
 
+function authMock(overrides: Record<string, unknown> = {}) {
+  return {
+    user: null,
+    token: null,
+    loading: false,
+    login: vi.fn(),
+    register: vi.fn(),
+    logout: vi.fn(),
+    loginWithToken: vi.fn(),
+    authFetch: vi.fn(),
+    ...overrides,
+  } as any;
+}
+
 describe("LoginPage", () => {
   test("renders Login and Register tabs", () => {
     render(<LoginPage />);
@@ -48,15 +62,15 @@ describe("LoginPage", () => {
 
   test("pre-fills demo email and password", () => {
     render(<LoginPage />);
-    const emailInput = screen.getByLabelText(/email/i);
+    const emailInput = screen.getByLabelText(/email/i) as HTMLInputElement;
     expect(emailInput.value).toBe("alice@demo.com");
-    const passInput = screen.getByLabelText(/password/i);
+    const passInput = screen.getByLabelText(/password/i) as HTMLInputElement;
     expect(passInput.value).toBe("password123");
   });
 
   test("calls login() with entered credentials on submit", async () => {
     const mockLogin = vi.fn().mockResolvedValue({});
-    vi.mocked(useAuth).mockReturnValue({ login: mockLogin, register: vi.fn() });
+    vi.mocked(useAuth).mockReturnValue(authMock({ login: mockLogin }));
 
     render(<LoginPage />);
     const emailInput = screen.getByLabelText(/email/i);
@@ -73,7 +87,7 @@ describe("LoginPage", () => {
 
   test("calls register() with all fields in register mode", async () => {
     const mockRegister = vi.fn().mockResolvedValue({});
-    vi.mocked(useAuth).mockReturnValue({ login: vi.fn(), register: mockRegister });
+    vi.mocked(useAuth).mockReturnValue(authMock({ register: mockRegister }));
 
     render(<LoginPage />);
     fireEvent.click(screen.getByText("Register"));
@@ -93,10 +107,9 @@ describe("LoginPage", () => {
   });
 
   test("displays error message when login fails", async () => {
-    vi.mocked(useAuth).mockReturnValue({
-      login:    vi.fn().mockRejectedValue(new Error("Invalid credentials")),
-      register: vi.fn(),
-    });
+    vi.mocked(useAuth).mockReturnValue(authMock({
+      login: vi.fn().mockRejectedValue(new Error("Invalid credentials")),
+    }));
 
     render(<LoginPage />);
     fireEvent.submit(screen.getByRole("button", { name: /sign in/i }).closest("form"));
@@ -104,10 +117,9 @@ describe("LoginPage", () => {
   });
 
   test("displays error message when registration fails", async () => {
-    vi.mocked(useAuth).mockReturnValue({
-      login:    vi.fn(),
+    vi.mocked(useAuth).mockReturnValue(authMock({
       register: vi.fn().mockRejectedValue(new Error("Username taken")),
-    });
+    }));
 
     render(<LoginPage />);
     fireEvent.click(screen.getByText("Register"));
@@ -119,10 +131,9 @@ describe("LoginPage", () => {
   });
 
   test("shows loading state while request is in flight", async () => {
-    vi.mocked(useAuth).mockReturnValue({
-      login:    vi.fn(() => new Promise(() => {})),
-      register: vi.fn(),
-    });
+    vi.mocked(useAuth).mockReturnValue(authMock({
+      login: vi.fn().mockReturnValue(new Promise(() => {})),
+    }));
 
     render(<LoginPage />);
     fireEvent.submit(screen.getByRole("button", { name: /sign in/i }).closest("form"));
@@ -130,10 +141,9 @@ describe("LoginPage", () => {
   });
 
   test("submit button is disabled while loading", async () => {
-    vi.mocked(useAuth).mockReturnValue({
-      login:    vi.fn(() => new Promise(() => {})),
-      register: vi.fn(),
-    });
+    vi.mocked(useAuth).mockReturnValue(authMock({
+      login: vi.fn().mockReturnValue(new Promise(() => {})),
+    }));
 
     render(<LoginPage />);
     const btn = screen.getByRole("button", { name: /sign in/i });
@@ -142,10 +152,9 @@ describe("LoginPage", () => {
   });
 
   test("clears error message when user starts typing", async () => {
-    vi.mocked(useAuth).mockReturnValue({
-      login:    vi.fn().mockRejectedValue(new Error("Bad credentials")),
-      register: vi.fn(),
-    });
+    vi.mocked(useAuth).mockReturnValue(authMock({
+      login: vi.fn().mockRejectedValue(new Error("Bad credentials")),
+    }));
 
     render(<LoginPage />);
     fireEvent.submit(screen.getByRole("button", { name: /sign in/i }).closest("form"));

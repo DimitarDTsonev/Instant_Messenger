@@ -1,10 +1,12 @@
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
+import { vi } from "vitest";
 import ForgotPasswordPage from "../../pages/ForgotPasswordPage";
+import { createMockFetch } from "../../test-utils/mocks";
 
-function mockFetch(ok = true, body = { success: true }) {
-  global.fetch = vi.fn(() =>
-    Promise.resolve({ ok, json: () => Promise.resolve(body) })
-  );
+declare const global: typeof globalThis;
+
+function mockFetch(ok = true, body: Record<string, unknown> = { success: true }) {
+  global.fetch = createMockFetch(ok, body);
 }
 
 beforeEach(() => mockFetch());
@@ -64,7 +66,7 @@ test("shows default error message when API returns no error field", async () => 
 });
 
 test("shows loading state while submitting", async () => {
-  global.fetch = vi.fn(() => new Promise(() => {}));
+  global.fetch = vi.fn((_input: RequestInfo | URL, _init?: RequestInit) => new Promise<Response>(() => {}));
   render(<ForgotPasswordPage onBack={() => {}} />);
   fireEvent.change(screen.getByTestId("fp-email"), { target: { value: "x@y.com" } });
   fireEvent.click(screen.getByTestId("fp-submit"));

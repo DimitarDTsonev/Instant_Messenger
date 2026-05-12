@@ -2,6 +2,8 @@ import { render, screen, fireEvent, waitFor, act } from "@testing-library/react"
 import userEvent from "@testing-library/user-event";
 import MessageInput from "../../components/MessageInput";
 
+declare const global: typeof globalThis;
+
 vi.mock("../../context/AuthContext", () => ({
   useAuth: vi.fn(() => ({
     user:      { id: 1, username: "alice", role: "member", avatar: "AL" },
@@ -53,7 +55,7 @@ describe("MessageInput", () => {
 
   test("updates input value as user types", async () => {
     render(<MessageInput {...DEFAULT_PROPS} />);
-    const input = screen.getByRole("textbox");
+    const input = screen.getByRole("textbox") as HTMLInputElement;
     await userEvent.type(input, "hello world");
     expect(input.value).toBe("hello world");
   });
@@ -61,14 +63,14 @@ describe("MessageInput", () => {
   test("pressing Enter with text calls sendMessage", async () => {
     const { useSocket } = await import("../../context/SocketContext");
     const mockSend = vi.fn();
-    useSocket.mockReturnValue({
+    (vi.mocked(useSocket) as any).mockReturnValue({
       sendMessage: mockSend, sendDm: vi.fn(),
       emitTypingStart: vi.fn(), emitTypingStop: vi.fn(),
       emitDmTypingStart: vi.fn(), emitDmTypingStop: vi.fn(),
     });
 
     render(<MessageInput {...DEFAULT_PROPS} />);
-    const input = screen.getByRole("textbox");
+    const input = screen.getByRole("textbox") as HTMLInputElement;
     await userEvent.type(input, "hello{Enter}");
     expect(mockSend).toHaveBeenCalled();
   });
@@ -76,14 +78,14 @@ describe("MessageInput", () => {
   test("pressing Enter with only whitespace does not send", async () => {
     const { useSocket } = await import("../../context/SocketContext");
     const mockSend = vi.fn();
-    useSocket.mockReturnValue({
+    (vi.mocked(useSocket) as any).mockReturnValue({
       sendMessage: mockSend, sendDm: vi.fn(),
       emitTypingStart: vi.fn(), emitTypingStop: vi.fn(),
       emitDmTypingStart: vi.fn(), emitDmTypingStop: vi.fn(),
     });
 
     render(<MessageInput {...DEFAULT_PROPS} />);
-    const input = screen.getByRole("textbox");
+    const input = screen.getByRole("textbox") as HTMLInputElement;
     await userEvent.type(input, "   {Enter}");
     expect(mockSend).not.toHaveBeenCalled();
   });
@@ -91,14 +93,14 @@ describe("MessageInput", () => {
   test("pressing Enter when canWrite is false does not send", async () => {
     const { useSocket } = await import("../../context/SocketContext");
     const mockSend = vi.fn();
-    useSocket.mockReturnValue({
+    (vi.mocked(useSocket) as any).mockReturnValue({
       sendMessage: mockSend, sendDm: vi.fn(),
       emitTypingStart: vi.fn(), emitTypingStop: vi.fn(),
       emitDmTypingStart: vi.fn(), emitDmTypingStop: vi.fn(),
     });
 
     render(<MessageInput {...DEFAULT_PROPS} canWrite={false} />);
-    const input = screen.getByRole("textbox");
+    const input = screen.getByRole("textbox") as HTMLInputElement;
     // Directly fire keydown since the input is disabled
     fireEvent.keyDown(input, { key: "Enter" });
     expect(mockSend).not.toHaveBeenCalled();
@@ -111,14 +113,14 @@ describe("MessageInput", () => {
 
   test("clears input after sending", async () => {
     const { useSocket } = await import("../../context/SocketContext");
-    useSocket.mockReturnValue({
+    (vi.mocked(useSocket) as any).mockReturnValue({
       sendMessage: vi.fn((_, __, ___, ____, _____, ______, cb) => cb?.({})),
       sendDm: vi.fn(), emitTypingStart: vi.fn(), emitTypingStop: vi.fn(),
       emitDmTypingStart: vi.fn(), emitDmTypingStop: vi.fn(),
     });
 
     render(<MessageInput {...DEFAULT_PROPS} />);
-    const input = screen.getByRole("textbox");
+    const input = screen.getByRole("textbox") as HTMLInputElement;
     await userEvent.type(input, "hello{Enter}");
     expect(input.value).toBe("");
   });
@@ -147,7 +149,7 @@ describe("emoji picker", () => {
     // Click the first emoji in the Smileys category (😀)
     const emojiBtn = screen.getByText("😀");
     fireEvent.mouseDown(emojiBtn);
-    const input = screen.getByRole("textbox");
+    const input = screen.getByRole("textbox") as HTMLInputElement;
     // The emoji should have been inserted
     expect(input.value).toContain("😀");
   });
@@ -170,14 +172,14 @@ describe("@mention autocomplete", () => {
 
   test("typing @al shows alice in the mention list", async () => {
     render(<MessageInput {...DEFAULT_PROPS} users={USERS_PROP} />);
-    const input = screen.getByRole("textbox");
+    const input = screen.getByRole("textbox") as HTMLInputElement;
     await userEvent.type(input, "@al");
     expect(await screen.findByText("@alice")).toBeInTheDocument();
   });
 
   test("clicking a mention suggestion inserts it into the input", async () => {
     render(<MessageInput {...DEFAULT_PROPS} users={USERS_PROP} />);
-    const input = screen.getByRole("textbox");
+    const input = screen.getByRole("textbox") as HTMLInputElement;
     await userEvent.type(input, "@al");
     const suggestion = await screen.findByText("@alice");
     fireEvent.mouseDown(suggestion);
@@ -196,7 +198,7 @@ describe("file attachment", () => {
   test("selecting a file uploads it and shows the file preview", async () => {
     const mockToken = "test-token";
     const { useAuth } = await import("../../context/AuthContext");
-    useAuth.mockReturnValue({
+    (vi.mocked(useAuth) as any).mockReturnValue({
       user: { id: 1, username: "alice", role: "member", avatar: "AL" },
       token: mockToken,
       authFetch: vi.fn().mockResolvedValue({}),
@@ -329,7 +331,7 @@ describe("DM mode", () => {
     const { useSocket } = await import("../../context/SocketContext");
     const sendDm = vi.fn();
     const sendMessage = vi.fn();
-    useSocket.mockReturnValue({
+    (vi.mocked(useSocket) as any).mockReturnValue({
       sendMessage, sendDm,
       emitTypingStart: vi.fn(), emitTypingStop: vi.fn(),
       emitDmTypingStart: vi.fn(), emitDmTypingStop: vi.fn(),
@@ -348,7 +350,7 @@ describe("DM mode", () => {
     const sendDm = vi.fn((_, __, ___, ____, _____, ______, cb) =>
       cb?.({ message: { id: 1, content: "hello" } })
     );
-    useSocket.mockReturnValue({
+    (vi.mocked(useSocket) as any).mockReturnValue({
       sendMessage: vi.fn(), sendDm,
       emitTypingStart: vi.fn(), emitTypingStop: vi.fn(),
       emitDmTypingStart: vi.fn(), emitDmTypingStop: vi.fn(),
@@ -365,7 +367,7 @@ describe("DM mode", () => {
     const sendDm = vi.fn((_, __, ___, ____, _____, ______, cb) =>
       cb?.({ error: "network failure" })
     );
-    useSocket.mockReturnValue({
+    (vi.mocked(useSocket) as any).mockReturnValue({
       sendMessage: vi.fn(), sendDm,
       emitTypingStart: vi.fn(), emitTypingStop: vi.fn(),
       emitDmTypingStart: vi.fn(), emitDmTypingStop: vi.fn(),
@@ -375,7 +377,7 @@ describe("DM mode", () => {
     await userEvent.type(screen.getByRole("textbox"), "hello{Enter}");
 
     await waitFor(() =>
-      expect(screen.getByRole("textbox").value).toBe("hello")
+      expect((screen.getByRole("textbox") as HTMLInputElement).value).toBe("hello")
     );
   });
 
@@ -383,7 +385,7 @@ describe("DM mode", () => {
     const { useSocket } = await import("../../context/SocketContext");
     const emitDmTypingStart = vi.fn();
     const emitTypingStart   = vi.fn();
-    useSocket.mockReturnValue({
+    (vi.mocked(useSocket) as any).mockReturnValue({
       sendMessage: vi.fn(), sendDm: vi.fn(),
       emitTypingStart, emitTypingStop: vi.fn(),
       emitDmTypingStart, emitDmTypingStop: vi.fn(),
@@ -404,7 +406,7 @@ describe("stopTyping debounce", () => {
   test("emits emitDmTypingStop after 1.5 s inactivity when isDm=true and dmUser is set (line 205)", async () => {
     const { useSocket } = await import("../../context/SocketContext");
     const emitDmTypingStop = vi.fn();
-    useSocket.mockReturnValue({
+    (vi.mocked(useSocket) as any).mockReturnValue({
       sendMessage: vi.fn(), sendDm: vi.fn(),
       emitTypingStart: vi.fn(), emitTypingStop: vi.fn(),
       emitDmTypingStart: vi.fn(), emitDmTypingStop,
@@ -421,7 +423,7 @@ describe("stopTyping debounce", () => {
   test("emits emitTypingStop after 1.5 s inactivity when channelId is set (line 206)", async () => {
     const { useSocket } = await import("../../context/SocketContext");
     const emitTypingStop = vi.fn();
-    useSocket.mockReturnValue({
+    (vi.mocked(useSocket) as any).mockReturnValue({
       sendMessage: vi.fn(), sendDm: vi.fn(),
       emitTypingStart: vi.fn(), emitTypingStop,
       emitDmTypingStart: vi.fn(), emitDmTypingStop: vi.fn(),

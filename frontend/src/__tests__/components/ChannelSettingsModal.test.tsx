@@ -1,8 +1,10 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { vi } from "vitest";
 import { useAuth } from "../../context/AuthContext";
 import { useSocket } from "../../context/SocketContext";
 import { useChannelInvites, useChannelMembers, useChannelPermissions } from "../../hooks/useApi";
 import ChannelSettingsModal from "../../components/ChannelSettingsModal";
+import { createMockAuthUser, createMockSocketContext } from "../../test-utils/mocks";
 
 vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
 vi.mock("../../context/SocketContext", () => ({ useSocket: vi.fn() }));
@@ -17,6 +19,7 @@ vi.mock("../../hooks/useApi", () => ({
     addMember: vi.fn(),
     removeMember: vi.fn(),
     changeRole: vi.fn(),
+    load: vi.fn(),
   })),
   useChannelPermissions: vi.fn(() => ({
     permissions: {
@@ -42,16 +45,16 @@ vi.mock("../../hooks/useApi", () => ({
 
 const MOCK_AUTH_FETCH = vi.fn().mockResolvedValue({ channel: { id: 10, name: "general", description: "Updated desc", is_private: 0 } });
 
-const DEFAULT_AUTH = {
-  user: { id: 1, username: "alice", role: "admin", avatar: "AL" },
+const DEFAULT_AUTH: any = {
+  user: createMockAuthUser({ id: 1, username: "alice" }),
   token: "tok",
   authFetch: MOCK_AUTH_FETCH,
 };
 
-const DEFAULT_SOCKET = {
+const DEFAULT_SOCKET = createMockSocketContext({
   isConnected: true,
   onlineUserIds: [1],
-};
+});
 
 const OWNER_CHANNEL = {
   id: 10,
@@ -96,9 +99,9 @@ function renderModal(channelOverrides = {}, propOverrides = {}) {
 }
 
 beforeEach(() => {
-  useAuth.mockReturnValue(DEFAULT_AUTH);
-  useSocket.mockReturnValue(DEFAULT_SOCKET);
-  useChannelMembers.mockReturnValue({
+  vi.mocked(useAuth).mockReturnValue(DEFAULT_AUTH);
+  vi.mocked(useSocket).mockReturnValue(DEFAULT_SOCKET);
+  vi.mocked(useChannelMembers).mockReturnValue({
     members: [
       { id: 1, username: "alice", avatar: "AL", global_role: "admin", channel_role: "owner" },
       { id: 2, username: "bob",   avatar: "BO", global_role: "user",  channel_role: "member" },
@@ -106,15 +109,16 @@ beforeEach(() => {
     addMember: vi.fn(),
     removeMember: vi.fn(),
     changeRole: vi.fn(),
+    load: vi.fn(),
   });
-  useChannelPermissions.mockReturnValue({
+  vi.mocked(useChannelPermissions).mockReturnValue({
     permissions: {
       manager: { can_write: 1, can_invite: 1, can_manage_members: 0, can_delete_messages: 0 },
       member:  { can_write: 1, can_invite: 0, can_manage_members: 0, can_delete_messages: 0 },
     },
     updateRole: vi.fn(),
   });
-  useChannelInvites.mockReturnValue({
+  vi.mocked(useChannelInvites).mockReturnValue({
     invites: [
       {
         code: "ABC123",
@@ -272,7 +276,7 @@ describe("Members tab", () => {
   });
 
   test("shows viewer role badge styling branch", () => {
-    useChannelMembers.mockReturnValue({
+    vi.mocked(useChannelMembers).mockReturnValue({
       members: [
         { id: 1, username: "alice", avatar: "AL", global_role: "admin", channel_role: "owner" },
         { id: 3, username: "viewer", avatar: "VI", global_role: "user", channel_role: "viewer" },
@@ -280,6 +284,7 @@ describe("Members tab", () => {
       addMember: vi.fn(),
       removeMember: vi.fn(),
       changeRole: vi.fn(),
+    load: vi.fn(),
     });
 
     renderModal();
@@ -425,8 +430,8 @@ describe("Members tab interactions", () => {
   });
 
   test("submitting add-member form calls addMember", async () => {
-    const addMember = vi.fn().mockResolvedValue();
-    useChannelMembers.mockReturnValue({
+    const addMember = vi.fn().mockResolvedValue(undefined);
+    vi.mocked(useChannelMembers).mockReturnValue({
       members: [
         { id: 1, username: "alice", avatar: "AL", global_role: "admin", channel_role: "owner" },
         { id: 2, username: "bob",   avatar: "BO", global_role: "user",  channel_role: "member" },
@@ -434,6 +439,7 @@ describe("Members tab interactions", () => {
       addMember,
       removeMember: vi.fn(),
       changeRole: vi.fn(),
+    load: vi.fn(),
     });
 
     renderModal();
@@ -447,7 +453,7 @@ describe("Members tab interactions", () => {
 
   test("submitting blank add-member form does not call addMember", () => {
     const addMember = vi.fn();
-    useChannelMembers.mockReturnValue({
+    vi.mocked(useChannelMembers).mockReturnValue({
       members: [
         { id: 1, username: "alice", avatar: "AL", global_role: "admin", channel_role: "owner" },
         { id: 2, username: "bob", avatar: "BO", global_role: "user", channel_role: "member" },
@@ -455,6 +461,7 @@ describe("Members tab interactions", () => {
       addMember,
       removeMember: vi.fn(),
       changeRole: vi.fn(),
+    load: vi.fn(),
     });
 
     renderModal();
@@ -466,8 +473,8 @@ describe("Members tab interactions", () => {
 
   test("clicking Kick button calls removeMember after confirm", async () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
-    const removeMember = vi.fn().mockResolvedValue();
-    useChannelMembers.mockReturnValue({
+    const removeMember = vi.fn().mockResolvedValue(undefined);
+    vi.mocked(useChannelMembers).mockReturnValue({
       members: [
         { id: 1, username: "alice", avatar: "AL", global_role: "admin", channel_role: "owner" },
         { id: 2, username: "bob",   avatar: "BO", global_role: "user",  channel_role: "member" },
@@ -475,6 +482,7 @@ describe("Members tab interactions", () => {
       addMember: vi.fn(),
       removeMember,
       changeRole: vi.fn(),
+    load: vi.fn(),
     });
 
     renderModal();
@@ -488,7 +496,7 @@ describe("Members tab interactions", () => {
   test("clicking Kick button does nothing when confirm is canceled", () => {
     vi.spyOn(window, "confirm").mockReturnValue(false);
     const removeMember = vi.fn();
-    useChannelMembers.mockReturnValue({
+    vi.mocked(useChannelMembers).mockReturnValue({
       members: [
         { id: 1, username: "alice", avatar: "AL", global_role: "admin", channel_role: "owner" },
         { id: 2, username: "bob", avatar: "BO", global_role: "user", channel_role: "member" },
@@ -496,6 +504,7 @@ describe("Members tab interactions", () => {
       addMember: vi.fn(),
       removeMember,
       changeRole: vi.fn(),
+    load: vi.fn(),
     });
 
     renderModal();
@@ -507,8 +516,8 @@ describe("Members tab interactions", () => {
   });
 
   test("changing role dropdown calls changeRole", async () => {
-    const changeRole = vi.fn().mockResolvedValue();
-    useChannelMembers.mockReturnValue({
+    const changeRole = vi.fn().mockResolvedValue(undefined);
+    vi.mocked(useChannelMembers).mockReturnValue({
       members: [
         { id: 1, username: "alice", avatar: "AL", global_role: "admin", channel_role: "owner" },
         { id: 2, username: "bob",   avatar: "BO", global_role: "user",  channel_role: "member" },
@@ -516,6 +525,7 @@ describe("Members tab interactions", () => {
       addMember: vi.fn(),
       removeMember: vi.fn(),
       changeRole,
+      load: vi.fn(),
     });
 
     renderModal();
@@ -529,7 +539,7 @@ describe("Members tab interactions", () => {
 //  15. Permissions tab interactions
 describe("Permissions tab interactions", () => {
   test("shows loading state when permissions are not loaded", () => {
-    useChannelPermissions.mockReturnValue({
+    vi.mocked(useChannelPermissions).mockReturnValue({
       permissions: null,
       updateRole: vi.fn(),
     });
@@ -541,8 +551,8 @@ describe("Permissions tab interactions", () => {
   });
 
   test("clicking a permission toggle calls updateRole", async () => {
-    const updateRole = vi.fn().mockResolvedValue();
-    useChannelPermissions.mockReturnValue({
+    const updateRole = vi.fn().mockResolvedValue(undefined);
+    vi.mocked(useChannelPermissions).mockReturnValue({
       permissions: {
         manager: { can_write: 1, can_invite: 1, can_manage_members: 0, can_delete_messages: 0 },
         member:  { can_write: 1, can_invite: 0, can_manage_members: 0, can_delete_messages: 0 },
@@ -566,7 +576,7 @@ describe("Permissions tab interactions", () => {
   test("permission toggle failure displays an alert", async () => {
     const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {});
     const updateRole = vi.fn().mockRejectedValue(new Error("Permission denied"));
-    useChannelPermissions.mockReturnValue({
+    vi.mocked(useChannelPermissions).mockReturnValue({
       permissions: {
         manager: { can_write: 1, can_invite: 1, can_manage_members: 0, can_delete_messages: 0 },
         member:  { can_write: 1, can_invite: 0, can_manage_members: 0, can_delete_messages: 0 },
@@ -588,7 +598,7 @@ describe("Permissions tab interactions", () => {
 //  16. Invites tab interactions
 describe("Invites tab interactions", () => {
   test("shows empty invite state when there are no invites", () => {
-    useChannelInvites.mockReturnValue({
+    vi.mocked(useChannelInvites).mockReturnValue({
       invites: [],
       createInvite: vi.fn(),
       deleteInvite: vi.fn(),
@@ -601,7 +611,7 @@ describe("Invites tab interactions", () => {
   });
 
   test("shows invite expiry and omits max uses when invite has no limit", () => {
-    useChannelInvites.mockReturnValue({
+    vi.mocked(useChannelInvites).mockReturnValue({
       invites: [{
         code: "EXP123",
         created_by_username: "alice",
@@ -637,8 +647,8 @@ describe("Invites tab interactions", () => {
   });
 
   test("clicking Generate invite calls createInvite", async () => {
-    const createInvite = vi.fn().mockResolvedValue();
-    useChannelInvites.mockReturnValue({
+    const createInvite = vi.fn().mockResolvedValue(undefined);
+    vi.mocked(useChannelInvites).mockReturnValue({
       invites: [{ code: "ABC123", created_by_username: "alice", uses_count: 2, max_uses: 10, expires_at: null }],
       createInvite,
       deleteInvite: vi.fn(),
@@ -652,8 +662,8 @@ describe("Invites tab interactions", () => {
   });
 
   test("Generate invite passes max uses and expiry values", async () => {
-    const createInvite = vi.fn().mockResolvedValue();
-    useChannelInvites.mockReturnValue({
+    const createInvite = vi.fn().mockResolvedValue(undefined);
+    vi.mocked(useChannelInvites).mockReturnValue({
       invites: [],
       createInvite,
       deleteInvite: vi.fn(),
@@ -673,7 +683,7 @@ describe("Invites tab interactions", () => {
   });
 
   test("clicking Copy invite writes to clipboard", async () => {
-    const writeText = vi.fn().mockResolvedValue();
+    const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, "clipboard", { value: { writeText }, writable: true });
 
     renderModal();
@@ -684,8 +694,8 @@ describe("Invites tab interactions", () => {
   });
 
   test("clicking Delete invite calls deleteInvite", async () => {
-    const deleteInvite = vi.fn().mockResolvedValue();
-    useChannelInvites.mockReturnValue({
+    const deleteInvite = vi.fn().mockResolvedValue(undefined);
+    vi.mocked(useChannelInvites).mockReturnValue({
       invites: [{ code: "ABC123", created_by_username: "alice", uses_count: 2, max_uses: 10, expires_at: null }],
       createInvite: vi.fn(),
       deleteInvite,

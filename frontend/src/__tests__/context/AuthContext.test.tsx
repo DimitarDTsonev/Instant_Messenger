@@ -1,6 +1,8 @@
 import { AuthProvider, useAuth } from "../../context/AuthContext";
 import { render, screen, act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
+
+declare const global: typeof globalThis;
  
 // Wrapper helper - renders children inside a real AuthProvider
 const wrapper = ({ children }: { children?: ReactNode }) => (
@@ -18,8 +20,8 @@ function ContextDisplay() {
       <button onClick={() => login("a@b.com", "pass").catch(() => {})} data-testid="login-btn">Login</button>
       <button onClick={() => register("alice", "a@b.com", "pass").catch(() => {})} data-testid="register-btn">Register</button>
       <button onClick={logout} data-testid="logout-btn">Logout</button>
-      <button onClick={() => loginWithToken({ id: 9, username: "guest" }, "gtoken", true)} data-testid="guest-btn">Guest</button>
-      <button onClick={() => loginWithToken({ id: 10, username: "inv" }, "itoken", false)} data-testid="invite-btn">Invite</button>
+      <button onClick={() => loginWithToken({ id: 9, username: "guest", email: "guest@guest.local", role: "user" }, "gtoken", true)} data-testid="guest-btn">Guest</button>
+      <button onClick={() => loginWithToken({ id: 10, username: "inv", email: "inv@inv.local", role: "user" }, "itoken", false)} data-testid="invite-btn">Invite</button>
       <button
         onClick={async () => {
           try { await authFetch("http://localhost:4000/api/auth/me"); }
@@ -317,7 +319,7 @@ describe("AuthContext - loginWithToken()", () => {
  
     act(() => {
       result.current.loginWithToken(
-        { id: 5, username: "guest" },
+        { id: 5, username: "guest", email: "guest@guest.local", role: "user" },
         "guest-tok",
         true   // isGuest = true  <- the uncovered branch
       );
@@ -334,7 +336,7 @@ describe("AuthContext - loginWithToken()", () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
  
     act(() => {
-      result.current.loginWithToken({ id: 3, username: "alice" }, "alice-tok");
+      result.current.loginWithToken({ id: 3, username: "alice", email: "alice@alice.local", role: "user" }, "alice-tok");
     });
  
     expect(localStorage.getItem("im_token")).toBe("alice-tok");
