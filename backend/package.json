@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
-    "dev": "tsx watch server.ts",
+    "dev": "tsx watch --env-file=.env server.ts",
     "seed": "tsx src/db/seed.ts",
     "test": "jest",
     "test:watch": "jest --watch",
