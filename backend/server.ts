@@ -87,7 +87,7 @@ app.use(helmet());
 // Trust the first proxy (needed for correct req.ip on Render)
 app.set("trust proxy", 1);
 
-// Enable CORS for browser REST requests from the Vite dev server
+// Enable CORS for browser REST requests.
 app.use(cors({
   origin: ALLOWED_ORIGINS,
   credentials: true,
@@ -96,7 +96,7 @@ app.use(cors({
 // Block banned IPs on every request
 app.use(checkIpBanned);
 
-// Global rate limit — 200 requests per minute per IP
+// Global rate limit: 200 requests per minute per IP.
 app.use(rateLimit({
   windowMs: 60 * 1000,
   max: 200,
@@ -106,13 +106,13 @@ app.use(rateLimit({
     logSecurityEvent(getDb(), {
       event: "rate_limited",
       ip: req.ip,
-      detail: `${req.method} ${req.path} — global limit`,
+      detail: `${req.method} ${req.path} - global limit`,
     });
     res.status(429).json({ error: "Too many requests. Please slow down." });
   },
 }));
 
-// Strict rate limit on auth endpoints — 15 requests per 15 minutes per IP
+// Strict rate limit for endpoints that can be brute-forced.
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 15,
@@ -122,13 +122,13 @@ const authLimiter = rateLimit({
     logSecurityEvent(getDb(), {
       event: "rate_limited",
       ip: req.ip,
-      detail: `${req.method} ${req.path} — auth limit`,
+      detail: `${req.method} ${req.path} - auth limit`,
     });
     res.status(429).json({ error: "Too many attempts. Try again in 15 minutes." });
   },
 });
 
-// Parse incoming JSON request bodies (max 50 KB to prevent payload attacks)
+// Parse incoming JSON request bodies.
 app.use(express.json({ limit: "50kb" }));
 
 // Serve uploaded files statically.
@@ -136,10 +136,15 @@ app.use(express.json({ limit: "50kb" }));
 // so we resolve it one level above __dirname.
 app.use("/uploads", express.static(path.join(process.cwd(), "../uploads")));
 
-// -----------------------------------------------------------
-// REST route mounting
-// -----------------------------------------------------------
-app.use("/api/auth",     authLimiter, authRoutes); // auth routes get the strict limiter
+app.use([
+  "/api/auth/login",
+  "/api/auth/register",
+  "/api/auth/guest",
+  "/api/auth/forgot-password",
+  "/api/auth/reset-password",
+], authLimiter);
+
+app.use("/api/auth",     authRoutes);
 app.use("/api/channels", channelRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/dm",       dmRoutes);

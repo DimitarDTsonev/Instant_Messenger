@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { useSocket } from "../context/SocketContext";
 import MarkdownRenderer from "./MarkdownRenderer";
 import FilePreviewModal from "./FilePreviewModal";
+import Icon from "./Icons";
 import TouchMenu from "./TouchMenu";
 import { fileIcon, formatBytes } from "../utils/fileUtils";
 import { formatTime } from "../utils/messageFormatting";
@@ -91,8 +92,8 @@ export default function MessageRow({ msg, isGroupFirst, avatar, username, role, 
     if (!confirm("Delete this message?")) return;
     doDelete(msg.id, ({ error }: SocketAck = {}) => { if (error) console.error("Delete error:", error); });
   }
-  function handleReact(emoji: string) {
-    doReact(msg.id, emoji, ({ error }: SocketAck = {}) => { if (error) console.error("React error:", error); });
+  function handleReact(reaction: string) {
+    doReact(msg.id, reaction, ({ error }: SocketAck = {}) => { if (error) console.error("React error:", error); });
     setShowEmoji(false);
   }
   function onEditKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
@@ -116,7 +117,7 @@ export default function MessageRow({ msg, isGroupFirst, avatar, username, role, 
       >
         <div style={s.avatarCol}>
           {isGroupFirst ? (
-            <span style={s.avatarEmoji} title={username}>{avatar || "👤"}</span>
+            <span style={s.avatarEmoji} title={username}>{avatar || (username?.slice(0, 2).toUpperCase() || "U")}</span>
           ) : (
             <span style={{ ...s.timestamp, fontSize: "10px", opacity: hovered ? 0.6 : 0, paddingTop: "4px" }}>
               {formatTime(msg.created_at)}
@@ -128,16 +129,20 @@ export default function MessageRow({ msg, isGroupFirst, avatar, username, role, 
           {isGroupFirst && (
             <div style={s.msgHeader}>
               <span style={s.username(isOwn)}>{username}</span>
-              {isAdmin  && <span style={s.adminBadge}  title="Admin">👑</span>}
+              {isAdmin && (
+                <span style={s.adminBadge} title="Admin" aria-label="Admin">
+                  <Icon name="shield" size={13} />
+                </span>
+              )}
               <span style={s.timestamp}>{formatTime(msg.created_at)}</span>
               {!!msg.is_edited && <span style={s.editedTag}>(edited)</span>}
-              {isPinned && <span style={s.pinnedBadge}>📌 pinned</span>}
+              {isPinned && <span style={s.pinnedBadge}>Pinned</span>}
             </div>
           )}
 
           {msg.reply_to_id && (
             <div style={s.replyQuote}>
-              <span>↩</span>
+              <Icon name="reply" size={14} />
               <span style={s.replyAuthor}>{msg.reply_username || "?"}</span>
               <span style={s.replyText}>
                 {msg.reply_file_url ? "[file]" : (msg.reply_content || "").slice(0, 100)}
@@ -184,12 +189,12 @@ export default function MessageRow({ msg, isGroupFirst, avatar, username, role, 
 
           {hasReactions && !editing && (
             <div style={s.reactionsRow}>
-              {Object.entries(reactions).map(([emoji, userIds]) => {
+              {Object.entries(reactions).map(([reaction, userIds]) => {
                 const isMine = userIds.includes(user?.id);
                 return (
-                  <button key={emoji} style={s.reactionPill(isMine)} onClick={() => handleReact(emoji)}
+                  <button key={reaction} style={s.reactionPill(isMine)} onClick={() => handleReact(reaction)}
                     title={`${userIds.length} reaction${userIds.length === 1 ? "" : "s"}`}>
-                    {emoji} <span style={{ fontSize: "11px" }}>{userIds.length}</span>
+                    {reaction} <span style={{ fontSize: "11px" }}>{userIds.length}</span>
                   </button>
                 );
               })}
@@ -199,21 +204,21 @@ export default function MessageRow({ msg, isGroupFirst, avatar, username, role, 
 
         {hovered && !editing && (
           <div style={s.actionBar}>
-            <button style={s.actionBtn} title="React" onClick={(e) => { e.stopPropagation(); setShowEmoji((v) => !v); }}>😊</button>
-            <button style={s.actionBtn} title="Reply" onClick={() => onReply?.(msg)}>↩</button>
+            <button style={s.actionBtn} aria-label="React" title="React" onClick={(e) => { e.stopPropagation(); setShowEmoji((v) => !v); }}><Icon name="smile" size={16} /></button>
+            <button style={s.actionBtn} aria-label="Reply" title="Reply" onClick={() => onReply?.(msg)}><Icon name="reply" size={16} /></button>
             {canPin && !isDm && (
-              <button style={s.actionBtn} title={isPinned ? "Unpin" : "Pin"} onClick={() => onPin?.(msg.id, isPinned)}>📌</button>
+              <button style={s.actionBtn} aria-label={isPinned ? "Unpin" : "Pin"} title={isPinned ? "Unpin" : "Pin"} onClick={() => onPin?.(msg.id, isPinned)}><Icon name={isPinned ? "pinOff" : "pin"} size={16} /></button>
             )}
-            {isOwn && <button style={s.actionBtn} title="Edit" onClick={() => { setEditing(true); setShowEmoji(false); }}>✏️</button>}
-            {isOwn && <button style={{ ...s.actionBtn, color: "#f23f42" }} title="Delete" onClick={handleDelete}>🗑️</button>}
+            {isOwn && <button style={s.actionBtn} aria-label="Edit" title="Edit" onClick={() => { setEditing(true); setShowEmoji(false); }}><Icon name="edit" size={16} /></button>}
+            {isOwn && <button style={{ ...s.actionBtn, color: "#f23f42" }} aria-label="Delete" title="Delete" onClick={handleDelete}><Icon name="trash" size={16} /></button>}
           </div>
         )}
 
         {showEmoji && (
           <div style={s.emojiPicker} onClick={(e) => e.stopPropagation()}>
-            {EMOJI_SET.map((emoji) => (
-              <button key={emoji} style={s.emojiBtn((reactions[emoji] || []).includes(user?.id))} onClick={() => handleReact(emoji)}>
-                {emoji}
+            {EMOJI_SET.map((reaction) => (
+              <button key={reaction} style={s.emojiBtn((reactions[reaction] || []).includes(user?.id))} onClick={() => handleReact(reaction)}>
+                {reaction}
               </button>
             ))}
           </div>

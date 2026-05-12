@@ -1,9 +1,3 @@
-/**
- * @fileoverview Creates an Express app wired up with all production routes.
- * Used in integration tests via supertest — no HTTP server is started.
- * The db/database module must be mocked before calling this.
- */
-
 import express from "express";
 
 import authRoutes from "../routes/auth";
@@ -13,12 +7,6 @@ import dmRoutes from "../routes/dm";
 import inviteRoutes from "../routes/invites";
 import adminRoutes from "../routes/admin";
 
-/**
- * Returns a configured Express application with all REST routes mounted.
- * No server is started; pass the result directly to supertest().
- *
- * @returns {import('express').Express}
- */
 export function createTestApp() {
   const app = express();
   app.use(express.json());

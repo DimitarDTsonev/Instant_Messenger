@@ -1,13 +1,6 @@
-/**
- * @fileoverview Test database utilities
- * Creates an isolated in-memory SQLite database with the full app schema.
- * Import these helpers in every backend test file instead of touching the real DB.
- */
-
 import Database from "better-sqlite3";
 import type { Db } from "../types";
 
-/** Full application schema — mirrors initDatabase() but runs against :memory: */
 const SCHEMA = `
   CREATE TABLE IF NOT EXISTS users (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -129,12 +122,6 @@ const SCHEMA = `
   );
 `;
 
-/**
- * Creates and returns a fresh in-memory SQLite database with the full schema.
- * Each test file should create one instance shared across all tests in that file.
- *
- * @returns {import('better-sqlite3').Database}
- */
 export function createTestDb(): Db {
   const db = new Database(":memory:");
   db.pragma("journal_mode = WAL");
@@ -143,12 +130,6 @@ export function createTestDb(): Db {
   return db;
 }
 
-/**
- * Deletes all rows from every table while keeping the schema intact.
- * Call this in beforeEach to isolate each test.
- *
- * @param {import('better-sqlite3').Database} db
- */
 export function clearDb(db: Db) {
   db.exec(`
     DELETE FROM dm_reactions;

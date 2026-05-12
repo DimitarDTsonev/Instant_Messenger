@@ -1,8 +1,3 @@
-/**
- * @fileoverview Tests for all hooks in useApi.ts
- * Uses renderHook + a mocked useAuth (authFetch) to verify state transitions.
- */
-
 import { renderHook, act, waitFor } from "@testing-library/react";
 import {
   useChannels,
@@ -19,8 +14,6 @@ import {
   useSearch,
 } from "../../hooks/useApi";
 
-// ── Mock useAuth ──────────────────────────────────────────────────────────────
-
 vi.mock("../../context/AuthContext", () => ({
   useAuth: vi.fn(),
 }));
@@ -30,8 +23,6 @@ import { useAuth } from "../../context/AuthContext";
 function setupAuthFetch(impl) {
   useAuth.mockReturnValue({ authFetch: impl });
 }
-
-// ── useChannels ───────────────────────────────────────────────────────────────
 
 describe("useChannels", () => {
   test("fetches channels on mount", async () => {
@@ -113,8 +104,6 @@ describe("useChannels", () => {
     expect(result.current.channels).toHaveLength(1);
   });
 });
-
-// ── useMessages ───────────────────────────────────────────────────────────────
 
 describe("useMessages", () => {
   test("fetches messages when channelId is provided", async () => {
@@ -205,8 +194,6 @@ describe("useMessages", () => {
   });
 });
 
-// ── useUsers ──────────────────────────────────────────────────────────────────
-
 describe("useUsers", () => {
   test("fetches users on mount", async () => {
     const users = [{ id: 1, username: "alice" }];
@@ -222,8 +209,6 @@ describe("useUsers", () => {
     expect(result.current.users).toEqual([]);
   });
 });
-
-// ── useDm ─────────────────────────────────────────────────────────────────────
 
 describe("useDm", () => {
   test("fetches DMs on mount when partnerId is provided", async () => {
@@ -305,8 +290,6 @@ describe("useDm", () => {
   });
 });
 
-// ── useConversations ──────────────────────────────────────────────────────────
-
 describe("useConversations", () => {
   test("fetches conversations on mount", async () => {
     const convs = [{ partner_id: 2, last_content: "hi", unread_count: 1 }];
@@ -347,7 +330,7 @@ describe("useConversations", () => {
     act(() => {
       result.current.upsertConversation(
         { content: "new", created_at: new Date().toISOString() },
-        2, "bob", "👤"
+        2, "bob", "AL"
       );
     });
     expect(result.current.conversations[0].last_content).toBe("new");
@@ -363,7 +346,7 @@ describe("useConversations", () => {
     act(() => {
       result.current.upsertConversation(
         { content: "new", created_at: new Date().toISOString() },
-        2, "bob", "👤", false
+        2, "bob", "AL", false
       );
     });
     expect(result.current.conversations[0].unread_count).toBe(3);
@@ -404,8 +387,6 @@ describe("useConversations", () => {
     expect(result.current.conversations).toEqual([]);
   });
 });
-
-// ── usePinnedMessages ─────────────────────────────────────────────────────────
 
 describe("usePinnedMessages", () => {
   test("fetches pinned messages when channelId is set", async () => {
@@ -452,8 +433,6 @@ describe("usePinnedMessages", () => {
     expect(result.current.pinnedMessages[0].id).toBe(8);
   });
 });
-
-// ── useUserSearch ─────────────────────────────────────────────────────────────
 
 describe("useUserSearch", () => {
   test("search returns users from API", async () => {
@@ -506,8 +485,6 @@ describe("useUserSearch", () => {
   });
 });
 
-// ── useGlobalSearch ───────────────────────────────────────────────────────────
-
 describe("useGlobalSearch", () => {
   test("search with 2+ chars returns results and sets query", async () => {
     const results = [{ id: 1, content: "hello" }];
@@ -537,8 +514,6 @@ describe("useGlobalSearch", () => {
     expect(result.current.query).toBe("");
   });
 });
-
-// ── useChannelMembers ─────────────────────────────────────────────────────────
 
 describe("useChannelMembers", () => {
   test("fetches members on mount", async () => {
@@ -590,8 +565,6 @@ describe("useChannelMembers", () => {
   });
 });
 
-// ── useChannelPermissions ─────────────────────────────────────────────────────
-
 describe("useChannelPermissions", () => {
   test("fetches permissions on mount", async () => {
     const perms = { manager: { can_write: 1 }, member: { can_write: 1 } };
@@ -623,8 +596,6 @@ describe("useChannelPermissions", () => {
     await waitFor(() => expect(result.current.permissions).toBeNull());
   });
 });
-
-// ── useChannelInvites ─────────────────────────────────────────────────────────
 
 describe("useChannelInvites", () => {
   test("fetches invites on mount", async () => {
@@ -671,8 +642,6 @@ describe("useChannelInvites", () => {
   });
 });
 
-// ── useSearch ─────────────────────────────────────────────────────────────────
-
 describe("useSearch", () => {
   test("search with 2+ chars returns results", async () => {
     const results = [{ id: 1, content: "match" }];
@@ -708,10 +677,7 @@ describe("useSearch", () => {
     expect(result.current.loading).toBe(false);
   });
 });
-
-// ---------------------------------------------------------------------------
-// useGlobalSearch — error path (line 507)
-// ---------------------------------------------------------------------------
+// useGlobalSearch - error path (line 507)
 describe("useGlobalSearch", () => {
   beforeEach(() => {
     vi.spyOn(console, "error").mockImplementation(() => {});
@@ -782,10 +748,7 @@ describe("useGlobalSearch", () => {
     expect(result.current.query).toBe("");
   });
 });
-
-// ---------------------------------------------------------------------------
-// useChannelMembers — error path (line 548)
-// ---------------------------------------------------------------------------
+// useChannelMembers - error path (line 548)
 describe("useChannelMembers", () => {
   beforeEach(() => {
     vi.spyOn(console, "error").mockImplementation(() => {});
@@ -803,7 +766,7 @@ describe("useChannelMembers", () => {
 
     const { result } = renderHook(() => useChannelMembers(42));
 
-    // wait for the useEffect → load() to run
+    // wait for the useEffect -> load() to run
     await waitFor(() => {
       expect(console.error).toHaveBeenCalledWith(
         "Members error:",
@@ -827,10 +790,7 @@ describe("useChannelMembers", () => {
 
     expect(mockFetch).not.toHaveBeenCalled();
   });
-
-  // ─────────────────────────────────────────────────────────────────
   // Missing branch coverage tests
-  // ─────────────────────────────────────────────────────────────────
 
   test("useGlobalSearch defaults results to empty array when API returns falsy (line 505)", async () => {
     setupAuthFetch(vi.fn().mockResolvedValue({ results: null }));
@@ -875,9 +835,7 @@ describe("useChannelMembers", () => {
   });
 });
 
-// ── upsertConversation with incrementUnread=false ─────────────────────────────
-
-describe("useConversations — upsertConversation incrementUnread=false branch", () => {
+describe("useConversations - upsertConversation incrementUnread=false branch", () => {
   test("does not increment unread_count when updating existing conversation", async () => {
     setupAuthFetch(vi.fn().mockResolvedValue({
       conversations: [{ partner_id: 2, last_content: "old", unread_count: 3 }],
@@ -887,7 +845,7 @@ describe("useConversations — upsertConversation incrementUnread=false branch",
     act(() => {
       result.current.upsertConversation(
         { content: "new", created_at: new Date().toISOString() },
-        2, "bob", "👤", false
+        2, "bob", "AL", false
       );
     });
     expect(result.current.conversations[0].last_content).toBe("new");
@@ -908,9 +866,7 @@ describe("useConversations — upsertConversation incrementUnread=false branch",
   });
 });
 
-// ── usePinnedMessages — missing messages field ────────────────────────────────
-
-describe("usePinnedMessages — missing messages field fallback", () => {
+describe("usePinnedMessages - missing messages field fallback", () => {
   test("defaults to [] when API response omits the messages field", async () => {
     setupAuthFetch(vi.fn().mockResolvedValue({}));
     const { result } = renderHook(() => usePinnedMessages(1));
@@ -918,9 +874,7 @@ describe("usePinnedMessages — missing messages field fallback", () => {
   });
 });
 
-// ── useUserSearch — missing users field ──────────────────────────────────────
-
-describe("useUserSearch — missing users field fallback", () => {
+describe("useUserSearch - missing users field fallback", () => {
   test("defaults to [] when API response omits the users field", async () => {
     setupAuthFetch(vi.fn().mockResolvedValue({}));
     const { result } = renderHook(() => useUserSearch());

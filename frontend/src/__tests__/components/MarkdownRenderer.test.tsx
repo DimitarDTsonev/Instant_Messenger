@@ -1,8 +1,3 @@
-/**
- * @fileoverview Tests for MarkdownRenderer component
- * Covers: bold, italic, strikethrough, inline code, code blocks, links, mentions, newlines
- */
-
 import { render, screen } from "@testing-library/react";
 import MarkdownRenderer from "../../components/MarkdownRenderer";
 

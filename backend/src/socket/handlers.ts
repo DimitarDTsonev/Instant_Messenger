@@ -1,13 +1,3 @@
-// ============================================================
-//  src/socket/handlers.ts — Socket.io entry point
-//
-//  Authenticates every incoming connection via JWT, registers the
-//  user in the online-users map, then delegates event handling to:
-//    registerMessageHandlers  — channel message events
-//    registerDmHandlers       — direct message events
-//    registerPresenceHandlers — channel rooms, typing, status, disconnect
-// ============================================================
-
 import type { Server, Socket } from "socket.io";
 import type { AuthUser } from "../types";
 import jwt from "jsonwebtoken";
@@ -23,7 +13,7 @@ const JWT_SECRET = process.env.JWT_SECRET || "super-secret-dev-key-change-in-pro
 type AuthedSocket = Socket & { user: AuthUser };
 
 export function registerSocketHandlers(io: Server) {
-  // JWT authentication middleware — runs before any connection is accepted
+  // JWT authentication middleware - runs before any connection is accepted
   io.use((socket: Socket & { user?: AuthUser }, next) => {
     const token = socket.handshake.auth.token;
     if (!token) return next(new Error("Token required"));

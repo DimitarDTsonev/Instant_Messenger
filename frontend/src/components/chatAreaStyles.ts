@@ -26,7 +26,7 @@ export const s: Record<string, any> = {
   msgContent:  { flex: 1, minWidth: 0 },
   msgHeader:   { display: "flex", alignItems: "baseline", gap: "8px", marginBottom: "2px", flexWrap: "wrap" },
   username:    (isOwn: boolean) => ({ fontWeight: 600, fontSize: "14px", color: isOwn ? "#7289da" : "#f2f3f5" }),
-  adminBadge:  { fontSize: "12px", color: "#faa61a" },
+  adminBadge:  { color: "#faa61a", display: "inline-flex", alignItems: "center" },
   pinnedBadge: { fontSize: "10px", color: "#5c6068", background: "#2d2d3f", padding: "1px 6px", borderRadius: "4px", display: "inline-flex", alignItems: "center", gap: "3px" },
   timestamp:   { fontSize: "11px", color: "#5c6068" },
   editedTag:   { fontSize: "10px", color: "#5c6068", fontStyle: "italic" },
@@ -67,8 +67,9 @@ export const s: Record<string, any> = {
   },
   actionBtn: {
     background: "transparent", border: "none", color: "#949ba4",
-    fontSize: "14px", cursor: "pointer", padding: "3px 6px",
-    borderRadius: "4px", lineHeight: "1",
+    cursor: "pointer", padding: 0, width: "26px", height: "26px",
+    borderRadius: "4px", lineHeight: "1", display: "flex",
+    alignItems: "center", justifyContent: "center",
   },
   editTextarea: {
     width: "100%", background: "#0f0f1a", border: "1px solid #5865f2",

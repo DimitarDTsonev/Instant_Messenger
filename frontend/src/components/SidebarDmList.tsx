@@ -1,4 +1,6 @@
 import type { Conversation, User, UserStatus } from "../types";
+import { avatarLabel } from "../utils/avatar";
+import Icon from "./Icons";
 import { s } from "./sidebarStyles";
 
 const STATUS_COLORS = { online: "#23a55a", away: "#f0a500", dnd: "#f23f42", offline: "#5c6068" } as const;
@@ -29,7 +31,7 @@ export default function SidebarDmList({ users, currentUserId, activeDm, onSelect
         <span style={s.sectionTitle}>
           Direct{totalUnread > 0 && <span style={{ ...s.unreadBadge, display: "inline-flex", marginLeft: "6px" }}>{totalUnread}</span>}
         </span>
-        <span style={{ fontSize: "11px", color: "#5c6068" }}>{visible ? "▲" : "▼"}</span>
+        <span style={{ color: "#5c6068", display: "inline-flex" }}><Icon name={visible ? "chevronUp" : "chevronDown"} size={14} /></span>
       </div>
 
       {visible && users.filter((u) => u.id !== currentUserId).map((u) => {
@@ -42,11 +44,16 @@ export default function SidebarDmList({ users, currentUserId, activeDm, onSelect
         return (
           <div key={u.id} style={s.dmItem(isActive)} onClick={() => onSelectDm(u)}>
             <div style={s.avatarWrap}>
-              <span style={s.avatar}>{u.avatar || "👤"}</span>
+              <span style={s.avatar}>{avatarLabel(u)}</span>
               <div style={s.onlineDot(dotColor(u.id))} title={statusLabel} />
             </div>
             <span style={{ color: isActive ? "#f2f3f5" : online ? "#dbdee1" : "#5c6068", fontSize: "13px", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {u.username}{u.role === "admin" && <span title="Admin" style={{ marginLeft: "4px" }}>👑</span>}
+              {u.username}
+              {u.role === "admin" && (
+                <span title="Admin" style={{ marginLeft: "4px", color: "#faa61a", display: "inline-flex", verticalAlign: "text-bottom" }}>
+                  <Icon name="shield" size={12} />
+                </span>
+              )}
             </span>
             {unread > 0 && <span style={s.unreadBadge}>{unread}</span>}
           </div>

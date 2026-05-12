@@ -1,49 +1,10 @@
-/**
- * @fileoverview SearchModal — Global full-text message search overlay
- *
- * Renders a keyboard-accessible modal that searches across both channel messages
- * and direct messages simultaneously. Results are fetched via the `useGlobalSearch`
- * hook which debounces the query before hitting the REST API.
- *
- * Each result card shows the author's avatar, username, source badge (channel name
- * or DM partner), timestamp, and the matched content with the search term highlighted.
- * Clicking a result calls `onNavigate` so the parent can switch to the relevant
- * channel or DM conversation and close this modal.
- *
- * Keyboard: Escape closes the modal.
- * Click-outside: clicking the backdrop closes the modal.
- *
- * @module components/SearchModal
- * @connects hooks/useApi — useGlobalSearch() for debounced search results
- */
-
 import { useEffect, useRef } from "react";
 import type { ChangeEvent, MouseEvent, ReactNode } from "react";
 import { useGlobalSearch } from "../hooks/useApi";
 import type { SearchResult } from "../types";
+import { avatarLabel } from "../utils/avatar";
+import Icon from "./Icons";
 
-/**
- * Inline style map for the search modal.
- *
- * @type {Object}
- * @property {Object} overlay      - Fixed full-screen backdrop with blur
- * @property {Object} modal        - Floating card, max 620 px wide, 70 vh tall
- * @property {Object} searchBar    - Top row: search icon + input + result count + ESC button
- * @property {Object} searchIcon   - Magnifier emoji container
- * @property {Object} searchInput  - Transparent, borderless text input
- * @property {Object} closeBtn     - "ESC" pill button in the top-right corner
- * @property {Object} results      - Scrollable result list area
- * @property {Object} resultItem   - Individual message card row
- * @property {Object} resultHeader - Meta row: avatar, username, source badge, timestamp
- * @property {Object} resultAvatar - Author emoji avatar
- * @property {Object} resultUsername - Bold author name
- * @property {Object} resultTime   - Muted relative/absolute timestamp (right-aligned)
- * @property {Object} resultSource - Colored channel or DM badge pill
- * @property {Object} resultContent - Message body preview text
- * @property {Object} highlight    - Amber highlight applied to the matched query substring
- * @property {Object} empty        - Centered placeholder when no results or no query
- * @property {Object} loading      - Centered spinner placeholder while fetching
- */
 const s = {
   overlay: {
     position: "fixed",
@@ -75,7 +36,7 @@ const s = {
     padding: "16px",
     borderBottom: "1px solid #2d2d3f",
   },
-  searchIcon: { fontSize: "18px", color: "#5c6068", flexShrink: 0 },
+  searchIcon: { color: "#5c6068", flexShrink: 0, display: "inline-flex" },
   searchInput: {
     flex: 1,
     background: "transparent",
@@ -86,7 +47,9 @@ const s = {
     fontFamily: "inherit",
   },
   closeBtn: {
-    padding: "6px 12px",
+    width: "30px",
+    height: "30px",
+    padding: 0,
     background: "#2d2d3f",
     borderRadius: "6px",
     color: "#949ba4",
@@ -95,6 +58,9 @@ const s = {
     border: "none",
     cursor: "pointer",
     fontFamily: "inherit",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
   },
   results: {
     overflowY: "auto",
@@ -142,16 +108,6 @@ const s = {
   },
 } satisfies AppStyleMap;
 
-/**
- * Wraps occurrences of `query` inside `text` with a highlighted `<mark>` element.
- * The match is case-insensitive. Special regex characters in the query are escaped
- * before building the split pattern.
- *
- * @param {string} text  - The full message content to scan
- * @param {string} query - The search term typed by the user
- * @returns {Array<string|JSX.Element>|string} Mixed array of plain strings and
- *   `<mark>` elements, or the original string if no match exists
- */
 function highlightText(text: string | undefined, query: string): ReactNode {
   if (!query || !text) return text || "";
   const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -163,34 +119,12 @@ function highlightText(text: string | undefined, query: string): ReactNode {
   );
 }
 
-/**
- * Formats an ISO/SQL timestamp into a short human-readable string.
- *
- * @param {string} dateStr - ISO 8601 or SQLite datetime string
- * @returns {string} Locale-formatted string, e.g. "2 May, 14:30"
- */
 function formatTime(dateStr: string) {
   return new Date(dateStr).toLocaleString("en-GB", {
     day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
   });
 }
 
-/**
- * SearchModal component — global message search overlay.
- *
- * Opens as a fixed overlay. Auto-focuses the search input. Debounced queries
- * are handled by `useGlobalSearch` which searches both channel and DM messages.
- *
- * @component
- * @param {Object}   props
- * @param {Function} props.onClose    - Called when the modal should close (Escape, backdrop, ESC button)
- * @param {Function} [props.onNavigate] - Called with the selected search result object so the
- *   parent can navigate to that channel/DM conversation
- * @returns {JSX.Element} The search overlay modal
- *
- * @example
- * <SearchModal onClose={() => setSearchOpen(false)} onNavigate={handleSearchNavigate} />
- */
 export default function SearchModal({
   onClose,
   onNavigate,
@@ -198,45 +132,30 @@ export default function SearchModal({
   onClose: () => void;
   onNavigate?: (result: SearchResult) => void;
 }) {
-  /**
-   * Search state from the global search hook.
-   * @type {{ results: Array, loading: boolean, query: string, search: Function, clearSearch: Function }}
-   */
-  const { results, loading, query, search, clearSearch } = useGlobalSearch();
+    const { results, loading, query, search, clearSearch } = useGlobalSearch();
 
-  /** Ref to the search input so it can be focused on mount */
-  const inputRef = useRef<HTMLInputElement | null>(null);
+    const inputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     inputRef.current?.focus();
 
-    /** Close on Escape key */
-    function handleKey(e: KeyboardEvent) {
+        function handleKey(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
     }
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
   }, [onClose]);
 
-  /**
-   * Forwards the input value to the search hook on every keystroke.
-   * @param {React.ChangeEvent<HTMLInputElement>} e
-   */
-  function handleChange(e: ChangeEvent<HTMLInputElement>) {
+    function handleChange(e: ChangeEvent<HTMLInputElement>) {
     search(e.target.value);
   }
 
-  /** Clears the search state then invokes the parent close handler. */
-  function handleClose() {
+    function handleClose() {
     clearSearch();
     onClose();
   }
 
-  /**
-   * Navigates to the selected message's source (channel or DM) and closes the modal.
-   * @param {Object} result - A search result object from `useGlobalSearch`
-   */
-  function handleNavigate(result: SearchResult) {
+    function handleNavigate(result: SearchResult) {
     onNavigate?.(result);
     handleClose();
   }
@@ -246,7 +165,7 @@ export default function SearchModal({
       <div style={s.modal}>
         {/* Search bar */}
         <div style={s.searchBar}>
-          <span style={s.searchIcon}>🔍</span>
+          <span style={s.searchIcon}><Icon name="search" size={18} /></span>
           <input
             ref={inputRef}
             style={s.searchInput}
@@ -258,23 +177,25 @@ export default function SearchModal({
               {results.length} results
             </span>
           )}
-          <button style={s.closeBtn} onClick={handleClose}>ESC</button>
+          <button style={s.closeBtn} onClick={handleClose} title="Close" aria-label="Close search">
+            <Icon name="x" size={16} />
+          </button>
         </div>
 
         {/* Results list */}
         <div style={s.results}>
-          {loading && <div style={s.loading}>⏳ Searching...</div>}
+          {loading && <div style={s.loading}>Searching...</div>}
 
           {!loading && query && results.length === 0 && (
             <div style={s.empty}>
-              <div style={{ fontSize: "32px", marginBottom: "8px" }}>🔎</div>
+              <div style={{ fontSize: "13px", marginBottom: "8px" }}>No results</div>
               No messages found for "{query}"
             </div>
           )}
 
           {!loading && !query && (
             <div style={s.empty}>
-              Search everywhere — channels and direct messages
+              Search everywhere - channels and direct messages
             </div>
           )}
 
@@ -289,7 +210,7 @@ export default function SearchModal({
                 onClick={() => handleNavigate(msg)}
               >
                 <div style={s.resultHeader}>
-                  <span style={s.resultAvatar}>{msg.avatar || "👤"}</span>
+                  <span style={s.resultAvatar}>{avatarLabel(msg)}</span>
                   <span style={s.resultUsername}>{msg.username}</span>
                   {/* Channel badge (indigo) or DM badge (green) */}
                   <span style={{
@@ -298,7 +219,7 @@ export default function SearchModal({
                     color: isChannel ? "#7289da" : "#23a55a",
                     border: `1px solid ${isChannel ? "#5865f230" : "#23a55a30"}`,
                   }}>
-                    {isChannel ? `#${msg.channel_name}` : `💬 ${msg.dm_partner_username}`}
+                    {isChannel ? `#${msg.channel_name}` : `DM ${msg.dm_partner_username}`}
                   </span>
                   <span style={s.resultTime}>{formatTime(msg.created_at)}</span>
                 </div>

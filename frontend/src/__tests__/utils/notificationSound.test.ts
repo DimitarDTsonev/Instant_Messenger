@@ -1,18 +1,3 @@
-/**
- * @fileoverview Tests for playNotificationSound utility
- * Covers: early-return when focused, AudioContext happy path,
- *         ctx.close on oscillator end, and silent catch on failure.
- *
- * jsdom quirk: document.hasFocus() returns true by default.
- * Tests that need the function to proceed past the guard use
- * visibilityState="hidden" (falsy short-circuit) instead of
- * mocking hasFocus to avoid flaky spy behaviour.
- *
- * vi.stubGlobal targets globalThis but source reads window.AudioContext;
- * in jsdom these can diverge, so we use Object.defineProperty(window, …)
- * directly (same pattern as the matchMedia stub in setup.ts).
- */
-
 import { playNotificationSound } from "../../utils/notificationSound";
 
 afterEach(() => {
@@ -27,7 +12,6 @@ afterEach(() => {
   delete window.webkitAudioContext;
 });
 
-/** Sets document into a "background tab" state so the early-return is skipped. */
 function setHidden() {
   Object.defineProperty(document, "visibilityState", {
     get: () => "hidden",
@@ -35,7 +19,6 @@ function setHidden() {
   });
 }
 
-/** Sets document into "focused + visible" state so the early-return triggers. */
 function setFocused() {
   Object.defineProperty(document, "visibilityState", {
     get: () => "visible",
@@ -44,7 +27,6 @@ function setFocused() {
   document.hasFocus = () => true;
 }
 
-/** Builds a fake AudioContext + nodes and stubs window.AudioContext. Returns nodes. */
 function stubAudioContext() {
   const osc = {
     connect: vi.fn(), type: "", frequency: { value: 0 },

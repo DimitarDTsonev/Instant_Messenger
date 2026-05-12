@@ -1,7 +1,3 @@
-/**
- * @fileoverview Tests for app navigation helpers.
- */
-
 import { getAppPath, navigateHome, navigateTo } from "../../utils/navigation";
 
 describe("navigation helpers", () => {

@@ -1,5 +1,5 @@
 /* ============================================================
-   index.css — Global styles
+   index.css - Global styles
    Color scheme: dark theme inspired by Slack/Discord
    ============================================================ */
 
@@ -49,7 +49,7 @@ html, body, #root {
   overscroll-behavior: none;
 }
 
-/* Dynamic viewport height — fixes iOS Safari address-bar overlap */
+/* Dynamic viewport height - fixes iOS Safari address-bar overlap */
 @supports (height: 100dvh) {
   html, body, #root { height: 100dvh; }
 }
@@ -284,7 +284,7 @@ a:hover { text-decoration: underline; }
     gap: 6px !important;
   }
 
-  /* Hide the long channel description — too cramped */
+  /* Hide the long channel description - too cramped */
   .topbar-desc { display: none !important; }
 
   /* Search button: icon-only on mobile */

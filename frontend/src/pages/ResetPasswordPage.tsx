@@ -1,7 +1,3 @@
-// ============================================================
-//  pages/ResetPasswordPage.tsx — Set a new password via reset token
-// ============================================================
-
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { API_BASE } from "../config";
@@ -80,13 +76,6 @@ const s = {
   success: { color: "#23a55a", fontSize: "13px", marginBottom: "12px" },
 } satisfies AppStyleMap;
 
-/**
- * ResetPasswordPage — Allows the user to set a new password using a reset token
- * from the URL query string.
- *
- * @component
- * @returns {JSX.Element}
- */
 export default function ResetPasswordPage() {
   const token = new URLSearchParams(window.location.search).get("token") || "";
 

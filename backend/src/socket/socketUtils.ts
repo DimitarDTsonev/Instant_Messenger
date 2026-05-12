@@ -1,18 +1,3 @@
-// ============================================================
-//  src/socket/socketUtils.ts — Shared socket helpers and state
-//
-//  Exports:
-//    onlineUsers           — in-memory map of connected users
-//    buildOnlinePayload()  — formats the users:online event payload
-//    ack()                 — safely calls a socket.io ack callback
-//    getReactions()        — builds emoji reaction map for a channel message
-//    getDmReactions()      — builds emoji reaction map for a DM
-//    getFullMessage()      — hydrated channel message by ID
-//    getFullDmMessage()    — hydrated direct message by ID
-//    emitToDmPair()        — emits to both participants of a DM
-//    notifyMentions()      — fires user:mentioned for @username hits
-// ============================================================
-
 import type { Server } from "socket.io";
 import type { AuthUser, Db, MessageRow, ReactionMap } from "../types";
 
@@ -22,19 +7,17 @@ export type OnlineUser = {
   status?: "online" | "away" | "dnd";
 };
 
-// In-memory map of currently connected users: userId → OnlineUser
+// In-memory map of currently connected users: userId -> OnlineUser
 export const onlineUsers = new Map<number, OnlineUser>();
 
 export function buildOnlinePayload(): Array<{ id: number; status: OnlineUser["status"] }> {
   return Array.from(onlineUsers.entries()).map(([id, u]) => ({ id, status: u.status || "online" }));
 }
 
-/** Safely calls a socket.io ack callback if it is a function. */
 export function ack(fn: unknown, data: unknown) {
   if (typeof fn === "function") (fn as (d: unknown) => void)(data);
 }
 
-/** Builds an emoji reactions map for a channel message. */
 export function getReactions(db: Db, messageId: number): ReactionMap {
   const rows = db
     .prepare("SELECT emoji, user_id FROM message_reactions WHERE message_id = ?")
@@ -47,7 +30,6 @@ export function getReactions(db: Db, messageId: number): ReactionMap {
   return map;
 }
 
-/** Builds an emoji reactions map for a direct message. */
 export function getDmReactions(db: Db, messageId: number): ReactionMap {
   const rows = db
     .prepare("SELECT emoji, user_id FROM dm_reactions WHERE message_id = ?")
@@ -60,7 +42,6 @@ export function getDmReactions(db: Db, messageId: number): ReactionMap {
   return map;
 }
 
-/** Fetches a fully-hydrated channel message including reactions. */
 export function getFullMessage(db: Db, messageId: number | bigint): MessageRow | undefined {
   const msg = db.prepare(`
     SELECT
@@ -82,7 +63,6 @@ export function getFullMessage(db: Db, messageId: number | bigint): MessageRow |
   return msg;
 }
 
-/** Fetches a fully-hydrated direct message including reactions. */
 export function getFullDmMessage(db: Db, messageId: number | bigint): MessageRow | undefined {
   const msg = db.prepare(`
     SELECT
@@ -106,16 +86,11 @@ export function getFullDmMessage(db: Db, messageId: number | bigint): MessageRow
   return msg;
 }
 
-/** Emits an event to both participants of a DM conversation. */
 export function emitToDmPair(io: Server, senderId: number, receiverId: number, event: string, data: unknown) {
   io.to(`notifications:${senderId}`).emit(event, data);
   io.to(`notifications:${receiverId}`).emit(event, data);
 }
 
-/**
- * Scans message content for @username mentions and fires user:mentioned
- * to each mentioned user's personal notification room.
- */
 export function notifyMentions(
   io: Server,
   db: Db,

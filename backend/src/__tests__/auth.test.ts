@@ -1,8 +1,3 @@
-/**
- * @fileoverview Integration tests for /api/auth routes
- * Covers: register, guest, login, /me, /users, /search, role change
- */
-
 import request from "supertest";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
@@ -27,17 +22,13 @@ beforeAll(() => {
 beforeEach(() => clearDb(db));
 afterAll(() => db.close());
 
-// ─── helpers ─────────────────────────────────────────────────────────────────
-
 function seedUser(username = "alice", role = "member") {
   const hash = bcrypt.hashSync("password123", 1);
   const { lastInsertRowid } = db.prepare(
-    "INSERT INTO users (username, email, password, avatar, role) VALUES (?, ?, ?, '👤', ?)"
+    "INSERT INTO users (username, email, password, avatar, role) VALUES (?, ?, ?, 'AL', ?)"
   ).run(username, `${username}@test.com`, hash, role);
   return { id: lastInsertRowid, username, email: `${username}@test.com`, role };
 }
-
-// ─── POST /api/auth/register ─────────────────────────────────────────────────
 
 describe("POST /api/auth/register", () => {
   test("creates a user and returns user + token", async () => {
@@ -95,8 +86,6 @@ describe("POST /api/auth/register", () => {
   });
 });
 
-// ─── POST /api/auth/guest ────────────────────────────────────────────────────
-
 describe("POST /api/auth/guest", () => {
   test("creates a guest account with is_guest=1", async () => {
     const res = await request(app).post("/api/auth/guest");
@@ -112,8 +101,6 @@ describe("POST /api/auth/guest", () => {
     expect(r1.body.user.username).not.toBe(r2.body.user.username);
   });
 });
-
-// ─── POST /api/auth/login ────────────────────────────────────────────────────
 
 describe("POST /api/auth/login", () => {
   beforeEach(() => seedUser("alice"));
@@ -153,8 +140,6 @@ describe("POST /api/auth/login", () => {
   });
 });
 
-// ─── GET /api/auth/me ────────────────────────────────────────────────────────
-
 describe("GET /api/auth/me", () => {
   test("returns current user profile with valid token", async () => {
     const user  = seedUser("alice");
@@ -180,8 +165,6 @@ describe("GET /api/auth/me", () => {
   });
 });
 
-// ─── GET /api/auth/users ─────────────────────────────────────────────────────
-
 describe("GET /api/auth/users", () => {
   test("returns array of users", async () => {
     const user  = seedUser("alice");
@@ -200,8 +183,6 @@ describe("GET /api/auth/users", () => {
     expect(res.status).toBe(401);
   });
 });
-
-// ─── GET /api/auth/search ────────────────────────────────────────────────────
 
 describe("GET /api/auth/search", () => {
   let token;
@@ -231,8 +212,6 @@ describe("GET /api/auth/search", () => {
   });
 });
 
-// ─── GET /api/auth/users/:id ─────────────────────────────────────────────────
-
 describe("GET /api/auth/users/:id", () => {
   test("returns the target user", async () => {
     const me     = seedUser("alice");
@@ -252,8 +231,6 @@ describe("GET /api/auth/users/:id", () => {
     expect(res.status).toBe(404);
   });
 });
-
-// ─── PATCH /api/auth/users/:id/role ──────────────────────────────────────────
 
 describe("PATCH /api/auth/users/:id/role", () => {
   let adminToken, memberId;
@@ -318,8 +295,6 @@ describe("PATCH /api/auth/users/:id/role", () => {
   });
 });
 
-// ─── POST /api/auth/forgot-password ───────────────────────────────────────────
-
 describe("POST /api/auth/forgot-password", () => {
   test("returns 200 even for unknown email (no enumeration)", async () => {
     const res = await request(app)
@@ -347,8 +322,6 @@ describe("POST /api/auth/forgot-password", () => {
     expect(res.status).toBe(200);
   });
 });
-
-// ─── POST /api/auth/reset-password ────────────────────────────────────────────
 
 describe("POST /api/auth/reset-password", () => {
   function seedResetToken(userId, opts: { expired?: boolean; used?: boolean } = {}) {

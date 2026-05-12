@@ -1,8 +1,3 @@
-/**
- * Plays a short notification beep using the Web Audio API.
- * Only audible when the page is not focused (background tab or minimised).
- * Silently no-ops if the browser blocks AudioContext creation.
- */
 export function playNotificationSound() {
   if (document.visibilityState === "visible" && document.hasFocus()) return;
   try {
@@ -19,6 +14,6 @@ export function playNotificationSound() {
     osc.stop(ctx.currentTime + 0.35);
     osc.onended = () => ctx.close();
   } catch {
-    // AudioContext blocked by browser policy — ignore
+    // AudioContext blocked by browser policy - ignore
   }
 }

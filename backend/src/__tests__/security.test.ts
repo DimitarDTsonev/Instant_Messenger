@@ -1,9 +1,3 @@
-/**
- * @fileoverview Tests for src/middleware/security.ts
- * Covers: logSecurityEvent, recordLoginFail (including auto-ban),
- *         checkIpBanned middleware, isUserBanned, isSocketRateLimited.
- */
-
 import { getDb } from "../db/database";
 import { clearDb, createTestDb } from "../test-utils/createTestDb";
 
@@ -27,8 +21,6 @@ beforeEach(() => {
   mockedGetDb.mockReturnValue(db);
   security = require("../middleware/security");
 });
-
-// ── logSecurityEvent ──────────────────────────────────────────
 
 describe("logSecurityEvent", () => {
   test("inserts a row into security_logs", () => {
@@ -63,8 +55,6 @@ describe("logSecurityEvent", () => {
     expect(row.user_id).toBeNull();
   });
 });
-
-// ── recordLoginFail ───────────────────────────────────────────
 
 describe("recordLoginFail", () => {
   test("logs a login_fail event", () => {
@@ -107,8 +97,6 @@ describe("recordLoginFail", () => {
   });
 });
 
-// ── checkIpBanned middleware ──────────────────────────────────
-
 describe("checkIpBanned", () => {
   function makeReqRes(ip) {
     const req  = { ip, method: "POST", path: "/api/auth/login" };
@@ -137,8 +125,6 @@ describe("checkIpBanned", () => {
   });
 });
 
-// ── isUserBanned ──────────────────────────────────────────────
-
 describe("isUserBanned", () => {
   test("returns false for a normal user", () => {
     const { lastInsertRowid } = db.prepare(
@@ -163,8 +149,6 @@ describe("isUserBanned", () => {
     expect(security.isUserBanned(badDb, 1)).toBe(false);
   });
 });
-
-// ── isSocketRateLimited ───────────────────────────────────────
 
 describe("isSocketRateLimited", () => {
   test("returns not limited for first message", () => {

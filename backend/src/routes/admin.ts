@@ -1,14 +1,3 @@
-// ============================================================
-//  src/routes/admin.ts — Admin-only security management routes
-//
-//  All routes require a valid JWT with role === "admin".
-//
-//  REST routes:
-//    GET  /api/admin/security-logs         — recent security events
-//    POST /api/admin/ban/:userId           — ban a user account
-//    POST /api/admin/unban/:userId         — unban a user account
-// ============================================================
-
 import express from "express";
 import { getDb } from "../db/database";
 import { authMiddleware } from "../middleware/auth";
@@ -31,10 +20,6 @@ router.use((req, res, next) => {
   next();
 });
 
-/**
- * GET /api/admin/users
- * Returns all users with ban status. Admin-only.
- */
 router.get("/users", (req, res) => {
   const db = getDb();
   const users = db
@@ -43,10 +28,6 @@ router.get("/users", (req, res) => {
   return res.json({ users });
 });
 
-/**
- * GET /api/admin/security-logs?limit=100&event=
- * Returns the most recent security log entries, newest first.
- */
 router.get("/security-logs", (req, res) => {
   const limit = Math.min(parseInt(String(req.query.limit || "100")) || 100, 500);
   const event = typeof req.query.event === "string" ? req.query.event : null;
@@ -59,11 +40,6 @@ router.get("/security-logs", (req, res) => {
   return res.json({ logs: rows });
 });
 
-/**
- * POST /api/admin/ban/:userId
- * Body: { reason?: string }
- * Bans a user account. The user will be disconnected on their next action.
- */
 router.post("/ban/:userId", (req, res) => {
   const targetId = Number(req.params.userId);
   if (targetId === req.user.id) {
@@ -88,10 +64,6 @@ router.post("/ban/:userId", (req, res) => {
   return res.json({ success: true, username: target.username, reason });
 });
 
-/**
- * POST /api/admin/unban/:userId
- * Lifts a ban on a user account.
- */
 router.post("/unban/:userId", (req, res) => {
   const targetId = Number(req.params.userId);
   const db = getDb();

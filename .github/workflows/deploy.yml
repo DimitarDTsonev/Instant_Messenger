@@ -33,7 +33,7 @@ jobs:
         run: npm run build
         working-directory: frontend
         env:
-          # Where the backend lives (set this secret in GitHub → Settings → Secrets)
+          # Where the backend lives (set this secret in GitHub -> Settings -> Secrets)
           VITE_API_URL:    ${{ secrets.VITE_API_URL }}
           VITE_SOCKET_URL: ${{ secrets.VITE_SOCKET_URL }}
           # GitHub Pages serves the site under /<repo-name>/

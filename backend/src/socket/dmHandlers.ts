@@ -1,16 +1,3 @@
-// ============================================================
-//  src/socket/dmHandlers.ts — Direct message socket events
-//
-//  Registers handlers for:
-//    dm:send         — send a direct message
-//    dm:edit         — edit an own DM
-//    dm:delete       — delete an own DM
-//    dm:react        — toggle emoji reaction on a DM
-//    dm:read         — mark received DMs as read
-//    dm:typing:start — broadcast typing indicator to DM partner
-//    dm:typing:stop  — clear typing indicator
-// ============================================================
-
 import type { Server } from "socket.io";
 import type { AuthUser, MessageRow } from "../types";
 import { getDb } from "../db/database";
@@ -38,9 +25,7 @@ export function registerDmHandlers(
   io: Server,
   user: AuthUser,
 ) {
-  // ----------------------------------------------------------
   // dm:send
-  // ----------------------------------------------------------
   socket.on("dm:send", ({ receiverId, content, fileUrl, fileType, fileName, replyToId }: DmSendPayload, callback?: AckFn) => {
     const text = (content || "").trim();
     if (!text && !fileUrl) return ack(callback, { error: "Message cannot be empty" });
@@ -51,7 +36,7 @@ export function registerDmHandlers(
     if (count >= RATE_BAN) {
       db.prepare("UPDATE users SET is_banned = 1, ban_reason = ? WHERE id = ?")
         .run("Auto-banned: message flooding", user.id);
-      logSecurityEvent(db, { event: "msg_flood_ban", userId: user.id, username: user.username, detail: `${count} DMs in 10s — auto-banned` });
+      logSecurityEvent(db, { event: "msg_flood_ban", userId: user.id, username: user.username, detail: `${count} DMs in 10s - auto-banned` });
       socket.emit("error", { message: "You have been banned for flooding." });
       socket.disconnect(true);
       return;
@@ -69,10 +54,7 @@ export function registerDmHandlers(
     io.to(`notifications:${receiverId}`).emit("dm:new", { ...message, from_user_id: user.id });
     ack(callback, { success: true, message });
   });
-
-  // ----------------------------------------------------------
   // dm:edit
-  // ----------------------------------------------------------
   socket.on("dm:edit", ({ messageId, content }: MessageEditPayload, callback?: AckFn) => {
     if (!content?.trim()) return ack(callback, { error: "Content cannot be empty" });
 
@@ -89,10 +71,7 @@ export function registerDmHandlers(
     emitToDmPair(io, msg.sender_id, msg.receiver_id, "dm:edited", updated);
     ack(callback, { success: true, message: updated });
   });
-
-  // ----------------------------------------------------------
   // dm:delete
-  // ----------------------------------------------------------
   socket.on("dm:delete", ({ messageId }: MessageIdPayload, callback?: AckFn) => {
     const db  = getDb();
     const msg = db.prepare("SELECT * FROM direct_messages WHERE id = ?").get(messageId) as MessageRow | undefined;
@@ -107,10 +86,7 @@ export function registerDmHandlers(
     });
     ack(callback, { success: true });
   });
-
-  // ----------------------------------------------------------
   // dm:react
-  // ----------------------------------------------------------
   socket.on("dm:react", ({ messageId, emoji }: MessageReactionPayload, callback?: AckFn) => {
     const db  = getDb();
     const msg = db.prepare("SELECT sender_id, receiver_id FROM direct_messages WHERE id = ?")
@@ -131,10 +107,7 @@ export function registerDmHandlers(
     emitToDmPair(io, msg.sender_id, msg.receiver_id, "dm:reacted", { messageId, reactions });
     ack(callback, { success: true, reactions });
   });
-
-  // ----------------------------------------------------------
   // dm:read
-  // ----------------------------------------------------------
   socket.on("dm:read", ({ partnerId }: PartnerPayload = {}) => {
     if (!partnerId) return;
     const db  = getDb();
@@ -144,10 +117,7 @@ export function registerDmHandlers(
     ).run(now, partnerId, user.id);
     io.to(`notifications:${partnerId}`).emit("dm:read", { readBy: user.id });
   });
-
-  // ----------------------------------------------------------
   // dm:typing:start / dm:typing:stop
-  // ----------------------------------------------------------
   socket.on("dm:typing:start", ({ partnerId }: PartnerPayload = {}) => {
     if (!partnerId) return;
     socket.to(`notifications:${partnerId}`).emit("dm:typing:update", {

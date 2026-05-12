@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { ChangeEvent, FormEvent, MouseEvent } from "react";
 import type { Channel, User } from "../types";
+import Icon from "./Icons";
 import { s } from "./sidebarStyles";
 
 type Props = {
@@ -39,7 +40,7 @@ export default function SidebarChannelList({ channels, activeChannel, activeDm, 
     <div style={s.section}>
       <div style={s.sectionHeader} onClick={() => setShowForm((v) => !v)}>
         <span style={s.sectionTitle}>Channels</span>
-        <span style={s.addBtn} title="New channel">+</span>
+        <span style={s.addBtn} title="New channel"><Icon name="plus" size={15} /></span>
       </div>
 
       {showForm && (
@@ -48,11 +49,13 @@ export default function SidebarChannelList({ channels, activeChannel, activeDm, 
           <input style={s.newChannelInput} value={desc} onChange={(e: ChangeEvent<HTMLInputElement>) => setDesc(e.target.value)} placeholder="Description (optional)" />
           <label style={s.privateToggle}>
             <input type="checkbox" checked={isPrivate} onChange={(e: ChangeEvent<HTMLInputElement>) => setIsPrivate(e.target.checked)} style={{ accentColor: "#5865f2" }} />
-            🔒 Private channel
+            Private channel
           </label>
           <div style={s.newChannelRow}>
             <button type="submit" style={{ ...s.newChannelSubmit, flex: 1 }}>Add</button>
-            <button type="button" style={{ ...s.newChannelSubmit, background: "#2d2d3f" }} onClick={() => setShowForm(false)}>✕</button>
+            <button type="button" aria-label="Cancel new channel" title="Cancel" style={{ ...s.newChannelSubmit, background: "#2d2d3f", display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setShowForm(false)}>
+              <Icon name="x" size={16} />
+            </button>
           </div>
         </form>
       )}
@@ -69,18 +72,23 @@ export default function SidebarChannelList({ channels, activeChannel, activeDm, 
             onMouseEnter={() => setHoveredCh(ch.id)}
             onMouseLeave={() => setHoveredCh(null)}
           >
-            <span style={{ fontSize: "12px", opacity: 0.6, flexShrink: 0 }}>{ch.is_private ? "🔒" : "#"}</span>
+            <span
+              title={ch.is_private ? "Private channel" : "Public channel"}
+              style={{ opacity: 0.6, flexShrink: 0, display: "inline-flex" }}
+            >
+              {ch.is_private ? <Icon name="lock" size={13} /> : <Icon name="hash" size={13} />}
+            </span>
             <span style={{ ...s.channelName, fontWeight: unread > 0 ? 700 : undefined, color: unread > 0 ? "#f2f3f5" : undefined }}>{ch.name}</span>
             {unread > 0 && !isHovered && <span style={s.unreadBadge}>{unread > 99 ? "99+" : unread}</span>}
             {isHovered && (
               <div style={{ display: "flex", gap: "2px" }}>
                 {canManage(ch) && (
-                  <button style={{ background: "transparent", border: "none", color: "#949ba4", fontSize: "13px", cursor: "pointer", padding: "0 3px" }} title="Settings"
-                    onClick={(e: MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); onOpenSettings?.(ch); }}>⚙️</button>
+                  <button style={s.iconButton} title="Settings" aria-label="Settings"
+                    onClick={(e: MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); onOpenSettings?.(ch); }}><Icon name="settings" size={15} /></button>
                 )}
                 {isOwnerOrAdmin(ch) && (
-                  <button style={{ background: "transparent", border: "none", color: "#f23f42", fontSize: "13px", cursor: "pointer", padding: "0 2px" }} title="Delete channel"
-                    onClick={(e: MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); onDeleteChannel?.(ch); }}>🗑️</button>
+                  <button style={{ ...s.iconButton, color: "#f23f42" }} title="Delete channel" aria-label="Delete channel"
+                    onClick={(e: MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); onDeleteChannel?.(ch); }}><Icon name="trash" size={15} /></button>
                 )}
               </div>
             )}

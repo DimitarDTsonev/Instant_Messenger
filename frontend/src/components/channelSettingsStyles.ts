@@ -6,7 +6,7 @@ export const s: Record<string, any> = {
   modal:       { width: "560px", maxWidth: "95vw", maxHeight: "85vh", background: "#1e1e2e", border: "1px solid #2d2d3f", borderRadius: "16px", display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 16px 48px rgba(0,0,0,0.6)" },
   header:      { padding: "20px 24px", borderBottom: "1px solid #2d2d3f", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 },
   title:       { fontSize: "16px", fontWeight: 700, color: "#f2f3f5" },
-  closeBtn:    { background: "transparent", border: "none", color: "#5c6068", fontSize: "20px", cursor: "pointer", padding: "4px" },
+  closeBtn:    { width: "30px", height: "30px", background: "transparent", border: "none", color: "#5c6068", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "6px" },
   tabs:        { display: "flex", borderBottom: "1px solid #2d2d3f", flexShrink: 0, overflowX: "auto" },
   tab: (active: boolean) => ({ padding: "12px 20px", fontSize: "13px", fontWeight: active ? 700 : 400, color: active ? "#f2f3f5" : "#5c6068", border: "none", borderBottom: active ? "2px solid #5865f2" : "2px solid transparent", background: "transparent", cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap" }),
   body:        { flex: 1, overflowY: "auto", padding: "20px 24px" },

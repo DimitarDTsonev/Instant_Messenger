@@ -1,25 +1,3 @@
-// ============================================================
-//  src/routes/dm.ts — Direct messages between users
-//
-//  Provides conversation listing, paginated message history,
-//  and read-receipt marking for direct (one-to-one) messages.
-//
-//  All routes require a valid Bearer token (authMiddleware applied
-//  globally via router.use).
-//
-//  REST routes defined:
-//    GET  /api/dm/conversations   — list all active DM conversations
-//    GET  /api/dm/:userId         — paginated message history with a user
-//    POST /api/dm/:userId/read    — mark incoming messages as read
-//
-//  Note: Write operations (send, edit, delete, react) are handled
-//  over Socket.io in src/socket/handlers.ts.
-//
-//  Connects to:
-//    ../db/database     — SQLite via getDb()
-//    ../middleware/auth — authMiddleware
-// ============================================================
-
 import express from "express";
 import { getDb } from "../db/database";
 import { authMiddleware } from "../middleware/auth";
@@ -29,22 +7,6 @@ import type { MessageRow, ReactionMap } from "../types";
 const router = express.Router();
 router.use(authMiddleware);
 
-/**
- * GET /api/dm/conversations
- * Returns a list of all unique conversation partners the authenticated user
- * has exchanged at least one direct message with.
- *
- * Each entry includes:
- *  - The partner's id, username, and avatar
- *  - A preview of the most recent message (content, file info, timestamp, sender)
- *  - The count of unread messages from that partner
- *
- * Conversations are ordered by most recent message descending.
- *
- * @route   GET /api/dm/conversations
- * @access  Private (requires Bearer token)
- * @returns {200} { conversations: ConversationObject[] }
- */
 router.get("/conversations", (req, res) => {
   const db  = getDb();
   const me  = req.user.id; // Authenticated user's ID
@@ -80,28 +42,6 @@ router.get("/conversations", (req, res) => {
   res.json({ conversations: convos });
 });
 
-/**
- * GET /api/dm/:userId?limit=50&before=<id>
- * Returns paginated direct-message history between the authenticated user
- * and the specified partner, in ascending chronological order.
- *
- * Also automatically marks all unread incoming messages (from the partner)
- * as read when this endpoint is called.
- *
- * Pagination is cursor-based: pass `before=<messageId>` to load the page
- * that precedes the given message ID.
- *
- * Each message object includes sender info, optional file attachment fields,
- * reply-to preview, and an emoji reactions map.
- *
- * @route   GET /api/dm/:userId
- * @access  Private (requires Bearer token)
- * @param   {string} req.params.userId  - ID of the conversation partner
- * @param   {number} [req.query.limit=50] - Number of messages to return (max 100)
- * @param   {number} [req.query.before]   - Return messages with id < this value
- * @returns {200} { messages: DmMessageObject[], hasMore: boolean, partner: UserObject }
- * @returns {404} { error: string } - Partner user not found
- */
 router.get("/:userId", (req, res) => {
   const db       = getDb();
   const me       = req.user.id; // Authenticated user's ID
@@ -145,7 +85,7 @@ router.get("/:userId", (req, res) => {
       .reverse();
   }
 
-  // Attach emoji reactions to each message (one query per message — acceptable for DM page sizes)
+  // Attach emoji reactions to each message (one query per message - acceptable for DM page sizes)
   for (const msg of messages) {
     const rows = db.prepare("SELECT emoji, user_id FROM dm_reactions WHERE message_id = ?").all(msg.id) as Array<{ emoji: string; user_id: number }>;
     const reactions: ReactionMap = {};
@@ -166,17 +106,6 @@ router.get("/:userId", (req, res) => {
   res.json({ messages, hasMore, partner });
 });
 
-/**
- * POST /api/dm/:userId/read
- * Explicitly marks all unread messages from a given user as read.
- * Useful when the client wants to clear the unread badge without
- * fetching the full conversation history.
- *
- * @route   POST /api/dm/:userId/read
- * @access  Private (requires Bearer token)
- * @param   {string} req.params.userId - ID of the message sender to mark as read
- * @returns {200} { success: true }
- */
 router.post("/:userId/read", (req, res) => {
   const db    = getDb();
   const me    = req.user.id; // Authenticated user receiving the messages

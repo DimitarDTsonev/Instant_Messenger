@@ -1,8 +1,3 @@
-/**
- * @fileoverview Tests for JWT auth middleware and signToken helper
- * Covers: missing header, wrong format, invalid token, expired token, valid token
- */
-
 import type { NextFunction, Request, Response } from "express";
 import jwt, { type JwtPayload } from "jsonwebtoken";
 
@@ -35,8 +30,6 @@ const mockNext = jest.fn() as jest.MockedFunction<NextFunction>;
 
 beforeEach(() => mockNext.mockClear());
 
-// ─── signToken ───────────────────────────────────────────────────────────────
-
 describe("signToken", () => {
   test("returns a string", () => {
     const token = signToken({ id: 1, username: "alice", email: "a@a.com", role: "member" });
@@ -63,8 +56,6 @@ describe("signToken", () => {
     expect(role).toBe("member");
   });
 });
-
-// ─── authMiddleware ───────────────────────────────────────────────────────────
 
 describe("authMiddleware", () => {
   test("returns 401 when Authorization header is missing", () => {

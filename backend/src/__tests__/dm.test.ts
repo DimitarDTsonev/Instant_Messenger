@@ -1,8 +1,3 @@
-/**
- * @fileoverview Integration tests for /api/dm routes
- * Covers: conversation list, paginated DM history, read receipts
- */
-
 import request from "supertest";
 import bcrypt from "bcryptjs";
 
@@ -24,12 +19,10 @@ beforeAll(() => {
 beforeEach(() => clearDb(db));
 afterAll(() => db.close());
 
-// ─── helpers ─────────────────────────────────────────────────────────────────
-
 function seedUser(username = "alice") {
   const hash = bcrypt.hashSync("pw", 1);
   const { lastInsertRowid } = db.prepare(
-    "INSERT INTO users (username, email, password, avatar, role) VALUES (?, ?, ?, '👤', 'member')"
+    "INSERT INTO users (username, email, password, avatar, role) VALUES (?, ?, ?, 'AL', 'member')"
   ).run(username, `${username}@t.com`, hash);
   return { id: lastInsertRowid, username, email: `${username}@t.com`, role: "member" };
 }
@@ -40,8 +33,6 @@ function seedDm(senderId, receiverId, content, isRead = 0) {
   ).run(content, senderId, receiverId, isRead);
   return lastInsertRowid;
 }
-
-// ─── GET /api/dm/conversations ────────────────────────────────────────────────
 
 describe("GET /api/dm/conversations", () => {
   test("returns conversation summaries for the current user", async () => {
@@ -81,8 +72,6 @@ describe("GET /api/dm/conversations", () => {
     expect(res.status).toBe(401);
   });
 });
-
-// ─── GET /api/dm/:userId ──────────────────────────────────────────────────────
 
 describe("GET /api/dm/:userId", () => {
   let alice, bob, aliceToken;
@@ -160,8 +149,6 @@ describe("GET /api/dm/:userId", () => {
     expect(res.body.hasMore).toBe(true);
   });
 });
-
-// ─── POST /api/dm/:userId/read ────────────────────────────────────────────────
 
 describe("POST /api/dm/:userId/read", () => {
   test("marks all unread messages from the given user as read", async () => {

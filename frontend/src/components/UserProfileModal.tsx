@@ -1,56 +1,12 @@
-/**
- * @fileoverview UserProfileModal — User profile viewer with admin role management
- *
- * Displays a read-only profile card for any user in the system, including:
- *   - Avatar emoji, username, online/offline status, and role badge
- *   - Email address and registration date
- *   - "Send DM" button (hidden when viewing your own profile)
- *   - Role management section (visible only to admins, hidden when viewing self)
- *
- * Admin users can change the target user's global role (member ↔ admin) via
- * PATCH /api/auth/users/:id/role. The change is applied optimistically in local
- * state on success.
- *
- * The modal closes on Escape key press or by clicking the backdrop.
- *
- * @module components/UserProfileModal
- * @connects AuthContext — reads current user (`me`) and `authFetch` for API calls
- * @route PATCH /api/auth/users/:id/role — updates the target user's global role
- * @route GET   /api/auth/users/:id      — fetches the target user's profile on mount
- */
-
 import { useState, useEffect } from "react";
 import type { ChangeEvent, MouseEvent } from "react";
 import { useAuth } from "../context/AuthContext";
 import type { User } from "../types";
+import { avatarLabel } from "../utils/avatar";
+import Icon from "./Icons";
 
 import { API_BASE as API } from "../config";
 
-/**
- * Inline style map for the profile modal.
- *
- * @type {Object}
- * @property {Object}   overlay      - Fixed full-screen backdrop with blur
- * @property {Object}   modal        - 360 px wide card
- * @property {Object}   header       - Gradient header area with avatar and user info
- * @property {Object}   avatar       - Large 48 px emoji avatar
- * @property {Object}   headerInfo   - Flex column: username, status row, email, join date
- * @property {Object}   username     - Bold username with optional crown icon for admins
- * @property {Function} roleBadge    - Returns role pill style; gold for admin, indigo for member
- * @property {Object}   email        - Truncated email in muted text
- * @property {Object}   joinDate     - Registration date in faint text
- * @property {Object}   body         - Padded content area below the header
- * @property {Object}   dmBtn        - Primary "Send DM" button
- * @property {Object}   roleSection  - Dark inset box containing the role management controls
- * @property {Object}   roleTitle    - Section label "Role Management"
- * @property {Object}   roleSelect   - Dropdown for picking member or admin
- * @property {Object}   saveRoleBtn  - Confirm button; only visible when the selection changed
- * @property {Function} onlineDot    - Returns green (online) or grey (offline) indicator dot style
- * @property {Function} onlineLabel  - Returns "Online" / "Offline" text style
- * @property {Object}   closeBtn     - Absolute-positioned ✕ button in the top-right corner
- * @property {Object}   successMsg   - Green success feedback text
- * @property {Object}   errorMsg     - Red error feedback text
- */
 const s = {
   overlay: {
     position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)",
@@ -70,8 +26,7 @@ const s = {
   avatar: { fontSize: "48px", lineHeight: 1 },
   headerInfo: { flex: 1, minWidth: 0 },
   username: { fontSize: "18px", fontWeight: 700, color: "#f2f3f5", display: "flex", alignItems: "center", gap: "6px" },
-  /** @param {"admin"|"member"} role */
-  roleBadge: (role: "admin" | "member") => ({
+    roleBadge: (role: "admin" | "member") => ({
     fontSize: "11px", padding: "2px 8px", borderRadius: "10px", fontWeight: 600,
     background: role === "admin" ? "#faa61a20" : "#5865f220",
     color: role === "admin" ? "#faa61a" : "#7289da",
@@ -83,7 +38,8 @@ const s = {
   dmBtn: {
     width: "100%", padding: "10px", background: "#5865f2", border: "none",
     borderRadius: "8px", color: "#fff", fontSize: "14px", fontWeight: 600,
-    cursor: "pointer", fontFamily: "inherit",
+    cursor: "pointer", fontFamily: "inherit", display: "flex",
+    alignItems: "center", justifyContent: "center", gap: "8px",
   },
   roleSection: {
     background: "#0f0f1a", border: "1px solid #2d2d3f", borderRadius: "8px",
@@ -100,57 +56,27 @@ const s = {
     borderRadius: "6px", color: "#fff", fontSize: "12px", fontWeight: 600,
     cursor: "pointer", fontFamily: "inherit",
   },
-  /** @param {boolean} online */
-  onlineDot: (online: boolean) => ({
+    onlineDot: (online: boolean) => ({
     width: "10px", height: "10px", borderRadius: "50%",
     background: online ? "#23a55a" : "#5c6068",
     border: "2px solid #1e1e2e", flexShrink: 0,
   }),
-  /** @param {boolean} online */
-  onlineLabel: (online: boolean) => ({ fontSize: "12px", color: online ? "#23a55a" : "#5c6068" }),
+    onlineLabel: (online: boolean) => ({ fontSize: "12px", color: online ? "#23a55a" : "#5c6068" }),
   closeBtn: {
     position: "absolute", top: "12px", right: "12px",
     background: "transparent", border: "none", color: "#5c6068",
-    fontSize: "18px", cursor: "pointer", lineHeight: 1, padding: "4px",
+    cursor: "pointer", lineHeight: 1, padding: "4px",
+    display: "flex", alignItems: "center", justifyContent: "center",
   },
   successMsg: { fontSize: "12px", color: "#23a55a", textAlign: "center" },
   errorMsg: { fontSize: "12px", color: "#f23f42", textAlign: "center" },
 } satisfies AppStyleMap;
 
-/**
- * Formats an ISO 8601 or SQLite datetime string as a long locale date.
- *
- * @param {string|null} dateStr - Date string to format; returns "—" if falsy
- * @returns {string} Formatted date, e.g. "2 May 2024"
- */
 function formatDate(dateStr?: string | null) {
-  if (!dateStr) return "—";
+  if (!dateStr) return "-";
   return new Date(dateStr).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
 }
 
-/**
- * UserProfileModal component — shows a user's public profile.
- *
- * Fetches `GET /api/auth/users/:userId` on mount (and whenever `userId` changes).
- * The "Send DM" button is hidden when viewing your own profile (`isMe === true`).
- * The role management section is shown only to admins viewing another user's profile.
- *
- * @component
- * @param {Object}   props
- * @param {number}   props.userId      - ID of the user whose profile to display
- * @param {boolean}  [props.isOnline=false] - Whether the target user is currently online
- * @param {Function} props.onClose     - Called when the modal should close
- * @param {Function} props.onStartDm   - Called with the profile object to open a DM conversation
- * @returns {JSX.Element} The profile modal overlay
- *
- * @example
- * <UserProfileModal
- *   userId={clickedUserId}
- *   isOnline={onlineUsers.has(clickedUserId)}
- *   onClose={() => setProfileUserId(null)}
- *   onStartDm={handleStartDm}
- * />
- */
 type RoleMessage = { type: "ok" | "err"; text: string };
 
 export default function UserProfileModal({
@@ -164,38 +90,23 @@ export default function UserProfileModal({
   onClose: () => void;
   onStartDm: (user: User) => void;
 }) {
-  /** @type {{ id: number, role: string, authFetch: Function }} */
-  const { user: me, authFetch } = useAuth();
+    const { user: me, authFetch } = useAuth();
 
-  /**
-   * Fetched profile data for the target user.
-   * @type {[Object|null, Function]}
-   */
-  const [profile, setProfile] = useState<User | null>(null);
+    const [profile, setProfile] = useState<User | null>(null);
 
-  /** @type {[boolean, Function]} True while the profile fetch is in-flight */
-  const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(true);
 
-  /** @type {[string, Function]} Role value currently selected in the admin dropdown */
-  const [selectedRole, setSelectedRole] = useState("");
+    const [selectedRole, setSelectedRole] = useState("");
 
-  /**
-   * Feedback message after a role change attempt.
-   * @type {[{ type: "ok"|"err", text: string }|null, Function]}
-   */
-  const [roleMsg, setRoleMsg] = useState<RoleMessage | null>(null);
+    const [roleMsg, setRoleMsg] = useState<RoleMessage | null>(null);
 
-  /** @type {[boolean, Function]} True while the role PATCH request is in-flight */
-  const [saving, setSaving] = useState(false);
+    const [saving, setSaving] = useState(false);
 
-  /** True when the logged-in user is viewing their own profile */
-  const isMe = me?.id === userId;
+    const isMe = me?.id === userId;
 
-  /** True when the logged-in user has the global admin role */
-  const isAdmin = me?.role === "admin";
+    const isAdmin = me?.role === "admin";
 
-  /** Fetch the target user's profile whenever userId changes */
-  useEffect(() => {
+    useEffect(() => {
     if (!userId) return;
     setLoading(true);
     authFetch<{ user: User }>(`${API}/auth/users/${userId}`)
@@ -204,20 +115,13 @@ export default function UserProfileModal({
       .finally(() => setLoading(false));
   }, [userId, authFetch]);
 
-  /** Close on Escape key */
-  useEffect(() => {
+    useEffect(() => {
     function onKey(e: KeyboardEvent) { if (e.key === "Escape") onClose(); }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  /**
-   * Saves the role change via PATCH /api/auth/users/:id/role.
-   * Updates local `profile.role` state optimistically on success.
-   *
-   * @returns {Promise<void>}
-   */
-  async function handleSaveRole() {
+    async function handleSaveRole() {
     if (!profile || selectedRole === profile.role) return;
     setSaving(true);
     setRoleMsg(null);
@@ -239,7 +143,9 @@ export default function UserProfileModal({
   return (
     <div style={s.overlay} onClick={(e: MouseEvent<HTMLDivElement>) => e.target === e.currentTarget && onClose()}>
       <div style={{ ...s.modal, position: "relative" }}>
-        <button style={s.closeBtn} onClick={onClose} title="Close">✕</button>
+        <button style={s.closeBtn} onClick={onClose} title="Close" aria-label="Close profile">
+          <Icon name="x" size={17} />
+        </button>
 
         {loading ? (
           <div style={{ padding: "40px", textAlign: "center", color: "#5c6068" }}>Loading...</div>
@@ -249,18 +155,20 @@ export default function UserProfileModal({
           <>
             {/* Header: avatar, username, online status, role badge, email, join date */}
             <div style={s.header}>
-              <span style={s.avatar}>{profile.avatar || "👤"}</span>
+              <span style={s.avatar}>{avatarLabel(profile)}</span>
               <div style={s.headerInfo}>
                 <div style={s.username}>
                   {profile.username}
-                  {profile.role === "admin" && <span title="Admin">👑</span>}
+                  {profile.role === "admin" && (
+                    <span title="Admin" style={{ color: "#faa61a", display: "inline-flex", alignItems: "center" }}>
+                      <Icon name="shield" size={14} />
+                    </span>
+                  )}
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "4px" }}>
                   <span style={s.onlineDot(isOnline)} />
                   <span style={s.onlineLabel(isOnline)}>{isOnline ? "Online" : "Offline"}</span>
-                  <span style={s.roleBadge(profile.role === "admin" ? "admin" : "member")}>
-                    {profile.role === "admin" ? "Administrator" : "Member"}
-                  </span>
+                  {profile.role === "admin" && <span style={s.roleBadge("admin")}>Administrator</span>}
                 </div>
                 <div style={s.email}>{profile.email}</div>
                 <div style={s.joinDate}>Joined: {formatDate(profile.created_at)}</div>
@@ -268,14 +176,15 @@ export default function UserProfileModal({
             </div>
 
             <div style={s.body}>
-              {/* Send DM button — hidden when viewing your own profile */}
+              {/* Send DM button - hidden when viewing your own profile */}
               {!isMe && (
                 <button style={s.dmBtn} onClick={() => { onStartDm(profile); onClose(); }}>
-                  💬 Send direct message
+                  <Icon name="message" size={16} />
+                  <span>Send direct message</span>
                 </button>
               )}
 
-              {/* Role management — only visible to admins viewing another user */}
+              {/* Role management - only visible to admins viewing another user */}
               {isAdmin && !isMe && (
                 <div style={s.roleSection}>
                   <div style={s.roleTitle}>Role Management</div>

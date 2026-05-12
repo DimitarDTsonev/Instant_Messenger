@@ -1,8 +1,3 @@
-/**
- * @fileoverview Tests for App / AppInner routing
- * Covers: invite path, loading state, unauthenticated → LoginPage, authenticated → ChatPage
- */
-
 import { render, screen, waitFor } from "@testing-library/react";
 import App from "../App";
 

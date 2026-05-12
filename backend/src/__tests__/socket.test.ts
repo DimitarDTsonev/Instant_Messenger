@@ -1,9 +1,3 @@
-/**
- * @fileoverview Integration tests for socket/handlers.ts
- * Covers: authentication middleware, channel:join, message:send/edit/delete/react/pin/unpin,
- *         dm:send/edit/delete/react, typing:start/stop, disconnect
- */
-
 import http from "http";
 import bcrypt from "bcryptjs";
 import { Server } from "socket.io";
@@ -19,12 +13,10 @@ const mockedGetDb = getDb as jest.Mock;
 
 let db, httpServer, io, port;
 
-// ─── helpers ──────────────────────────────────────────────────────────────────
-
 function seedUser(username = "alice", role = "member") {
   const hash = bcrypt.hashSync("pw", 1);
   const { lastInsertRowid } = db.prepare(
-    "INSERT INTO users (username, email, password, avatar, role) VALUES (?, ?, ?, '👤', ?)"
+    "INSERT INTO users (username, email, password, avatar, role) VALUES (?, ?, ?, 'AL', ?)"
   ).run(username, `${username}@t.com`, hash, role);
   return { id: lastInsertRowid, username, role };
 }
@@ -54,8 +46,6 @@ function emit(socket, event, data) {
   return new Promise((resolve) => socket.emit(event, data, resolve));
 }
 
-// ─── setup / teardown ─────────────────────────────────────────────────────────
-
 beforeAll((done) => {
   db = createTestDb();
   mockedGetDb.mockReturnValue(db);
@@ -75,8 +65,6 @@ afterAll((done) => {
 });
 
 beforeEach(() => clearDb(db));
-
-// ─── Auth middleware ──────────────────────────────────────────────────────────
 
 describe("Socket auth middleware", () => {
   test("rejects connection with no token", (done) => {
@@ -128,8 +116,6 @@ describe("Socket auth middleware", () => {
   });
 });
 
-// ─── connection / disconnect ──────────────────────────────────────────────────
-
 describe("connection and disconnect events", () => {
   test("emits users:online on connect", (done) => {
     const user   = seedUser("online1");
@@ -178,8 +164,6 @@ describe("connection and disconnect events", () => {
   });
 });
 
-// ─── channel:join ─────────────────────────────────────────────────────────────
-
 describe("channel:join", () => {
   test("client can join a channel room without error", (done) => {
     const user   = seedUser("joiner");
@@ -193,8 +177,6 @@ describe("channel:join", () => {
     });
   });
 });
-
-// ─── message:send ─────────────────────────────────────────────────────────────
 
 describe("message:send", () => {
   test("sends a message and gets success ack", (done) => {
@@ -268,7 +250,7 @@ describe("message:send", () => {
     const owner  = seedUser("permowner");
     const other  = seedUser("noperm");
     const chId   = seedChannel("privch", owner.id);
-    // Make channel private — other has no role
+    // Make channel private - other has no role
     db.prepare("UPDATE channels SET is_private = 1 WHERE id = ?").run(chId);
 
     const client = connect(signToken(other));
@@ -281,8 +263,6 @@ describe("message:send", () => {
     });
   });
 });
-
-// ─── message:edit ────────────────────────────────────────────────────────────
 
 describe("message:edit", () => {
   test("owner edits own message successfully", (done) => {
@@ -351,8 +331,6 @@ describe("message:edit", () => {
     });
   });
 });
-
-// ─── message:delete ──────────────────────────────────────────────────────────
 
 describe("message:delete", () => {
   test("user can delete own message", (done) => {
@@ -423,8 +401,6 @@ describe("message:delete", () => {
   });
 });
 
-// ─── message:react ───────────────────────────────────────────────────────────
-
 describe("message:react", () => {
   test("adds and then toggles off a reaction", (done) => {
     const user  = seedUser("reactor");
@@ -459,8 +435,6 @@ describe("message:react", () => {
     });
   });
 });
-
-// ─── message:pin / unpin ──────────────────────────────────────────────────────
 
 describe("message:pin and message:unpin", () => {
   test("channel creator can pin a message", (done) => {
@@ -543,8 +517,6 @@ describe("message:pin and message:unpin", () => {
   });
 });
 
-// ─── dm:send ──────────────────────────────────────────────────────────────────
-
 describe("dm:send", () => {
   test("sends a DM and gets success ack", (done) => {
     const sender   = seedUser("dmsender");
@@ -606,8 +578,6 @@ describe("dm:send", () => {
   });
 });
 
-// ─── dm:edit ──────────────────────────────────────────────────────────────────
-
 describe("dm:edit", () => {
   test("sender edits own DM", (done) => {
     const sender   = seedUser("dmeditsend");
@@ -657,8 +627,6 @@ describe("dm:edit", () => {
   });
 });
 
-// ─── dm:delete ────────────────────────────────────────────────────────────────
-
 describe("dm:delete", () => {
   test("sender deletes own DM", (done) => {
     const sender   = seedUser("dmdelsend");
@@ -707,8 +675,6 @@ describe("dm:delete", () => {
   });
 });
 
-// ─── dm:react ─────────────────────────────────────────────────────────────────
-
 describe("dm:react", () => {
   test("adds and toggles off a DM reaction", (done) => {
     const sender   = seedUser("dmreactsend");
@@ -742,8 +708,6 @@ describe("dm:react", () => {
     });
   });
 });
-
-// ─── dm:read ──────────────────────────────────────────────────────────────────
 
 describe("dm:read", () => {
   function seedDm(senderId, receiverId, content = "hi") {
@@ -788,8 +752,6 @@ describe("dm:read", () => {
   });
 });
 
-// ─── status:set ───────────────────────────────────────────────────────────────
-
 describe("status:set", () => {
   test("setting a valid status emits updated users:online", (done) => {
     const user   = seedUser("statususer");
@@ -818,8 +780,6 @@ describe("status:set", () => {
     });
   });
 });
-
-// ─── typing:start / typing:stop ──────────────────────────────────────────────
 
 describe("typing events", () => {
   test("typing:start broadcasts to channel room", (done) => {
@@ -870,8 +830,6 @@ describe("typing events", () => {
   });
 });
 
-// ─── @mentions ────────────────────────────────────────────────────────────────
-
 describe("@mention notifications", () => {
   test("mentioned user receives user:mentioned event", (done) => {
     const alice = seedUser("alice_m");
@@ -894,8 +852,6 @@ describe("@mention notifications", () => {
     });
   });
 });
-
-// ─── message flood protection ─────────────────────────────────────────────────
 
 describe("message flood protection", () => {
   test("returns rate-limit error after exceeding 20 messages in 10s", (done) => {

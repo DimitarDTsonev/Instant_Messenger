@@ -2,9 +2,11 @@ import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useSocket } from "../context/SocketContext";
 import type { Channel, Conversation, User, UserStatus } from "../types";
+import { avatarLabel } from "../utils/avatar";
 import { navigateTo } from "../utils/navigation";
 import SidebarChannelList from "./SidebarChannelList";
 import SidebarDmList      from "./SidebarDmList";
+import Icon               from "./Icons";
 import { s }              from "./sidebarStyles";
 
 const STATUS_COLORS = { online: "#23a55a", away: "#f0a500", dnd: "#f23f42", offline: "#5c6068" } as const;
@@ -43,11 +45,15 @@ export default function Sidebar({
   return (
     <div style={s.sidebar} className={`sidebar${open ? " open" : ""}`}>
       <div style={s.header}>
-        <span style={s.workspaceName}>💬 Messenger</span>
+        <span style={s.workspaceName}>Messenger</span>
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <button onClick={onSearchUsers} title="Search users" style={{ background: "transparent", border: "none", color: "#5c6068", fontSize: "14px", cursor: "pointer", padding: "2px" }}>👥</button>
+          <button onClick={onSearchUsers} title="Search users" aria-label="Search users" style={s.iconButton}>
+            <Icon name="users" size={17} />
+          </button>
           <div style={s.statusDot(isConnected)} title={isConnected ? "Connected" : "Disconnected"} />
-          <button className="sidebar-close-btn" onClick={onClose} title="Close menu" aria-label="Close menu">✕</button>
+          <button className="sidebar-close-btn" onClick={onClose} title="Close menu" aria-label="Close menu">
+            <Icon name="x" size={17} />
+          </button>
         </div>
       </div>
 
@@ -68,7 +74,7 @@ export default function Sidebar({
         <div style={s.section}>
           <div style={s.sectionHeader} onClick={() => setShowUsers((v) => !v)}>
             <span style={s.sectionTitle}>Online ({onlineUserIds.length})</span>
-            <span style={{ fontSize: "11px", color: "#5c6068" }}>{showUsers ? "▲" : "▼"}</span>
+            <span style={{ color: "#5c6068", display: "inline-flex" }}><Icon name={showUsers ? "chevronUp" : "chevronDown"} size={14} /></span>
           </div>
           {showUsers && users.map((u) => {
             const online      = onlineUserIds.includes(u.id);
@@ -77,11 +83,16 @@ export default function Sidebar({
             return (
               <div key={u.id} style={{ ...s.userItem, cursor: "pointer" }} onClick={() => onViewProfile?.(u.id)} title="View profile">
                 <div style={s.avatarWrap}>
-                  <span style={s.avatar}>{u.avatar || "👤"}</span>
+                  <span style={s.avatar}>{avatarLabel(u)}</span>
                   <div style={s.onlineDot(dotColor)} title={statusLabel} />
                 </div>
                 <span style={{ color: online ? "#f2f3f5" : "#5c6068", fontSize: "13px", flex: 1 }}>
-                  {u.username}{u.role === "admin" && <span title="Admin" style={{ marginLeft: "4px" }}>👑</span>}
+                  {u.username}
+                  {u.role === "admin" && (
+                    <span title="Admin" style={{ marginLeft: "4px", color: "#faa61a", display: "inline-flex", verticalAlign: "text-bottom" }}>
+                      <Icon name="shield" size={12} />
+                    </span>
+                  )}
                 </span>
               </div>
             );
@@ -103,15 +114,21 @@ export default function Sidebar({
         )}
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <button style={{ background: "transparent", border: "none", padding: 0, cursor: "pointer", position: "relative", flexShrink: 0 }} onClick={() => setShowStatusPicker((v) => !v)} title={`Status: ${STATUS_LABELS[myStatus]}`}>
-            <span style={{ fontSize: "24px" }}>{user?.avatar || "👤"}</span>
+            <span style={{ fontSize: "14px", fontWeight: 700 }}>{avatarLabel(user)}</span>
             <span style={{ position: "absolute", bottom: -1, right: -1, width: "10px", height: "10px", borderRadius: "50%", background: STATUS_COLORS[myStatus], border: "2px solid #1e1e2e", display: "block" }} />
           </button>
           <div style={s.footerUser}>
             <div style={s.footerUsername}>{user?.username}{user?.is_guest && <span style={{ fontSize: "10px", color: "#f0a500", marginLeft: "6px" }}>guest</span>}</div>
             <div style={s.footerEmail}>{user?.email?.endsWith("@guest.local") ? "Temporary account" : user?.email}</div>
           </div>
-          {user?.role === "admin" && <button style={{ ...s.logoutBtn, color: "#f0a500" }} onClick={() => navigateTo("/admin")} title="Admin dashboard" data-testid="admin-link">👑</button>}
-          <button style={s.logoutBtn} onClick={logout} title="Sign out">⏻</button>
+          {user?.role === "admin" && (
+            <button style={{ ...s.logoutBtn, color: "#f0a500" }} onClick={() => navigateTo("/admin")} title="Admin dashboard" aria-label="Admin dashboard" data-testid="admin-link">
+              <Icon name="shield" size={17} />
+            </button>
+          )}
+          <button style={s.logoutBtn} onClick={logout} title="Sign out" aria-label="Sign out">
+            <Icon name="logOut" size={17} />
+          </button>
         </div>
       </div>
     </div>

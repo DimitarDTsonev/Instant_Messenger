@@ -1,13 +1,8 @@
-/**
- * @fileoverview Tests for UserProfileModal component
- * Covers: loading, profile display, DM button, admin role management, Escape close
- */
-
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import UserProfileModal from "../../components/UserProfileModal";
 
 const MOCK_PROFILE = {
-  id: 2, username: "bob", email: "bob@test.com", avatar: "👤",
+  id: 2, username: "bob", email: "bob@test.com", avatar: "AL",
   role: "member", created_at: "2024-01-01T00:00:00Z",
 };
 
@@ -22,7 +17,7 @@ import { useAuth } from "../../context/AuthContext";
 
 describe("UserProfileModal", () => {
   test("shows loading state initially", () => {
-    // authFetch never resolves — still loading
+    // authFetch never resolves - still loading
     useAuth.mockReturnValue({
       user: { id: 1, username: "alice", role: "admin" },
       authFetch: vi.fn(() => new Promise(() => {})),
@@ -198,7 +193,7 @@ describe("UserProfileModal", () => {
     render(<UserProfileModal userId={2} onClose={vi.fn()} onStartDm={vi.fn()} />);
     await waitFor(() => screen.getByText("Role Management"));
 
-    // Role is already "member" — clicking save without changing should be a no-op
+    // Role is already "member" - clicking save without changing should be a no-op
     // The save button should not be visible when role hasn't changed
     expect(screen.queryByText(/Save changes/i)).not.toBeInTheDocument();
     // Only the initial profile fetch should have been called

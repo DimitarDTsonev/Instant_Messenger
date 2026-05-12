@@ -1,12 +1,3 @@
-/**
- * @fileoverview Tests for Sidebar component.
- * Covers: channel list rendering, active channel highlight, channel selection,
- * new-channel form, DM conversations, active DM highlight, DM selection,
- * unread badges, online indicators, admin crown, connection status dot,
- * search button, current user profile section, collapsible sections,
- * and logout button.
- */
-
 import { render, screen, fireEvent, within } from "@testing-library/react";
 import { useAuth } from "../../context/AuthContext";
 import { useSocket } from "../../context/SocketContext";
@@ -18,7 +9,7 @@ vi.mock("../../context/SocketContext", () => ({ useSocket: vi.fn() }));
 const LOGOUT = vi.fn();
 
 const DEFAULT_AUTH = {
-  user: { id: 1, username: "alice", role: "admin", avatar: "👤", email: "alice@example.com" },
+  user: { id: 1, username: "alice", role: "admin", avatar: "AL", email: "alice@example.com" },
   token: "tok",
   logout: LOGOUT,
 };
@@ -30,27 +21,23 @@ const DEFAULT_SOCKET = {
   setStatus: vi.fn(),
 };
 
-/** Sample channels */
 const CHANNELS = [
   { id: 10, name: "general",   description: "General chat", is_private: 0, created_by: 1, user_role: "owner" },
   { id: 11, name: "random",    description: "",              is_private: 0, created_by: 2, user_role: "member" },
   { id: 12, name: "secret",    description: "",              is_private: 1, created_by: 1, user_role: "owner" },
 ];
 
-/** Sample users (excluding alice, the logged-in user) */
 const USERS = [
-  { id: 1, username: "alice", avatar: "👤", role: "admin",  email: "alice@example.com" },
-  { id: 2, username: "bob",   avatar: "🐧", role: "user",   email: "bob@example.com" },
+  { id: 1, username: "alice", avatar: "AL", role: "admin",  email: "alice@example.com" },
+  { id: 2, username: "bob",   avatar: "BO", role: "user",   email: "bob@example.com" },
   { id: 3, username: "carol", avatar: "🦊", role: "user",   email: "carol@example.com" },
 ];
 
-/** Sample DM conversations */
 const CONVERSATIONS = [
   { partner_id: 2, unread_count: 3 },
   { partner_id: 3, unread_count: 0 },
 ];
 
-/** Default props passed to every render. */
 function buildProps(overrides = {}) {
   return {
     channels: CHANNELS,
@@ -75,10 +62,7 @@ beforeEach(() => {
   useSocket.mockReturnValue(DEFAULT_SOCKET);
   LOGOUT.mockReset();
 });
-
-// ─────────────────────────────────────────────────────────
 //  1. Channel list renders
-// ─────────────────────────────────────────────────────────
 describe("channel list", () => {
   test("renders all channel names", () => {
     render(<Sidebar {...buildProps()} />);
@@ -89,22 +73,17 @@ describe("channel list", () => {
 
   test("shows # prefix for public channels", () => {
     render(<Sidebar {...buildProps()} />);
-    // public channels show "#" text
-    const hashes = screen.getAllByText("#");
+    const hashes = screen.getAllByTitle("Public channel");
     expect(hashes.length).toBeGreaterThanOrEqual(1);
   });
 
-  test("shows 🔒 prefix for private channels", () => {
+  test("shows private prefix for private channels", () => {
     render(<Sidebar {...buildProps()} />);
-    // The private channel renders a lock icon
-    const locks = screen.getAllByText("🔒");
+    const locks = screen.getAllByTitle("Private channel");
     expect(locks.length).toBeGreaterThanOrEqual(1);
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  2. Active channel highlighted
-// ─────────────────────────────────────────────────────────
 describe("active channel highlight", () => {
   test("applies active style to the selected channel", () => {
     render(<Sidebar {...buildProps({ activeChannel: CHANNELS[0] })} />);
@@ -122,10 +101,7 @@ describe("active channel highlight", () => {
     expect(item.style.borderLeft).not.toBe("2px solid #5865f2");
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  3. Clicking channel calls onSelectChannel
-// ─────────────────────────────────────────────────────────
 describe("channel click", () => {
   test("calls onSelectChannel with the channel object when a channel is clicked", () => {
     const onSelectChannel = vi.fn();
@@ -134,10 +110,7 @@ describe("channel click", () => {
     expect(onSelectChannel).toHaveBeenCalledWith(CHANNELS[0]);
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  4. New channel form
-// ─────────────────────────────────────────────────────────
 describe("new channel form", () => {
   test("clicking the + button shows the new-channel form", () => {
     render(<Sidebar {...buildProps()} />);
@@ -148,9 +121,8 @@ describe("new channel form", () => {
   test("clicking cancel hides the new-channel form", () => {
     render(<Sidebar {...buildProps()} />);
     fireEvent.click(screen.getByTitle("New channel"));
-    // Cancel button renders as ✕ with type="button" (no title attribute)
     const form = screen.getByPlaceholderText("new-channel").closest("form");
-    fireEvent.click(within(form).getByRole("button", { name: "✕" }));
+    fireEvent.click(within(form).getByRole("button", { name: "Cancel new channel" }));
     expect(screen.queryByPlaceholderText("new-channel")).not.toBeInTheDocument();
   });
 
@@ -168,10 +140,7 @@ describe("new channel form", () => {
     expect(onCreateChannel).toHaveBeenCalledWith("test-channel", "", 0);
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  5. DM conversations shown
-// ─────────────────────────────────────────────────────────
 describe("DM conversations", () => {
   test("renders DM partners (excludes current user)", () => {
     render(<Sidebar {...buildProps()} />);
@@ -188,17 +157,14 @@ describe("DM conversations", () => {
     const alices = screen.getAllByText("alice");
     // alice appears in footer + Online section but not as a DM partner row
     expect(alices.length).toBeGreaterThanOrEqual(1);
-    // The DM section maps users filtered to exclude current user — bob and carol only
+    // The DM section maps users filtered to exclude current user - bob and carol only
     const dmSection = screen.getByText(/^Direct/).closest("div[style]")?.parentElement;
     if (dmSection) {
       expect(dmSection.textContent).not.toMatch(/^alice/);
     }
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  6. Active DM highlighted
-// ─────────────────────────────────────────────────────────
 describe("active DM highlight", () => {
   test("applies active border when a DM is selected", () => {
     const activeDm = USERS[1]; // bob
@@ -210,10 +176,7 @@ describe("active DM highlight", () => {
     expect(bobItem).toHaveStyle({ borderLeft: "2px solid #5865f2" });
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  7. Clicking DM calls onSelectDm
-// ─────────────────────────────────────────────────────────
 describe("DM click", () => {
   test("calls onSelectDm with the user object when a DM row is clicked", () => {
     const onSelectDm = vi.fn();
@@ -223,10 +186,7 @@ describe("DM click", () => {
     expect(onSelectDm).toHaveBeenCalledWith(USERS[1]);
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  8. Unread badge shown
-// ─────────────────────────────────────────────────────────
 describe("unread badges", () => {
   test("shows unread badge count for channels with unread messages", () => {
     render(<Sidebar {...buildProps({ unreadChannels: { 10: 5 } })} />);
@@ -235,7 +195,7 @@ describe("unread badges", () => {
 
   test("shows DM unread badge count for conversations with unread messages", () => {
     render(<Sidebar {...buildProps()} />);
-    // bob has 3 unread in CONVERSATIONS fixture — badge appears at least once
+    // bob has 3 unread in CONVERSATIONS fixture - badge appears at least once
     // (also shown in section header total)
     expect(screen.getAllByText("3").length).toBeGreaterThanOrEqual(1);
   });
@@ -247,36 +207,26 @@ describe("unread badges", () => {
     expect(screen.getAllByText("3").length).toBeGreaterThanOrEqual(1);
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  9. Online indicator
-// ─────────────────────────────────────────────────────────
 describe("online indicator", () => {
   test("renders online dot for each user", () => {
     render(<Sidebar {...buildProps()} />);
-    // The component renders online dot divs — we can't easily query them by text,
+    // The component renders online dot divs - we can't easily query them by text,
     // but we verify the component renders without errors and shows user names.
     expect(screen.getAllByText(/bob/).length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText(/carol/).length).toBeGreaterThanOrEqual(1);
   });
 });
-
-// ─────────────────────────────────────────────────────────
-//  10. Admin crown shown for admin users
-// ─────────────────────────────────────────────────────────
-describe("admin crown", () => {
-  test("shows 👑 crown for admin users in the DM/users list", () => {
-    // alice is role=admin — she appears in the Online section
+//  10. Admin shield shown for admin users
+describe("admin shield", () => {
+  test("shows admin shield for admin users in the DM/users list", () => {
+    // alice is role=admin - she appears in the Online section
     render(<Sidebar {...buildProps()} />);
-    // Crown for alice in Online section
-    const crowns = screen.getAllByTitle("Admin");
-    expect(crowns.length).toBeGreaterThanOrEqual(1);
+    const shields = screen.getAllByTitle("Admin");
+    expect(shields.length).toBeGreaterThanOrEqual(1);
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  11. Connection status dot
-// ─────────────────────────────────────────────────────────
 describe("connection status dot", () => {
   test("renders a Connected title when isConnected=true", () => {
     render(<Sidebar {...buildProps()} />);
@@ -289,10 +239,7 @@ describe("connection status dot", () => {
     expect(screen.getByTitle("Disconnected")).toBeInTheDocument();
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  12. Search button present
-// ─────────────────────────────────────────────────────────
 describe("search button", () => {
   test("renders the search users button", () => {
     render(<Sidebar {...buildProps()} />);
@@ -306,14 +253,11 @@ describe("search button", () => {
     expect(onSearchUsers).toHaveBeenCalledTimes(1);
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  13. Current user profile section
-// ─────────────────────────────────────────────────────────
 describe("user profile footer", () => {
   test("shows the current user's username in the footer", () => {
     render(<Sidebar {...buildProps()} />);
-    // alice appears in footer and Online section — just verify at least one occurrence
+    // alice appears in footer and Online section - just verify at least one occurrence
     expect(screen.getAllByText("alice").length).toBeGreaterThanOrEqual(1);
     // Footer specifically contains the username in the footerUsername div
     const footer = document.querySelector("[style*='border-top: 1px solid']");
@@ -334,30 +278,24 @@ describe("user profile footer", () => {
     expect(screen.getByText("Temporary account")).toBeInTheDocument();
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  14. Collapsible sections
-// ─────────────────────────────────────────────────────────
 describe("collapsible sections", () => {
   test("clicking the DM section header hides the DM list", () => {
     render(<Sidebar {...buildProps()} />);
     // bob appears in DM list initially
     expect(screen.getAllByText(/bob/).length).toBeGreaterThanOrEqual(1);
 
-    // The Direct section header has the toggle arrow — click it to collapse
+    // The Direct section header has the toggle arrow - click it to collapse
     const directHeader = screen.getByText(/^Direct/).closest("div[style]");
     fireEvent.click(directHeader);
 
     // After collapse, no DM avatar items should be visible for the DMs section
     // bob still appears in the Online section, but not the DM list
     // We verify the component doesn't crash
-    expect(screen.getByText(/💬 Messenger/i)).toBeInTheDocument();
+    expect(screen.getByText(/Messenger/i)).toBeInTheDocument();
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  15. Logout button
-// ─────────────────────────────────────────────────────────
 describe("logout button", () => {
   test("renders the logout button", () => {
     render(<Sidebar {...buildProps()} />);
@@ -370,13 +308,10 @@ describe("logout button", () => {
     expect(LOGOUT).toHaveBeenCalledTimes(1);
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  16. Channel hover action buttons
-// ─────────────────────────────────────────────────────────
 describe("channel hover actions", () => {
   function getChannelRow(name) {
-    // channel name span → parent div (the channel item row)
+    // channel name span -> parent div (the channel item row)
     return screen.getByText(name).parentElement;
   }
 
@@ -420,10 +355,7 @@ describe("channel hover actions", () => {
     expect(onSelectChannel).not.toHaveBeenCalled();
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  17. Mobile open prop
-// ─────────────────────────────────────────────────────────
 describe("mobile open prop", () => {
   test("sidebar element has class 'sidebar' by default", () => {
     const { container } = render(<Sidebar {...buildProps()} />);
@@ -441,10 +373,7 @@ describe("mobile open prop", () => {
     expect(container.querySelector(".sidebar.open")).not.toBeInTheDocument();
   });
 });
-
-// ─────────────────────────────────────────────────────────
 //  18. Status picker
-// ─────────────────────────────────────────────────────────
 describe("status picker", () => {
   test("avatar button shows current status in title", () => {
     useSocket.mockReturnValue({ ...DEFAULT_SOCKET, userStatuses: { 1: "away" } });

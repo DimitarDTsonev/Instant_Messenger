@@ -1,15 +1,3 @@
-// ============================================================
-//  src/routes/channels/channelInvites.ts — Invite link management
-//
-//  Mounted at /:id/invites on the channels router.
-//  (Separate from routes/invites.ts which handles public invite redemption.)
-//
-//  Routes:
-//    POST   /       — generate a new invite link (requires can_invite)
-//    GET    /       — list active invite links (requires can_invite)
-//    DELETE /:code  — revoke an invite link (requires can_invite)
-// ============================================================
-
 import { Router } from "express";
 import type { Request, Response } from "express";
 import crypto from "crypto";
