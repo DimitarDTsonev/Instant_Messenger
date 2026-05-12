@@ -7,6 +7,14 @@ import { isUserBanned, logSecurityEvent, recordLoginFail } from "../middleware/s
 
 type CountRow = { n: number };
 
+function validatePassword(password: string): string | null {
+  if (password.length < 6)          return "Password must be at least 6 characters";
+  if (!/[A-Z]/.test(password))      return "Password must contain at least one uppercase letter";
+  if (!/[0-9]/.test(password))      return "Password must contain at least one number";
+  if (!/[^A-Za-z0-9]/.test(password)) return "Password must contain at least one special character";
+  return null;
+}
+
 type UserRow = {
   id: number;
   username: string;
@@ -35,9 +43,8 @@ router.post("/register", (req, res) => {
   if (!username || !email || !password) {
     return res.status(400).json({ error: "All fields are required" });
   }
-  if (password.length < 6) {
-    return res.status(400).json({ error: "Password must be at least 6 characters" });
-  }
+  const pwError = validatePassword(password);
+  if (pwError) return res.status(400).json({ error: pwError });
 
   const db = getDb();
 
@@ -218,9 +225,8 @@ router.post("/reset-password", async (req, res) => {
   if (!token?.trim() || !password?.trim()) {
     return res.status(400).json({ error: "Token and password are required" });
   }
-  if (password.length < 6) {
-    return res.status(400).json({ error: "Password must be at least 6 characters" });
-  }
+  const pwError2 = validatePassword(password);
+  if (pwError2) return res.status(400).json({ error: pwError2 });
 
   const db   = getDb();
   const now  = new Date().toISOString().replace("T", " ").slice(0, 19);

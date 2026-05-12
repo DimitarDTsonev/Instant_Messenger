@@ -4,17 +4,13 @@
     "module": "node16",
     "moduleDetection": "force",
     "moduleResolution": "node16",
-    "rootDir": ".",
-    "outDir": "dist",
     "esModuleInterop": true,
     "resolveJsonModule": true,
-    "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
     "strict": false,
-    "noImplicitAny": true,
-    "sourceMap": true,
+    "noImplicitAny": false,
+    "noEmit": true,
     "types": ["node", "jest"]
   },
-  "include": ["server.ts", "src/**/*.ts"],
-  "exclude": ["dist", "node_modules", "coverage", "src/__tests__", "src/test-utils"]
+  "include": ["./**/*.ts", "../**/*.ts"]
 }

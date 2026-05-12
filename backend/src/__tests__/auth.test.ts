@@ -34,7 +34,7 @@ describe("POST /api/auth/register", () => {
   test("creates a user and returns user + token", async () => {
     const res = await request(app)
       .post("/api/auth/register")
-      .send({ username: "alice", email: "alice@test.com", password: "password123" });
+      .send({ username: "alice", email: "alice@test.com", password: "Password1!" });
 
     expect(res.status).toBe(201);
     expect(res.body.user.username).toBe("alice");
@@ -45,15 +45,15 @@ describe("POST /api/auth/register", () => {
   test("first registered user becomes admin", async () => {
     const res = await request(app)
       .post("/api/auth/register")
-      .send({ username: "first", email: "first@test.com", password: "password123" });
+      .send({ username: "first", email: "first@test.com", password: "Password1!" });
     expect(res.body.user.role).toBe("admin");
   });
 
   test("subsequent users get member role", async () => {
     await request(app).post("/api/auth/register")
-      .send({ username: "first", email: "first@test.com", password: "password123" });
+      .send({ username: "first", email: "first@test.com", password: "Password1!" });
     const res = await request(app).post("/api/auth/register")
-      .send({ username: "second", email: "second@test.com", password: "password123" });
+      .send({ username: "second", email: "second@test.com", password: "Password1!" });
     expect(res.body.user.role).toBe("member");
   });
 
@@ -71,17 +71,17 @@ describe("POST /api/auth/register", () => {
 
   test("returns 409 on duplicate email", async () => {
     await request(app).post("/api/auth/register")
-      .send({ username: "alice", email: "alice@test.com", password: "password123" });
+      .send({ username: "alice", email: "alice@test.com", password: "Password1!" });
     const res = await request(app).post("/api/auth/register")
-      .send({ username: "alice2", email: "alice@test.com", password: "password123" });
+      .send({ username: "alice2", email: "alice@test.com", password: "Password1!" });
     expect(res.status).toBe(409);
   });
 
   test("returns 409 on duplicate username", async () => {
     await request(app).post("/api/auth/register")
-      .send({ username: "alice", email: "alice@test.com", password: "password123" });
+      .send({ username: "alice", email: "alice@test.com", password: "Password1!" });
     const res = await request(app).post("/api/auth/register")
-      .send({ username: "alice", email: "alice2@test.com", password: "password123" });
+      .send({ username: "alice", email: "alice2@test.com", password: "Password1!" });
     expect(res.status).toBe(409);
   });
 });
@@ -340,7 +340,7 @@ describe("POST /api/auth/reset-password", () => {
     const token = seedResetToken(user.id);
     const res = await request(app)
       .post("/api/auth/reset-password")
-      .send({ token, password: "newpassword" });
+      .send({ token, password: "Newpass1!" });
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
     // Token should be marked as used (DB stores the hash, not the raw token)
@@ -354,7 +354,7 @@ describe("POST /api/auth/reset-password", () => {
     const token = seedResetToken(user.id, { expired: true });
     const res = await request(app)
       .post("/api/auth/reset-password")
-      .send({ token, password: "newpassword" });
+      .send({ token, password: "Newpass1!" });
     expect(res.status).toBe(400);
   });
 
@@ -363,7 +363,7 @@ describe("POST /api/auth/reset-password", () => {
     const token = seedResetToken(user.id, { used: true });
     const res = await request(app)
       .post("/api/auth/reset-password")
-      .send({ token, password: "newpassword" });
+      .send({ token, password: "Newpass1!" });
     expect(res.status).toBe(400);
   });
 
@@ -379,7 +379,7 @@ describe("POST /api/auth/reset-password", () => {
   test("returns 400 when token is missing", async () => {
     const res = await request(app)
       .post("/api/auth/reset-password")
-      .send({ password: "newpassword" });
+      .send({ password: "Newpass1!" });
     expect(res.status).toBe(400);
   });
 });
