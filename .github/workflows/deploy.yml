@@ -48,6 +48,7 @@ jobs:
   # ── Notify Render to redeploy the backend ──────────────────────────────────
   deploy-backend:
     runs-on: ubuntu-latest
+    permissions: {}
     steps:
       - name: Trigger Render deploy hook
         run: |
