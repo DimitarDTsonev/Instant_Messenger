@@ -65,7 +65,7 @@ describe("LoginPage", () => {
     const emailInput = screen.getByLabelText(/email/i) as HTMLInputElement;
     expect(emailInput.value).toBe("alice@demo.com");
     const passInput = screen.getByLabelText(/password/i) as HTMLInputElement;
-    expect(passInput.value).toBe("password123");
+    expect(passInput.value).toBe("Password@123");
   });
 
   test("calls login() with entered credentials on submit", async () => {
