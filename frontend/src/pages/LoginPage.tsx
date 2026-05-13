@@ -104,7 +104,7 @@ export default function LoginPage() {
 
     const [loading, setLoading] = useState(false);
 
-    const [form, setForm] = useState({ username: "", email: "alice@demo.com", password: "password123" });
+    const [form, setForm] = useState({ username: "", email: "alice@demo.com", password: "Password@123" });
 
     function handleChange(e: ChangeEvent<HTMLInputElement>) {
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
@@ -214,7 +214,8 @@ export default function LoginPage() {
           <div style={{ ...styles.hint, marginTop: "12px" }}>
             <button
               type="button"
-              style={{ background: "transparent", border: "none", color: "#5865f2", fontSize: "12px", cursor: "pointer", textDecoration: "underline" }}
+              style={{ background: "transparent", border: "none", color: "#5865f2", 
+                       fontSize: "12px", cursor: "pointer", textDecoration: "underline" }}
               onClick={() => setShowForgot(true)}
               data-testid="forgot-password-link"
             >
@@ -225,7 +226,7 @@ export default function LoginPage() {
 
         {/* Demo credentials hint - only shown on the login tab */}
         {mode === "login" && (
-          <div style={styles.hint}>Demo account: alice@demo.com / password123</div>
+          <div style={styles.hint}>Demo account: alice@demo.com / Password@123 </div>
         )}
       </div>
     </div>
