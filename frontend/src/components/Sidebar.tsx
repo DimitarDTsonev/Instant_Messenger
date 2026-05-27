@@ -76,7 +76,7 @@ export default function Sidebar({
         <div style={s.section}>
           <div style={s.sectionHeader} onClick={() => setShowUsers((v) => !v)}>
             <span style={s.sectionTitle}>Online ({onlineUserIds.length})</span>
-            <span style={{ color: "#5c6068", display: "inline-flex" }}><Icon name={showUsers ? "chevronUp" : "chevronDown"} size={14} /></span>
+            <span style={{ color: "var(--col-text-muted)", display: "inline-flex" }}><Icon name={showUsers ? "chevronUp" : "chevronDown"} size={14} /></span>
           </div>
           {showUsers && users.map((u) => {
             const online      = onlineUserIds.includes(u.id);
@@ -88,7 +88,7 @@ export default function Sidebar({
                   <span style={s.avatar}>{avatarLabel(u)}</span>
                   <div style={s.onlineDot(dotColor)} title={statusLabel} />
                 </div>
-                <span style={{ color: online ? "#f2f3f5" : "#5c6068", fontSize: "13px", flex: 1 }}>
+                <span style={{ color: online ? "var(--col-text-primary)" : "var(--col-text-muted)", fontSize: "13px", flex: 1 }}>
                   {u.username}
                   {u.role === "admin" && (
                     <span title="Admin" style={{ marginLeft: "4px", color: "#faa61a", display: "inline-flex", verticalAlign: "text-bottom" }}>

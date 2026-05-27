@@ -31,7 +31,7 @@ export default function SidebarDmList({ users, currentUserId, activeDm, onSelect
         <span style={s.sectionTitle}>
           Direct{totalUnread > 0 && <span style={{ ...s.unreadBadge, display: "inline-flex", marginLeft: "6px" }}>{totalUnread}</span>}
         </span>
-        <span style={{ color: "#5c6068", display: "inline-flex" }}><Icon name={visible ? "chevronUp" : "chevronDown"} size={14} /></span>
+        <span style={{ color: "var(--col-text-muted)", display: "inline-flex" }}><Icon name={visible ? "chevronUp" : "chevronDown"} size={14} /></span>
       </div>
 
       {visible && users.filter((u) => u.id !== currentUserId).map((u) => {
@@ -47,7 +47,7 @@ export default function SidebarDmList({ users, currentUserId, activeDm, onSelect
               <span style={s.avatar}>{avatarLabel(u)}</span>
               <div style={s.onlineDot(dotColor(u.id))} title={statusLabel} />
             </div>
-            <span style={{ color: isActive ? "#f2f3f5" : online ? "#dbdee1" : "#5c6068", fontSize: "13px", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <span style={{ color: isActive ? "var(--col-text-primary)" : online ? "var(--col-text-secondary)" : "var(--col-text-muted)", fontSize: "13px", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {u.username}
               {u.role === "admin" && (
                 <span title="Admin" style={{ marginLeft: "4px", color: "#faa61a", display: "inline-flex", verticalAlign: "text-bottom" }}>
