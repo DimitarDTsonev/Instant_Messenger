@@ -46,6 +46,8 @@ const SCHEMA = `
     file_type   TEXT,
     file_name   TEXT,
     is_pinned   INTEGER DEFAULT 0,
+    source      TEXT DEFAULT 'user',
+    metadata    TEXT,
     created_at  DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 

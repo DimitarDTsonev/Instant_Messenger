@@ -6,6 +6,7 @@ import messageRoutes from "../routes/messages";
 import dmRoutes from "../routes/dm";
 import inviteRoutes from "../routes/invites";
 import adminRoutes from "../routes/admin";
+import { errorHandler } from "../middleware/errorHandler";
 
 export function createTestApp() {
   const app = express();
@@ -16,5 +17,6 @@ export function createTestApp() {
   app.use("/api/dm",       dmRoutes);
   app.use("/api/invite",   inviteRoutes);
   app.use("/api/admin",    adminRoutes);
+  app.use(errorHandler);
   return app;
 }

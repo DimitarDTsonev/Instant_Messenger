@@ -46,8 +46,10 @@ import dmRoutes from "./src/routes/dm";
 import uploadRoutes from "./src/routes/upload";
 import inviteRoutes from "./src/routes/invites";
 import adminRoutes from "./src/routes/admin";
+import createIntegrationsRouter from "./src/routes/integrations";
 import { registerSocketHandlers } from "./src/socket/handlers";
 import { checkIpBanned, logSecurityEvent } from "./src/middleware/security";
+import { errorHandler } from "./src/middleware/errorHandler";
 
 // Core Express application instance
 const app = express();
@@ -150,7 +152,8 @@ app.use("/api/messages", messageRoutes);
 app.use("/api/dm",       dmRoutes);
 app.use("/api/upload",   uploadRoutes);
 app.use("/api/invite",   inviteRoutes);
-app.use("/api/admin",    adminRoutes);  // admin: security logs, ban/unban
+app.use("/api/admin",        adminRoutes);
+app.use("/api/integrations", createIntegrationsRouter(io));
 
 /**
  * GET /api/health
@@ -162,6 +165,11 @@ app.use("/api/admin",    adminRoutes);  // admin: security logs, ban/unban
  * @returns {200} { status: "ok" }
  */
 app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
+
+// -----------------------------------------------------------
+// Global error handler — must be registered after all routes
+// -----------------------------------------------------------
+app.use(errorHandler);
 
 // -----------------------------------------------------------
 // Register all Socket.io event handlers

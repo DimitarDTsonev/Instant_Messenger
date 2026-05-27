@@ -6,6 +6,7 @@ import request from "supertest";
 import { getDb } from "../db/database";
 import { signToken } from "../middleware/auth";
 import uploadRouter from "../routes/upload";
+import { errorHandler } from "../middleware/errorHandler";
 
 // authMiddleware now queries the DB to check for bans/role changes
 jest.mock("../db/database", () => ({ getDb: jest.fn() }));
@@ -25,6 +26,7 @@ function buildApp() {
   const app = express();
   app.use(express.json());
   app.use("/api/upload", uploadRouter);
+  app.use(errorHandler);
   return app;
 }
 

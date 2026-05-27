@@ -58,31 +58,35 @@ describe("signToken", () => {
 });
 
 describe("authMiddleware", () => {
-  test("returns 401 when Authorization header is missing", () => {
+  test("calls next with 401 error when Authorization header is missing", () => {
     const req = mockReq(undefined);
     const res = mockRes();
     authMiddleware(req as Request, res as Response, mockNext);
-    expect(res.status).toHaveBeenCalledWith(401);
-    expect(mockNext).not.toHaveBeenCalled();
+    expect(mockNext).toHaveBeenCalledTimes(1);
+    const err = mockNext.mock.calls[0][0] as { statusCode?: number };
+    expect(err?.statusCode).toBe(401);
+    expect(res.status).not.toHaveBeenCalled();
   });
 
-  test("returns 401 when header does not start with Bearer", () => {
+  test("calls next with 401 error when header does not start with Bearer", () => {
     const req = mockReq("Basic abc123");
     const res = mockRes();
     authMiddleware(req as Request, res as Response, mockNext);
-    expect(res.status).toHaveBeenCalledWith(401);
-    expect(mockNext).not.toHaveBeenCalled();
+    expect(mockNext).toHaveBeenCalledTimes(1);
+    const err = mockNext.mock.calls[0][0] as { statusCode?: number };
+    expect(err?.statusCode).toBe(401);
   });
 
-  test("returns 401 for a malformed / invalid token", () => {
+  test("calls next with 401 error for a malformed / invalid token", () => {
     const req = mockReq("Bearer notavalidtoken");
     const res = mockRes();
     authMiddleware(req as Request, res as Response, mockNext);
-    expect(res.status).toHaveBeenCalledWith(401);
-    expect(mockNext).not.toHaveBeenCalled();
+    expect(mockNext).toHaveBeenCalledTimes(1);
+    const err = mockNext.mock.calls[0][0] as { statusCode?: number };
+    expect(err?.statusCode).toBe(401);
   });
 
-  test("returns 401 for an expired token", () => {
+  test("calls next with 401 error for an expired token", () => {
     const expired = jwt.sign(
       { id: 1, username: "u", email: "u@u.com", role: "member" },
       SECRET,
@@ -91,7 +95,9 @@ describe("authMiddleware", () => {
     const req = mockReq(`Bearer ${expired}`);
     const res = mockRes();
     authMiddleware(req as Request, res as Response, mockNext);
-    expect(res.status).toHaveBeenCalledWith(401);
+    expect(mockNext).toHaveBeenCalledTimes(1);
+    const err = mockNext.mock.calls[0][0] as { statusCode?: number };
+    expect(err?.statusCode).toBe(401);
   });
 
   test("attaches decoded payload to req.user and calls next for valid token", () => {
@@ -100,29 +106,31 @@ describe("authMiddleware", () => {
     const req = mockReq(`Bearer ${token}`);
     const res = mockRes();
     authMiddleware(req as Request, res as Response, mockNext);
-    expect(mockNext).toHaveBeenCalledTimes(1);
+    expect(mockNext).toHaveBeenCalledWith();
     expect(req.user.id).toBe(5);
     expect(req.user.role).toBe("admin");
     expect(res.status).not.toHaveBeenCalled();
   });
 
-  test("returns 401 when user no longer exists in the database", () => {
+  test("calls next with 401 error when user no longer exists in the database", () => {
     mockedGetDb.mockReturnValue(mockDbReturning(undefined));
     const token = signToken({ id: 99, username: "ghost", email: "g@g.com", role: "member" });
     const req = mockReq(`Bearer ${token}`);
     const res = mockRes();
     authMiddleware(req as Request, res as Response, mockNext);
-    expect(res.status).toHaveBeenCalledWith(401);
-    expect(mockNext).not.toHaveBeenCalled();
+    expect(mockNext).toHaveBeenCalledTimes(1);
+    const err = mockNext.mock.calls[0][0] as { statusCode?: number };
+    expect(err?.statusCode).toBe(401);
   });
 
-  test("returns 403 when user is banned", () => {
+  test("calls next with 403 error when user is banned", () => {
     mockedGetDb.mockReturnValue(mockDbReturning({ id: 5, username: "alice", email: "a@a.com", role: "member", is_banned: 1 }));
     const token = signToken({ id: 5, username: "alice", email: "a@a.com", role: "member" });
     const req = mockReq(`Bearer ${token}`);
     const res = mockRes();
     authMiddleware(req as Request, res as Response, mockNext);
-    expect(res.status).toHaveBeenCalledWith(403);
-    expect(mockNext).not.toHaveBeenCalled();
+    expect(mockNext).toHaveBeenCalledTimes(1);
+    const err = mockNext.mock.calls[0][0] as { statusCode?: number };
+    expect(err?.statusCode).toBe(403);
   });
 });

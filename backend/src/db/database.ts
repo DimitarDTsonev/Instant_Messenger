@@ -1,6 +1,7 @@
 import type { Db } from "../types";
 import Database from "better-sqlite3";
 import path from "path";
+import bcrypt from "bcryptjs";
 
 // Absolute path to the SQLite file. Docker can override it to persist data in a volume.
 const DB_PATH = process.env.DB_PATH || path.join(process.cwd(), "messenger.db");
@@ -178,6 +179,8 @@ export function initDatabase() {
     ["file_type",    "TEXT"],
     ["file_name",    "TEXT"],
     ["is_pinned",    "INTEGER DEFAULT 0"],
+    ["source",       "TEXT DEFAULT 'user'"],  // 'user' | 'system' | 'webhook'
+    ["metadata",     "TEXT"],
   ];
   for (const [col, def] of msgMigrations) {
     if (!msgCols.includes(col)) {
@@ -197,6 +200,9 @@ export function initDatabase() {
   }
   if (!userCols.includes("ban_reason")) {
     db.exec("ALTER TABLE users ADD COLUMN ban_reason TEXT");
+  }
+  if (!userCols.includes("is_system")) {
+    db.exec("ALTER TABLE users ADD COLUMN is_system INTEGER DEFAULT 0");
   }
 
   // Security event log
@@ -254,6 +260,23 @@ export function initDatabase() {
   for (const [col, def] of dmMigrations) {
     if (!dmCols.includes(col)) {
       db.exec(`ALTER TABLE direct_messages ADD COLUMN ${col} ${def}`);
+    }
+  }
+
+  // Auto-seed the Music Dashboard bot user when BOT_* env vars are provided.
+  // Runs on every startup but is a no-op if the user already exists.
+  const botEmail    = process.env.BOT_EMAIL;
+  const botPassword = process.env.BOT_PASSWORD;
+  const botUsername = process.env.BOT_USERNAME || "MusicBot";
+
+  if (botEmail && botPassword) {
+    const exists = db.prepare("SELECT id FROM users WHERE email = ?").get(botEmail);
+    if (!exists) {
+      const hashed = bcrypt.hashSync(botPassword, 10);
+      const avatar  = botUsername.slice(0, 2).toUpperCase();
+      db.prepare("INSERT INTO users (username, email, password, avatar, role, is_system) VALUES (?, ?, ?, ?, 'member', 1)")
+        .run(botUsername, botEmail, hashed, avatar);
+      console.log(`Bot user '${botUsername}' created automatically (system account)`);
     }
   }
 

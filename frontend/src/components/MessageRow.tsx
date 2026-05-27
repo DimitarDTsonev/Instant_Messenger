@@ -3,6 +3,7 @@ import type { KeyboardEvent } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useSocket } from "../context/SocketContext";
 import MarkdownRenderer from "./MarkdownRenderer";
+import MusicMessagePreview, { getMusicMetadata } from "./MusicMessagePreview";
 import FilePreviewModal from "./FilePreviewModal";
 import Icon from "./Icons";
 import TouchMenu from "./TouchMenu";
@@ -49,6 +50,8 @@ export default function MessageRow({ msg, isGroupFirst, avatar, username, role, 
   const isOwn    = (msg.user_id ?? msg.sender_id) === user?.id;
   const isAdmin  = role === "admin";
   const isPinned = !!msg.is_pinned;
+  const musicMetadata = getMusicMetadata(msg);
+  const isIntegrationMessage = !!musicMetadata || msg.source === "webhook" || msg.source === "music-dashboard";
   const doEdit   = isDm ? editDmMessage   : editMessage;
   const doDelete = isDm ? deleteDmMessage : deleteMessage;
   const doReact  = isDm ? reactToDmMessage : reactToMessage;
@@ -137,6 +140,7 @@ export default function MessageRow({ msg, isGroupFirst, avatar, username, role, 
               <span style={s.timestamp}>{formatTime(msg.created_at)}</span>
               {!!msg.is_edited && <span style={s.editedTag}>(edited)</span>}
               {isPinned && <span style={s.pinnedBadge}>Pinned</span>}
+              {isIntegrationMessage && <span style={s.integrationBadge}>API</span>}
             </div>
           )}
 
@@ -164,7 +168,7 @@ export default function MessageRow({ msg, isGroupFirst, avatar, username, role, 
             </>
           ) : (
             <>
-              {msg.content && <MarkdownRenderer text={msg.content} users={users} />}
+              {musicMetadata ? <MusicMessagePreview msg={msg} /> : msg.content && <MarkdownRenderer text={msg.content} users={users} />}
               {msg.file_url && (
                 isImage ? (
                   <img src={`${BASE_URL}${msg.file_url}`} alt={fileName} style={s.msgImage}

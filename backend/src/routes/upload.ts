@@ -1,4 +1,3 @@
-import type { NextFunction, Request, Response } from "express";
 import express from "express";
 import fs from "fs";
 import multer from "multer";
@@ -67,10 +66,6 @@ router.post("/", upload.single("file"), (req, res) => {
     name: req.file.originalname,
     size: req.file.size,
   });
-});
-
-router.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
-  res.status(400).json({ error: err.message });
 });
 
 export default router;

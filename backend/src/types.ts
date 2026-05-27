@@ -24,6 +24,8 @@ export interface MessageRow {
   username?: string;
   avatar?: string | null;
   role?: string;
+  source?: string;
+  metadata?: string | null;
   reactions?: ReactionMap;
   [key: string]: unknown;
 }

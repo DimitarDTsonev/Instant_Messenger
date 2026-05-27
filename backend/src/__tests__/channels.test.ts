@@ -296,8 +296,7 @@ describe("DELETE /api/channels/:id", () => {
     const res = await request(app)
       .delete(`/api/channels/${cid}`)
       .set("Authorization", `Bearer ${tok(u)}`);
-    expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
+    expect(res.status).toBe(204);
   });
 
   test("admin can delete any channel", async () => {
@@ -307,8 +306,7 @@ describe("DELETE /api/channels/:id", () => {
     const res = await request(app)
       .delete(`/api/channels/${cid}`)
       .set("Authorization", `Bearer ${tok(admin)}`);
-    expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
+    expect(res.status).toBe(204);
   });
 });
 
@@ -516,8 +514,7 @@ describe("DELETE /api/channels/:id/members/:userId", () => {
     const res = await request(app)
       .delete(`/api/channels/${cid}/members/${target.id}`)
       .set("Authorization", `Bearer ${tok(owner)}`);
-    expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
+    expect(res.status).toBe(204);
   });
 });
 
@@ -722,7 +719,6 @@ describe("DELETE /api/channels/:id/invites/:code", () => {
     const res = await request(app)
       .delete(`/api/channels/${cid}/invites/revokeme01`)
       .set("Authorization", `Bearer ${tok(u)}`);
-    expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
+    expect(res.status).toBe(204);
   });
 });

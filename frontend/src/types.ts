@@ -69,6 +69,8 @@ export interface Message {
   is_pinned?: boolean | number;
   pinned_at?: string | null;
   pinned_by?: number | null;
+  source?: string | null;
+  metadata?: string | null;
   reactions?: ReactionMap;
 }
 

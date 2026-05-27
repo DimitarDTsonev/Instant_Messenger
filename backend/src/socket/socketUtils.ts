@@ -47,6 +47,7 @@ export function getFullMessage(db: Db, messageId: number | bigint): MessageRow |
     SELECT
       m.id, m.content, m.created_at, m.is_edited, m.edited_at,
       m.reply_to_id, m.file_url, m.file_type, m.file_name, m.is_pinned, m.channel_id,
+      m.source, m.metadata,
       u.id   AS user_id, u.username, u.avatar, u.role,
       rm.content  AS reply_content,
       rm.file_url AS reply_file_url,

@@ -28,6 +28,7 @@ export const s: Record<string, any> = {
   username:    (isOwn: boolean) => ({ fontWeight: 600, fontSize: "14px", color: isOwn ? "#7289da" : "#f2f3f5" }),
   adminBadge:  { color: "#faa61a", display: "inline-flex", alignItems: "center" },
   pinnedBadge: { fontSize: "10px", color: "#5c6068", background: "#2d2d3f", padding: "1px 6px", borderRadius: "4px", display: "inline-flex", alignItems: "center", gap: "3px" },
+  integrationBadge: { fontSize: "10px", color: "#38bdf8", background: "#0f2740", padding: "1px 6px", borderRadius: "4px", display: "inline-flex", alignItems: "center", gap: "3px", fontWeight: 700 },
   timestamp:   { fontSize: "11px", color: "#5c6068" },
   editedTag:   { fontSize: "10px", color: "#5c6068", fontStyle: "italic" },
   replyQuote: {

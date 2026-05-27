@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { SocketProvider } from "./context/SocketContext";
+import ErrorBoundary       from "./components/ErrorBoundary";
 import LoginPage          from "./pages/LoginPage";
 import ChatPage            from "./pages/ChatPage";
 import InvitePage          from "./pages/InvitePage";
@@ -45,9 +46,11 @@ function AppInner() {
   if (path === "/admin") return <AdminPage />;
 
   return (
-    <SocketProvider>
-      <ChatPage />
-    </SocketProvider>
+    <ErrorBoundary>
+      <SocketProvider>
+        <ChatPage />
+      </SocketProvider>
+    </ErrorBoundary>
   );
 }
 
@@ -57,8 +60,10 @@ export default function App() {
   }, []);
 
   return (
-    <AuthProvider>
-      <AppInner />
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <AppInner />
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }

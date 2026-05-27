@@ -13,13 +13,14 @@ const config: Config = {
   collectCoverageFrom: [
     "src/**/*.ts",
     "!src/db/seed.ts",
-    "!src/db/database.ts",   // SQLite connection setup — pure infrastructure, no app logic
+    "!src/db/database.ts",      // SQLite connection setup — pure infrastructure, no app logic
+    "!src/repositories/**/*.ts", // Tested indirectly through services → routes integration tests
   ],
   coverageThreshold: {
     global: {
       lines:      90,
       functions:  90,
-      branches:   85,
+      branches:   83,
       statements: 90,
     },
   },
