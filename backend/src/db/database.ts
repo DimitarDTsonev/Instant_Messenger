@@ -276,7 +276,7 @@ export function initDatabase() {
       const avatar  = botUsername.slice(0, 2).toUpperCase();
       db.prepare("INSERT INTO users (username, email, password, avatar, role, is_system) VALUES (?, ?, ?, ?, 'member', 1)")
         .run(botUsername, botEmail, hashed, avatar);
-      console.log(`Bot user '${botUsername}' created automatically (system account)`);
+      console.log("Bot user created automatically (system account)");
     }
   }
 
