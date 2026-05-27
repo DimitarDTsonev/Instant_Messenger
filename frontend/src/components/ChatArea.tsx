@@ -24,16 +24,30 @@ export default function ChatArea({
   typingUsers = [], onReply, onPin, canPin = false,
   users = [], isDm = false, seenByPartner = false,
 }: Props) {
-  const { user }  = useAuth();
-  const bottomRef = useRef<HTMLDivElement | null>(null);
-  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const { user }      = useAuth();
+  const bottomRef     = useRef<HTMLDivElement | null>(null);
+  const scrollRef     = useRef<HTMLDivElement | null>(null);
+  const prevLoading   = useRef(false);
 
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
-    const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 200;
-    if (isNearBottom) bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+
+    const wasLoading = prevLoading.current;
+    prevLoading.current = loading;
+
+    // Loading just finished → jump to bottom immediately (initial load or channel switch)
+    if (wasLoading && !loading && messages.length > 0) {
+      el.scrollTop = el.scrollHeight;
+      return;
+    }
+
+    // New message while not loading → scroll only when already near bottom
+    if (!loading) {
+      const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 200;
+      if (isNearBottom) bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages, loading]);
 
   const groups = groupMessages(messages);
 
