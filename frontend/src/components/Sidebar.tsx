@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 import { useSocket } from "../context/SocketContext";
 import type { Channel, Conversation, User, UserStatus } from "../types";
 import { avatarLabel } from "../utils/avatar";
@@ -33,6 +34,7 @@ export default function Sidebar({
   onClose?: () => void;
 }) {
   const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const { isConnected, onlineUserIds, userStatuses = {}, setStatus } = useSocket();
 
   const [showStatusPicker, setShowStatusPicker] = useState(false);
@@ -115,17 +117,20 @@ export default function Sidebar({
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <button style={{ background: "transparent", border: "none", padding: 0, cursor: "pointer", position: "relative", flexShrink: 0 }} onClick={() => setShowStatusPicker((v) => !v)} title={`Status: ${STATUS_LABELS[myStatus]}`}>
             <span style={{ fontSize: "14px", fontWeight: 700 }}>{avatarLabel(user)}</span>
-            <span style={{ position: "absolute", bottom: -1, right: -1, width: "10px", height: "10px", borderRadius: "50%", background: STATUS_COLORS[myStatus], border: "2px solid #1e1e2e", display: "block" }} />
+            <span style={{ position: "absolute", bottom: -1, right: -1, width: "10px", height: "10px", borderRadius: "50%", background: STATUS_COLORS[myStatus], border: "2px solid var(--col-bg-elevated)", display: "block" }} />
           </button>
           <div style={s.footerUser}>
-            <div style={s.footerUsername}>{user?.username}{user?.is_guest && <span style={{ fontSize: "10px", color: "#f0a500", marginLeft: "6px" }}>guest</span>}</div>
+            <div style={s.footerUsername}>{user?.username}{user?.is_guest && <span style={{ fontSize: "10px", color: "var(--col-warning-gold)", marginLeft: "6px" }}>guest</span>}</div>
             <div style={s.footerEmail}>{user?.email?.endsWith("@guest.local") ? "Temporary account" : user?.email}</div>
           </div>
           {user?.role === "admin" && (
-            <button style={{ ...s.logoutBtn, color: "#f0a500" }} onClick={() => navigateTo("/admin")} title="Admin dashboard" aria-label="Admin dashboard" data-testid="admin-link">
+            <button style={{ ...s.logoutBtn, color: "var(--col-warning-gold)" }} onClick={() => navigateTo("/admin")} title="Admin dashboard" aria-label="Admin dashboard" data-testid="admin-link">
               <Icon name="shield" size={17} />
             </button>
           )}
+          <button style={s.themeBtn} onClick={toggleTheme} title={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"} aria-label="Toggle theme">
+            {theme === "dark" ? "☀️" : "🌙"}
+          </button>
           <button style={s.logoutBtn} onClick={logout} title="Sign out" aria-label="Sign out">
             <Icon name="logOut" size={17} />
           </button>

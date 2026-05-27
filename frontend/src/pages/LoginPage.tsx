@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 import ForgotPasswordPage from "./ForgotPasswordPage";
 import { validatePassword } from "../utils/validatePassword";
 
@@ -10,11 +11,11 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    background: "linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 100%)",
+    background: "var(--col-bg-base)",
   },
   card: {
-    background: "#1e1e2e",
-    border: "1px solid #2d2d3f",
+    background: "var(--col-bg-elevated)",
+    border: "1px solid var(--col-border)",
     borderRadius: "16px",
     padding: "40px",
     width: "100%",
@@ -23,11 +24,11 @@ const styles = {
   },
   logo: { textAlign: "center", marginBottom: "32px" },
   logoIcon: { fontSize: "48px", display: "block", marginBottom: "8px" },
-  logoTitle: { fontSize: "24px", fontWeight: 700, color: "#f2f3f5", letterSpacing: "-0.5px" },
-  logoSub: { fontSize: "13px", color: "#5c6068", marginTop: "4px" },
+  logoTitle: { fontSize: "24px", fontWeight: 700, color: "var(--col-text-primary)", letterSpacing: "-0.5px" },
+  logoSub: { fontSize: "13px", color: "var(--col-text-muted)", marginTop: "4px" },
   tabs: {
     display: "flex",
-    background: "#0f0f1a",
+    background: "var(--col-bg-input)",
     borderRadius: "8px",
     padding: "4px",
     marginBottom: "24px",
@@ -37,7 +38,7 @@ const styles = {
     padding: "8px",
     borderRadius: "6px",
     background: active ? "#5865f2" : "transparent",
-    color: active ? "#fff" : "#949ba4",
+    color: active ? "#fff" : "var(--col-text-secondary)",
     fontSize: "13px",
     fontWeight: active ? 600 : 400,
     transition: "all 0.2s",
@@ -50,7 +51,7 @@ const styles = {
     display: "block",
     fontSize: "12px",
     fontWeight: 600,
-    color: "#949ba4",
+    color: "var(--col-text-secondary)",
     textTransform: "uppercase",
     letterSpacing: "0.5px",
     marginBottom: "6px",
@@ -58,10 +59,10 @@ const styles = {
   input: {
     width: "100%",
     padding: "10px 14px",
-    background: "#0f0f1a",
-    border: "1px solid #2d2d3f",
+    background: "var(--col-bg-input)",
+    border: "1px solid var(--col-border)",
     borderRadius: "8px",
-    color: "#f2f3f5",
+    color: "var(--col-text-primary)",
     fontSize: "15px",
   },
   submit: {
@@ -81,20 +82,21 @@ const styles = {
     border: "1px solid #f23f4240",
     borderRadius: "8px",
     padding: "10px 14px",
-    color: "#f23f42",
+    color: "var(--col-danger)",
     fontSize: "13px",
     marginBottom: "16px",
   },
   hint: {
     textAlign: "center",
     fontSize: "12px",
-    color: "#5c6068",
+    color: "var(--col-text-muted)",
     marginTop: "20px",
   },
 } satisfies AppStyleMap;
 
 export default function LoginPage() {
     const { login, register } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   const [showForgot, setShowForgot] = useState(false);
 
@@ -136,6 +138,14 @@ export default function LoginPage() {
 
   return (
     <div style={styles.page}>
+      <button
+        onClick={toggleTheme}
+        title={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+        aria-label="Toggle theme"
+        style={{ position: "fixed", top: "16px", right: "16px", background: "var(--col-bg-elevated)", border: "1px solid var(--col-border)", borderRadius: "8px", width: "36px", height: "36px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: "18px", zIndex: 100 }}
+      >
+        {theme === "dark" ? "☀️" : "🌙"}
+      </button>
       <div style={styles.card} className="login-card">
         {/* Logo / branding */}
         <div style={styles.logo}>

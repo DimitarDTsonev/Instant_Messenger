@@ -114,17 +114,17 @@ describe("message header", () => {
 });
 //  5. Own message has a distinct colour (blue username)
 describe("own message styling", () => {
-  test("own message username uses #7289da colour", () => {
+  test("own message username uses accent link colour", () => {
     // alice (id=1) is the current user per DEFAULT_AUTH
     renderChatArea({ messages: [makeMsg({ user_id: 1, username: "alice" })] });
     const usernameEl = screen.getByText("alice");
-    expect(usernameEl).toHaveStyle({ color: "#7289da" });
+    expect(usernameEl).toHaveStyle({ color: "var(--col-link)" });
   });
 
-  test("other user's username uses #f2f3f5 colour", () => {
+  test("other user's username uses primary text colour", () => {
     renderChatArea({ messages: [makeMsg({ user_id: 2, username: "bob" })] });
     const usernameEl = screen.getByText("bob");
-    expect(usernameEl).toHaveStyle({ color: "#f2f3f5" });
+    expect(usernameEl).toHaveStyle({ color: "var(--col-text-primary)" });
   });
 });
 //  6. Admin badge

@@ -5,8 +5,8 @@ import Icon from "./Icons";
 
 const s = {
   banner: {
-    background: "#1e1e2e",
-    borderBottom: "1px solid #2d2d3f",
+    background: "var(--col-bg-elevated)",
+    borderBottom: "1px solid var(--col-border)",
     padding: "6px 20px",
     display: "flex",
     alignItems: "center",
@@ -15,19 +15,19 @@ const s = {
     flexShrink: 0,
   },
   icon: { fontSize: "14px", flexShrink: 0 },
-  label: { color: "#5c6068", fontWeight: 600, flexShrink: 0 },
+  label: { color: "var(--col-text-muted)", fontWeight: 600, flexShrink: 0 },
   content: {
     flex: 1,
-    color: "#949ba4",
+    color: "var(--col-text-secondary)",
     overflow: "hidden",
     textOverflow: "ellipsis",
     whiteSpace: "nowrap",
   },
-  author: { color: "#7289da", fontWeight: 600, marginRight: "4px" },
+  author: { color: "var(--col-link)", fontWeight: 600, marginRight: "4px" },
   unpinBtn: {
     background: "transparent",
     border: "none",
-    color: "#5c6068",
+    color: "var(--col-text-muted)",
     fontSize: "12px",
     cursor: "pointer",
     width: "26px",
@@ -42,7 +42,7 @@ const s = {
   collapse: {
     background: "transparent",
     border: "none",
-    color: "#5c6068",
+    color: "var(--col-text-muted)",
     fontSize: "12px",
     cursor: "pointer",
     padding: "3px 6px",
@@ -94,7 +94,7 @@ export default function PinnedBanner({
 
       {/* Multi-pin navigation: shows "current/total" + prev/next arrows */}
       {pinnedMessages.length > 1 && !collapsed && (
-        <span style={{ ...s.collapse, color: "#7289da" }}>
+        <span style={{ ...s.collapse, color: "var(--col-link)" }}>
           {idx + 1}/{pinnedMessages.length}
           {idx < pinnedMessages.length - 1
             ? <button style={s.collapse} onClick={() => setIdx((i) => i + 1)} title="Next pinned message" aria-label="Next pinned message"><Icon name="chevronRight" size={15} /></button>

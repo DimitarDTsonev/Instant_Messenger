@@ -1,9 +1,11 @@
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   plugins: [react()],
-  base: process.env.VITE_BASE_PATH || "/",
+  // Local dev always uses "/" so http://localhost:5173 works without any sub-path.
+  // Production builds (vite build in CI) pick up VITE_BASE_PATH for GitHub Pages.
+  base: command === "serve" ? "/" : (process.env.VITE_BASE_PATH || "/"),
   server: {
     port: 5173,
     proxy: {
@@ -38,4 +40,4 @@ export default defineConfig({
       },
     },
   },
-});
+}));

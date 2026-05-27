@@ -6,6 +6,7 @@ import { createMockSocketContext } from "../../test-utils/mocks";
 
 vi.mock("../../context/AuthContext", () => ({ useAuth: vi.fn() }));
 vi.mock("../../context/SocketContext", () => ({ useSocket: vi.fn() }));
+vi.mock("../../context/ThemeContext", () => ({ useTheme: vi.fn(() => ({ theme: "dark", toggleTheme: vi.fn() })) }));
 
 const LOGOUT = vi.fn();
 
@@ -89,9 +90,9 @@ describe("active channel highlight", () => {
   test("applies active style to the selected channel", () => {
     render(<Sidebar {...buildProps({ activeChannel: CHANNELS[0] })} />);
     const generalEl = screen.getByText("general");
-    // Active channel has borderLeft: "2px solid #5865f2" applied via inline styles
+    // Active channel has borderLeft with accent colour applied via inline styles
     const item = generalEl.closest("div[style]");
-    expect(item).toHaveStyle({ borderLeft: "2px solid #5865f2" });
+    expect(item).toHaveStyle({ borderLeft: "2px solid var(--col-accent)" });
   });
 
   test("non-active channel does not have the active border colour", () => {
@@ -99,7 +100,7 @@ describe("active channel highlight", () => {
     const randomEl = screen.getByText("random");
     const item = randomEl.closest("div[style]");
     // Non-active channel has transparent border, not the accent colour
-    expect((item as HTMLElement).style.borderLeft).not.toBe("2px solid #5865f2");
+    expect((item as HTMLElement).style.borderLeft).not.toBe("2px solid var(--col-accent)");
   });
 });
 //  3. Clicking channel calls onSelectChannel
@@ -174,7 +175,7 @@ describe("active DM highlight", () => {
     // Find bob within the DM section by his avatar context
     const bobTexts = screen.getAllByText(/bob/);
     const bobItem = bobTexts[0].closest("div[style]");
-    expect(bobItem).toHaveStyle({ borderLeft: "2px solid #5865f2" });
+    expect(bobItem).toHaveStyle({ borderLeft: "2px solid var(--col-accent)" });
   });
 });
 //  7. Clicking DM calls onSelectDm

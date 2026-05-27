@@ -1,32 +1,33 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { API_BASE } from "../config";
+import { useTheme } from "../context/ThemeContext";
 
 const s = {
   page: {
     minHeight: "100vh",
-    background: "#0f0f0f",
+    background: "var(--col-bg-base)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
   },
   card: {
-    background: "#1e1e2e",
+    background: "var(--col-bg-elevated)",
     borderRadius: "12px",
     padding: "32px",
     width: "100%",
     maxWidth: "380px",
-    border: "1px solid #2d2d3f",
+    border: "1px solid var(--col-border)",
   },
   title: {
     fontSize: "20px",
     fontWeight: 700,
-    color: "#f2f3f5",
+    color: "var(--col-text-primary)",
     marginBottom: "8px",
   },
   subtitle: {
     fontSize: "13px",
-    color: "#949ba4",
+    color: "var(--col-text-secondary)",
     marginBottom: "24px",
     lineHeight: 1.5,
   },
@@ -34,18 +35,18 @@ const s = {
     display: "block",
     fontSize: "12px",
     fontWeight: 600,
-    color: "#949ba4",
+    color: "var(--col-text-secondary)",
     marginBottom: "6px",
     textTransform: "uppercase",
     letterSpacing: "0.5px",
   },
   input: {
     width: "100%",
-    background: "#0f0f1a",
-    border: "1px solid #2d2d3f",
+    background: "var(--col-bg-input)",
+    border: "1px solid var(--col-border)",
     borderRadius: "8px",
     padding: "10px 14px",
-    color: "#f2f3f5",
+    color: "var(--col-text-primary)",
     fontSize: "14px",
     outline: "none",
     boxSizing: "border-box",
@@ -71,11 +72,12 @@ const s = {
     cursor: "pointer",
     textDecoration: "underline",
   },
-  error: { color: "#f23f42", fontSize: "13px", marginBottom: "12px" },
-  success: { color: "#23a55a", fontSize: "13px", marginBottom: "12px" },
+  error: { color: "var(--col-danger)", fontSize: "13px", marginBottom: "12px" },
+  success: { color: "var(--col-success)", fontSize: "13px", marginBottom: "12px" },
 } satisfies AppStyleMap;
 
 export default function ForgotPasswordPage({ onBack }: { onBack: () => void }) {
+  const { theme, toggleTheme } = useTheme();
   const [email, setEmail]     = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState<string | null>(null);
@@ -106,6 +108,14 @@ export default function ForgotPasswordPage({ onBack }: { onBack: () => void }) {
 
   return (
     <div style={s.page}>
+      <button
+        onClick={toggleTheme}
+        title={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+        aria-label="Toggle theme"
+        style={{ position: "fixed", top: "16px", right: "16px", background: "var(--col-bg-elevated)", border: "1px solid var(--col-border)", borderRadius: "8px", width: "36px", height: "36px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: "18px", zIndex: 100 }}
+      >
+        {theme === "dark" ? "☀️" : "🌙"}
+      </button>
       <div style={s.card}>
         <div style={s.title}>Reset your password</div>
         <div style={s.subtitle}>

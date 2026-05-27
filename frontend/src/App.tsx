@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { SocketProvider } from "./context/SocketContext";
+import { ThemeProvider } from "./context/ThemeContext";
 import ErrorBoundary       from "./components/ErrorBoundary";
 import LoginPage          from "./pages/LoginPage";
 import ChatPage            from "./pages/ChatPage";
@@ -13,7 +14,7 @@ import { getAppPath } from "./utils/navigation";
 const loadingScreen = (
   <div style={{
     height: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
-    background: "#0f0f0f", color: "#5c6068", fontSize: "18px", gap: "12px",
+    background: "var(--col-bg-base)", color: "var(--col-text-muted)", fontSize: "18px", gap: "12px",
   }}>
     Loading...
   </div>
@@ -29,20 +30,17 @@ function AppInner() {
     return () => window.removeEventListener("popstate", handlePathChange);
   }, []);
 
-  // Invite paths work without auth
   if (path.startsWith("/invite/")) {
     const code = path.replace("/invite/", "").split("/")[0];
     return <InvitePage code={code} />;
   }
 
-  // Password reset page works without auth
   if (path === "/reset-password") return <ResetPasswordPage />;
 
   if (loading) return loadingScreen;
 
   if (!user) return <LoginPage />;
 
-  // AdminPage handles access checks for non-admin users.
   if (path === "/admin") return <AdminPage />;
 
   return (
@@ -60,10 +58,12 @@ export default function App() {
   }, []);
 
   return (
-    <ErrorBoundary>
-      <AuthProvider>
-        <AppInner />
-      </AuthProvider>
-    </ErrorBoundary>
+    <ThemeProvider>
+      <ErrorBoundary>
+        <AuthProvider>
+          <AppInner />
+        </AuthProvider>
+      </ErrorBoundary>
+    </ThemeProvider>
   );
 }

@@ -1,6 +1,6 @@
 /* ============================================================
    index.css - Global styles
-   Color scheme: dark theme inspired by Slack/Discord
+   Two themes: dark (default) and light — toggled via data-theme on <html>
    ============================================================ */
 
 *, *::before, *::after {
@@ -9,27 +9,41 @@
   padding: 0;
 }
 
+/* ── Dark theme (default) ─────────────────────────────────── */
 :root {
-  /* Base colors */
-  --bg-900: #0f0f0f;
-  --bg-800: #1a1a1a;
-  --bg-700: #222222;
-  --bg-600: #2d2d2d;
-  --bg-500: #3a3a3a;
-
-  /* Accent colors */
-  --accent:       #5865f2;
-  --accent-hover: #4752c4;
-  --accent-light: #7289da;
-  --success:      #23a55a;
-  --danger:       #f23f42;
-  --warning:      #f0b232;
+  /* Surfaces */
+  --col-bg-base:     #0f0f0f;
+  --col-bg-elevated: #1e1e2e;
+  --col-bg-input:    #0f0f1a;
+  --col-bg-hover:    #2d2d3f;
+  --col-bg-subtle:   #3a3a4f;
+  --col-border:      #2d2d3f;
 
   /* Text */
-  --text-100: #f2f3f5;
-  --text-200: #dbdee1;
-  --text-400: #949ba4;
-  --text-600: #5c6068;
+  --col-text-primary:   #f2f3f5;
+  --col-text-secondary: #949ba4;
+  --col-text-muted:     #5c6068;
+
+  /* Accent (same in both themes) */
+  --col-accent:       #5865f2;
+  --col-accent-hover: #4752c4;
+  --col-link:         #7289da;
+
+  /* Semantic */
+  --col-success:      #23a55a;
+  --col-danger:       #f23f42;
+  --col-warning:      #f0b232;
+  --col-warning-gold: #faa61a;
+
+  /* Special badges */
+  --col-int-bg: #0f2740;
+  --col-int-fg: #38bdf8;
+
+  /* Legacy aliases kept for scrollbar / root background */
+  --bg-500: #3a3a3a;
+  --bg-600: #2d2d2d;
+  --accent: #5865f2;
+  --accent-light: #7289da;
 
   /* Dimensions */
   --sidebar-width: 240px;
@@ -39,8 +53,35 @@
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
   font-size: 15px;
   line-height: 1.5;
-  color: var(--text-200);
-  background: var(--bg-900);
+  color: var(--col-text-primary);
+  background: var(--col-bg-base);
+}
+
+/* ── Light theme overrides ────────────────────────────────── */
+[data-theme="light"] {
+  --col-bg-base:     #ffffff;
+  --col-bg-elevated: #f3f4f9;
+  --col-bg-input:    #e9ebf4;
+  --col-bg-hover:    #dde0ef;
+  --col-bg-subtle:   #c8ccdf;
+  --col-border:      #dde0ef;
+
+  --col-text-primary:   #111216;
+  --col-text-secondary: #4e5058;
+  --col-text-muted:     #72757f;
+
+  --col-link:         #5865f2;
+  --col-warning-gold: #c27b07;
+
+  --col-success:      #1a8a46;
+  --col-danger:       #d03537;
+  --col-warning:      #c27b07;
+
+  --col-int-bg: #dbeeff;
+  --col-int-fg: #0284c7;
+
+  --bg-500: #c8ccdf;
+  --bg-600: #dde0ef;
 }
 
 html, body, #root {
@@ -70,7 +111,7 @@ button {
   color: inherit;
 }
 button:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--col-accent);
   outline-offset: 2px;
 }
 
@@ -82,15 +123,10 @@ input, textarea {
 }
 
 /* Links */
-a { color: var(--accent-light); text-decoration: none; }
+a { color: var(--col-link); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
 /* ── iOS keyboard safe area ─────────────────────────────── */
-/* On iOS, when the virtual keyboard opens, env(safe-area-inset-bottom)
-   can shrink to 0 while the keyboard covers the input. The
-   interactive-widget=resizes-content viewport hint shrinks the visual
-   viewport so the layout recalculates, but we still need bottom padding
-   on the input so it clears the home indicator on notchless iPhones. */
 .message-input-container {
   padding-bottom: max(16px, env(safe-area-inset-bottom));
 }
@@ -108,8 +144,8 @@ a:hover { text-decoration: underline; }
   bottom: 0;
   left: 0;
   right: 0;
-  background: #1e1e2e;
-  border-top: 1px solid #2d2d3f;
+  background: var(--col-bg-elevated);
+  border-top: 1px solid var(--col-border);
   border-radius: 16px 16px 0 0;
   padding-bottom: env(safe-area-inset-bottom, 16px);
   z-index: 301;
@@ -124,17 +160,17 @@ a:hover { text-decoration: underline; }
 .touch-sheet-handle {
   width: 36px;
   height: 4px;
-  background: #3a3a4f;
+  background: var(--col-bg-subtle);
   border-radius: 2px;
   margin: 10px auto 0;
 }
 
 .touch-sheet-title {
   font-size: 12px;
-  color: #5c6068;
+  color: var(--col-text-muted);
   text-align: center;
   padding: 10px 24px 12px;
-  border-bottom: 1px solid #2d2d3f;
+  border-bottom: 1px solid var(--col-border);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -149,7 +185,7 @@ a:hover { text-decoration: underline; }
 .touch-sheet-actions button {
   background: transparent;
   border: none;
-  color: #f2f3f5;
+  color: var(--col-text-primary);
   font-size: 16px;
   padding: 14px 24px;
   text-align: left;
@@ -161,8 +197,8 @@ a:hover { text-decoration: underline; }
   -webkit-tap-highlight-color: transparent;
 }
 
-.touch-sheet-actions button:active { background: #2d2d3f; }
-.touch-sheet-actions button.danger { color: #f23f42; }
+.touch-sheet-actions button:active { background: var(--col-bg-hover); }
+.touch-sheet-actions button.danger { color: var(--col-danger); }
 
 .touch-sheet-emoji {
   display: flex;
@@ -173,8 +209,8 @@ a:hover { text-decoration: underline; }
 }
 
 .touch-emoji-btn {
-  background: #2d2d3f;
-  border: 1px solid #3a3a4f;
+  background: var(--col-bg-hover);
+  border: 1px solid var(--col-bg-subtle);
   border-radius: 10px;
   font-size: 26px;
   padding: 8px;
@@ -188,8 +224,8 @@ a:hover { text-decoration: underline; }
 }
 
 .touch-emoji-btn.active {
-  background: #5865f225;
-  border-color: #5865f260;
+  background: rgba(88, 101, 242, 0.15);
+  border-color: rgba(88, 101, 242, 0.38);
 }
 
 .touch-sheet-back {
@@ -197,13 +233,13 @@ a:hover { text-decoration: underline; }
   width: 100%;
   background: transparent;
   border: none;
-  color: #949ba4;
+  color: var(--col-text-secondary);
   font-size: 14px;
   padding: 10px 24px 14px;
   text-align: left;
   cursor: pointer;
   font-family: inherit;
-  border-top: 1px solid #2d2d3f;
+  border-top: 1px solid var(--col-border);
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -212,22 +248,18 @@ a:hover { text-decoration: underline; }
 .sidebar-close-btn { display: none; }
 
 @media (max-width: 768px) {
-  /* Sidebar becomes a full-height slide-in overlay */
   .sidebar {
     position: fixed !important;
     top: 0;
     left: 0;
-    /* 100dvh with 100% fallback so it never overflows on iOS */
     height: 100%;
     height: 100dvh;
     z-index: 200;
     transform: translateX(-100%);
     transition: transform 0.25s ease;
-    /* Fit within the screen width, max 300px */
     width: min(300px, 88vw) !important;
     overflow-y: auto;
     overflow-x: hidden;
-    /* iOS momentum scrolling inside sidebar */
     -webkit-overflow-scrolling: touch;
   }
   .sidebar.open {
@@ -235,7 +267,6 @@ a:hover { text-decoration: underline; }
     box-shadow: 6px 0 32px rgba(0,0,0,0.7);
   }
 
-  /* X button visible inside the sidebar on mobile */
   .sidebar-close-btn {
     display: flex !important;
     align-items: center;
@@ -244,14 +275,13 @@ a:hover { text-decoration: underline; }
     height: 32px;
     background: transparent;
     border: none;
-    color: #949ba4;
+    color: var(--col-text-secondary);
     font-size: 18px;
     cursor: pointer;
     flex-shrink: 0;
     -webkit-tap-highlight-color: transparent;
   }
 
-  /* Dark backdrop behind the open sidebar */
   .sidebar-overlay {
     display: none;
     position: fixed;
@@ -262,7 +292,6 @@ a:hover { text-decoration: underline; }
   }
   .sidebar-overlay.open { display: block; }
 
-  /* Hamburger visible only on mobile */
   .hamburger-btn {
     display: flex !important;
     align-items: center;
@@ -271,32 +300,27 @@ a:hover { text-decoration: underline; }
     height: 36px;
     background: transparent;
     border: none;
-    color: #949ba4;
+    color: var(--col-text-secondary);
     font-size: 20px;
     cursor: pointer;
     flex-shrink: 0;
     -webkit-tap-highlight-color: transparent;
   }
 
-  /* Topbar: reduce padding, shrink buttons to fit small screens */
   .topbar-mobile {
     padding: 0 6px !important;
     gap: 6px !important;
   }
 
-  /* Hide the long channel description - too cramped */
   .topbar-desc { display: none !important; }
 
-  /* Search button: icon-only on mobile */
   .search-btn-label { display: none; }
 
-  /* Tighten login card padding */
   .login-card {
     padding: 24px 16px !important;
     margin: 0 12px;
   }
 
-  /* Prevent chat area from overflowing the screen width */
   .chat-main {
     width: 100%;
     min-width: 0;
