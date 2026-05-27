@@ -3,6 +3,10 @@ import { vi } from "vitest";
 import ForgotPasswordPage from "../../pages/ForgotPasswordPage";
 import { createMockFetch } from "../../test-utils/mocks";
 
+vi.mock("../../context/ThemeContext", () => ({
+  useTheme: vi.fn(() => ({ theme: "dark", toggleTheme: vi.fn() })),
+}));
+
 declare const global: typeof globalThis;
 
 function mockFetch(ok = true, body: Record<string, unknown> = { success: true }) {

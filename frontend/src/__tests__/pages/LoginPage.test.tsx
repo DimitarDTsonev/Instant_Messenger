@@ -9,6 +9,10 @@ vi.mock("../../context/AuthContext", () => ({
   })),
 }));
 
+vi.mock("../../context/ThemeContext", () => ({
+  useTheme: vi.fn(() => ({ theme: "dark", toggleTheme: vi.fn() })),
+}));
+
 vi.mock("../../pages/ForgotPasswordPage", () => ({
   default: ({ onBack }) => <div>Reset your password <button onClick={onBack}>Back</button></div>,
 }));

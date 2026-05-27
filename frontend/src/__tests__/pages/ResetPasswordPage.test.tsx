@@ -10,6 +10,10 @@ vi.mock("../../utils/navigation", () => ({
   navigateHome: vi.fn(),
 }));
 
+vi.mock("../../context/ThemeContext", () => ({
+  useTheme: vi.fn(() => ({ theme: "dark", toggleTheme: vi.fn() })),
+}));
+
 function mockSearch(token = "abc123") {
   window.history.pushState({}, "", `/reset-password${token ? `?token=${token}` : ""}`);
 }
