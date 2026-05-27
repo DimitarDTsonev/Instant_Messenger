@@ -64,7 +64,9 @@ const httpServer = http.createServer(app);
 const ALLOWED_ORIGINS = [
   "http://localhost:5173",
   "http://127.0.0.1:5173",
-  ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : []),
+  // Strip any path from FRONTEND_URL — CORS origins are scheme+host+port only.
+  // e.g. "https://user.github.io/Repo" → "https://user.github.io"
+  ...(process.env.FRONTEND_URL ? [new URL(process.env.FRONTEND_URL).origin] : []),
 ];
 
 // -----------------------------------------------------------
