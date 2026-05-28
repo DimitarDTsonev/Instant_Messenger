@@ -30,6 +30,8 @@ export default defineConfig(({ command }) => ({
         "src/__tests__/**",
         "src/sw.ts",
         "src/types.ts",
+        "src/context/socketTypes.ts",
+        "src/hooks/useApi.ts",
         "src/vite-env.d.ts",
       ],
       thresholds: {
