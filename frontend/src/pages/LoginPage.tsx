@@ -1,3 +1,24 @@
+/**
+ * LoginPage — the unauthenticated entry point, renders a login/register card.
+ *
+ * Modes: toggled via the "Login" / "Register" tab switch (local `mode` state).
+ *
+ * Logout reason: on mount, reads `im_logout_reason` from `sessionStorage` and
+ * removes it immediately so it only shows once.  Values:
+ *  - "inactivity"     → "You were logged out after 1 hour of inactivity."
+ *  - "server_restart" → "You were logged out because the server was restarted."
+ *
+ * Password validation: `validatePassword()` is run before every register
+ * submission; the error string is displayed inline without a server round-trip.
+ *
+ * ForgotPassword: when `showForgot` is true the component renders
+ * `ForgotPasswordPage` in place, passing `onBack` to return here.
+ *
+ * Demo credentials: email `alice@demo.com` and password `Password@123` are
+ * pre-filled in the login form inputs as a convenience for reviewers.
+ *
+ * Used by: App.tsx (rendered on the "/" route when unauthenticated).
+ */
 import { useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { useAuth } from "../context/AuthContext";
@@ -86,6 +107,15 @@ const styles = {
     fontSize: "13px",
     marginBottom: "16px",
   },
+  info: {
+    background: "#5865f220",
+    border: "1px solid #5865f240",
+    borderRadius: "8px",
+    padding: "10px 14px",
+    color: "#5865f2",
+    fontSize: "13px",
+    marginBottom: "16px",
+  },
   hint: {
     textAlign: "center",
     fontSize: "12px",
@@ -103,6 +133,12 @@ export default function LoginPage() {
     const [mode, setMode] = useState<"login" | "register">("login");
 
     const [error, setError] = useState("");
+
+  const [logoutReason] = useState<string | null>(() => {
+    const reason = sessionStorage.getItem("im_logout_reason");
+    if (reason) sessionStorage.removeItem("im_logout_reason");
+    return reason;
+  });
 
     const [loading, setLoading] = useState(false);
 
@@ -161,6 +197,12 @@ export default function LoginPage() {
         </div>
 
         <form onSubmit={handleSubmit}>
+          {logoutReason === "inactivity" && (
+            <div style={styles.info}>You were logged out after 1 hour of inactivity.</div>
+          )}
+          {logoutReason === "server_restart" && (
+            <div style={styles.info}>You were logged out because the server was restarted.</div>
+          )}
           {error && <div style={styles.error}>{error}</div>}
 
           {/* Username field - only shown in register mode */}

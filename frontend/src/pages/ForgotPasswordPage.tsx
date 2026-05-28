@@ -1,3 +1,17 @@
+/**
+ * ForgotPasswordPage — collects an email address and requests a password-reset link.
+ *
+ * On submit: POSTs to POST /api/auth/forgot-password with `{ email }`.
+ * The response is always 200 regardless of whether the email exists (to prevent
+ * user enumeration).  A success banner is shown with a note to check the server
+ * console in local development mode.
+ *
+ * Rendered inline by LoginPage (not a separate route) when the user clicks
+ * "Forgot password?".  The `onBack` prop navigates back to the login form.
+ *
+ * @param onBack - Callback invoked when the user clicks either "Back to sign in"
+ *                 link, returning control to LoginPage.
+ */
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { API_BASE } from "../config";

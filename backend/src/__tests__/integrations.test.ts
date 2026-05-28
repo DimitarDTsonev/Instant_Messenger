@@ -1,3 +1,11 @@
+/**
+ * Integrations API tests — exercises the webhook and music-dashboard
+ * integration endpoints from the factory-style `createIntegrationsRouter(io)`.
+ *
+ * Uses a real in-memory SQLite database and a mocked socket.io server so
+ * that messages posted via the API are verified to be broadcast over the
+ * socket without requiring a live WebSocket connection.
+ */
 import express from "express";
 import request from "supertest";
 import bcrypt from "bcryptjs";

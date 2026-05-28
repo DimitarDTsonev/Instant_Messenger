@@ -1,19 +1,45 @@
+/**
+ * Development seed script — populates the database with demo users, channels,
+ * and messages for local development and testing.
+ *
+ * WARNING: Deletes ALL existing users, channels, and messages before inserting.
+ * This script is intended for development only. Never run against a production database.
+ *
+ * Usage: `npx ts-node src/db/seed.ts`  (or via the `seed` npm script).
+ *
+ * Demo accounts created (all use password `Password@123`):
+ *   alice@demo.com, bob@demo.com, charlie@demo.com, diana@demo.com
+ */
+
 import bcrypt from "bcryptjs";
 import { getDb, initDatabase } from "./database";
 
+/**
+ * Seeds the development database.
+ *
+ * Steps:
+ *  1. Initialises the schema (creates tables if they don't exist).
+ *  2. Truncates `messages`, `channels`, and `users` tables.
+ *  3. Inserts 4 demo users with bcrypt-hashed passwords.
+ *  4. Inserts 4 demo channels.
+ *  5. Inserts 10 seed messages spread across #general, #tech, and #random.
+ *
+ * Built-ins used: `bcrypt.hashSync`, `db.prepare`, `db.exec`, `Date.now`.
+ */
 async function seed() {
   initDatabase();
   const db = getDb();
 
   console.log("Seeding development data...\n");
 
-  // Development-only reset.
+  // Development-only truncation — wipes all existing content
   db.exec(`
     DELETE FROM messages;
     DELETE FROM channels;
     DELETE FROM users;
   `);
 
+  // All demo accounts share the same password hash for convenience
   const password = bcrypt.hashSync("Password@123", 10);
 
   const insertUser = db.prepare(`
@@ -58,8 +84,9 @@ async function seed() {
   `);
 
   const now = Date.now();
-  const min = 60_000;
+  const min = 60_000; // Milliseconds per minute
 
+  // Messages are back-dated so they appear in a realistic chronological order
   const seedMessages = [
     // #general
     { content: "Hello everyone! ",                                  channelId: insertedChannels[0].id, userId: insertedUsers[0].id, ago: 60 * min },
@@ -77,6 +104,7 @@ async function seed() {
   ];
 
   seedMessages.forEach((m) => {
+    // Convert the epoch offset to an ISO-like SQLite datetime string
     const ts = new Date(now - m.ago).toISOString().replace("T", " ").slice(0, 19);
     insertMessage.run(m.content, m.channelId, m.userId, ts);
   });

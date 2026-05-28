@@ -1,3 +1,12 @@
+/**
+ * Security logs table — renders the admin's event log with a live text filter.
+ *
+ * Filters `logs` client-side against `filter` (checks `event`, `username`, and `detail`
+ * fields case-insensitively). The filter count is displayed next to the input.
+ *
+ * Used by: AdminPage.tsx (Security Logs tab).
+ */
+
 import type { ChangeEvent } from "react";
 import type { SecurityLog } from "../types";
 import { s } from "../pages/adminStyles";

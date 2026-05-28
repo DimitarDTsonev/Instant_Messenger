@@ -1,3 +1,27 @@
+/**
+ * AdminPage — admin dashboard, accessible only to users with role "admin".
+ *
+ * Tabs:
+ *  - "users" — loads and renders `AdminUsersTable` with ban/unban actions.
+ *  - "logs"  — loads and renders `AdminLogsTable`; fetched lazily when the tab
+ *              is first activated (not pre-fetched with users).
+ *
+ * Data fetching:
+ *  - `fetchUsers`: GET /api/admin/users with Bearer token.
+ *  - `fetchLogs`:  GET /api/admin/security-logs?limit=200 with Bearer token.
+ *    Both are wrapped in `useCallback([token])` so they are stable and safe
+ *    to use as `useEffect` dependencies.
+ *
+ * Ban flow:
+ *  1. "Ban" button in AdminUsersTable sets `banModal` to the target user.
+ *  2. `BanModal` collects a reason string.
+ *  3. `handleBan` POSTs to /api/admin/ban/:id, closes the modal, and re-fetches users.
+ *
+ * Access guard: non-admin users see an "Admin access required" page instead of
+ * the dashboard (the route itself is unguarded — the component does its own check).
+ *
+ * Used by: App.tsx (rendered on the "/admin" route).
+ */
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
 import { API_BASE } from "../config";

@@ -1,3 +1,21 @@
+/**
+ * Chat top bar — the header strip displayed above the message area.
+ *
+ * Shows context-sensitive content based on the current view:
+ *  - Channel mode: lock/hash icon + channel name + optional description.
+ *  - DM mode: partner avatar + username + "DM" badge.
+ *  - Loading: muted "Loading..." placeholder.
+ *
+ * Right-side controls:
+ *  - Settings button (gear icon) — only shown when `canOpenSettings` is true.
+ *  - Search button — always visible.
+ * Left side:
+ *  - Hamburger button — visible on mobile only (CSS class `hamburger-btn`);
+ *    triggers `onSidebarOpen` to reveal the sidebar drawer.
+ *
+ * Used by: ChatPage.tsx.
+ */
+
 import type { Channel, User } from "../types";
 import { s } from "../pages/chatPageStyles";
 import Icon from "./Icons";
@@ -12,6 +30,15 @@ type Props = {
   onSidebarOpen:    () => void;
 };
 
+/**
+ * @param activeChannel   - Currently active channel, or `null` in DM mode.
+ * @param isDmMode        - `true` when the user has a DM conversation open.
+ * @param activeDm        - The DM partner user, or `null` when in channel mode.
+ * @param canOpenSettings - Whether to show the channel settings button.
+ * @param onSettings      - Opens the channel settings modal.
+ * @param onSearch        - Opens the search modal.
+ * @param onSidebarOpen   - Reveals the mobile sidebar drawer.
+ */
 export default function ChatTopbar({ activeChannel, isDmMode, activeDm, canOpenSettings, onSettings, onSearch, onSidebarOpen }: Props) {
   return (
     <div style={s.topbar} className="topbar-mobile">

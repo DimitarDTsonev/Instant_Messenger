@@ -1,3 +1,16 @@
+/**
+ * ChatArea + MessageRow integration tests — renders real ChatArea and MessageRow
+ * components against mocked auth/socket contexts.
+ *
+ * Covers: empty/loading states, message rendering, grouping, actions bar
+ * (hover/click), edit mode, delete, reactions, file attachments,
+ * FilePreviewModal, date dividers, typing indicator, touch long-press
+ * action sheet (TouchMenu), and the "Seen" indicator.
+ *
+ * Notable stubs:
+ *  - `scrollIntoView` — not implemented in jsdom; stubbed globally.
+ *  - `MarkdownRenderer` — replaced with a simple `<span data-testid="markdown">`.
+ */
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { vi } from "vitest";
 import { useAuth } from "../../context/AuthContext";

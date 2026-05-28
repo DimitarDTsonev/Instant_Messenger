@@ -1,3 +1,12 @@
+/**
+ * Channels API integration tests — exercises CRUD operations for channels,
+ * channel members, and channel permissions using a real in-memory SQLite
+ * database.
+ *
+ * Covers: create/list/update/delete channels, member add/remove/role-change,
+ * permission overrides, private channel access control, and role-based
+ * authorization gates.
+ */
 import request from "supertest";
 import bcrypt from "bcryptjs";
 

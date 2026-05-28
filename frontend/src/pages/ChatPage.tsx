@@ -1,3 +1,33 @@
+/**
+ * ChatPage — the main application shell, rendered for every authenticated user.
+ *
+ * Composition:
+ *  - `Sidebar`              — channel list, DM list, online users, user footer.
+ *  - `ChatTopbar`           — active channel/DM header with search + settings buttons.
+ *  - `PinnedBanner`         — shows pinned messages for the active channel.
+ *  - `ChatArea`             — scrollable message timeline.
+ *  - `MessageInput`         — composer bar at the bottom.
+ *  - Modals (conditionally) — SearchModal, UserSearchModal, UserProfileModal,
+ *                             ChannelSettingsModal.
+ *
+ * Session restoration:
+ *  After channels and users load, `loadSession()` reads the last-viewed channel
+ *  or DM user ID from sessionStorage.  The active view is restored once, then
+ *  `saveSession` persists it on every subsequent navigation.
+ *
+ * `canWrite` derivation:
+ *  - DM mode: always true.
+ *  - Channel mode: owner → true; viewer → false; manager/member → check the
+ *    `can_write` permission in `channelPerms` (defaults to true if absent).
+ *
+ * Keyboard shortcut: Ctrl/Cmd+F opens SearchModal.
+ *
+ * Seen indicator: `seenByPartner` is set to true when the DM partner's
+ * `dm:read` socket event arrives for the active conversation, or when the
+ * last outgoing message already has `is_read=true` on load.
+ *
+ * Used by: App.tsx (rendered on the "/" route when authenticated).
+ */
 import { useState, useEffect, useRef } from "react";
 import { useSocket } from "../context/SocketContext";
 import { useAuth } from "../context/AuthContext";

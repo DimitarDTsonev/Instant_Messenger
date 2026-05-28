@@ -1,3 +1,30 @@
+/**
+ * InvitePage — handles channel invite link redemption.
+ *
+ * On mount: fetches invite metadata (channel name, member count, creator,
+ * usage limits, expiry) from GET /api/invite/:code without auth, so
+ * unauthenticated visitors can see channel details before choosing a join method.
+ *
+ * Three join paths (tabs):
+ *  - "guest"    — POST /api/auth/guest creates a temporary account (24 h TTL),
+ *                 then joins and stores the token in `sessionStorage` (expires
+ *                 with the browser tab).
+ *  - "login"    — POST /api/auth/login + join; token stored in `localStorage`.
+ *  - "register" — POST /api/auth/register (with `validatePassword` pre-check) +
+ *                 join; token stored in `localStorage`.
+ *
+ * Already-logged-in path: if `user` is set (token in storage), renders a single
+ * "Join channel" button that reads the token from storage and calls
+ * POST /api/invite/:code/join directly.
+ *
+ * `joinWithToken(token)`: shared helper that POSTs to /api/invite/:code/join
+ * with the given Bearer token.  All three paths call this after obtaining a token.
+ *
+ * After joining: `loginWithToken` updates AuthContext, then `navigateHome("replace")`
+ * redirects to the chat page without leaving the invite URL in history.
+ *
+ * @param code - The invite code extracted from the URL path by App.tsx.
+ */
 import { useState, useEffect } from "react";
 import type { FormEvent } from "react";
 import { useAuth } from "../context/AuthContext";

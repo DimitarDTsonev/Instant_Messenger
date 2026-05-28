@@ -1,3 +1,18 @@
+/**
+ * Inline-style map for ChannelSettingsModal and ChannelSettingsTabs.
+ *
+ * Notable entries:
+ *  - `tab` — parameterised: active tab gets bold text and an accent bottom border.
+ *  - `toggle` / `toggleKnob` — the on/off switch used by the Toggle component.
+ *    `toggle` changes background on/off; `toggleKnob` slides left/right via CSS
+ *    `left` transition.
+ *  - `roleBadge` — parameterised by ChannelRole: each role gets its own colour
+ *    scheme (owner = accent blue, manager = gold, viewer = danger red,
+ *    member = neutral).
+ *  - `error` / `success` — translucent coloured boxes for inline form feedback.
+ *
+ * Used by: ChannelSettingsModal.tsx, ChannelSettingsTabs.tsx.
+ */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { ChannelRole } from "../types";
 

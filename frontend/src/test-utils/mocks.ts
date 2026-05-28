@@ -1,3 +1,26 @@
+/**
+ * Test data factories — typed factory functions for creating mock objects
+ * that satisfy TypeScript's strict interface requirements in component tests.
+ *
+ * Factory pattern: each function accepts an optional `overrides` object so
+ * tests only need to specify the fields relevant to the scenario under test;
+ * all other fields are filled with sensible defaults.
+ *
+ * Exports:
+ *  - `createMockAuthUser`       — AuthUser with id=1, username="alice".
+ *  - `createMockMessage`        — Channel message with all nullable fields set
+ *                                  to null (no file, no reply, no reactions).
+ *  - `createMockConversation`   — DM conversation entry.
+ *  - `createMockSocketContext`  — Full SocketContextValue with all methods as
+ *                                  `vi.fn()` no-ops; handlers return `vi.fn()`
+ *                                  unsubscribe functions.
+ *  - `createMockFetch`          — A `fetch` mock that returns a `Response`
+ *                                  built from a plain object so callers can
+ *                                  `await res.json()` normally.
+ *
+ * Used by: all frontend test files that render components depending on auth
+ * or socket contexts.
+ */
 import { vi } from "vitest";
 import type { AuthUser, Message, Conversation } from "../types";
 import type { SocketContextValue } from "../context/socketTypes";

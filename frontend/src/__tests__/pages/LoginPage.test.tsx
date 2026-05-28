@@ -1,3 +1,8 @@
+/**
+ * LoginPage tests — verifies login/register tab switching, form submission,
+ * validation errors, forgot-password link rendering, and the logout-reason
+ * info banner.
+ */
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import LoginPage from "../../pages/LoginPage";

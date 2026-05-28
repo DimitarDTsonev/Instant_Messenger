@@ -1,3 +1,8 @@
+/**
+ * ResetPasswordPage tests — verifies the token-from-URL flow, client-side
+ * validation (blank, mismatch, strength), API call on submit, success state,
+ * and error display.
+ */
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { vi } from "vitest";
 import ResetPasswordPage from "../../pages/ResetPasswordPage";

@@ -1,3 +1,25 @@
+/**
+ * Channel message Socket.io event handlers.
+ *
+ * Registers all socket events related to channel messages for a single
+ * authenticated connection. All events are scoped to the channel room
+ * (`channel:<id>`) and use acknowledgement callbacks for error reporting.
+ *
+ * Events handled:
+ *  - message:send   — inserts a new message and broadcasts to the channel room.
+ *  - message:edit   — updates content and broadcasts the edited row.
+ *  - message:delete — removes the message and broadcasts a deletion notice.
+ *  - message:react  — toggles an emoji reaction and broadcasts the updated map.
+ *  - message:pin    — pins a message and broadcasts the pinned row.
+ *  - message:unpin  — unpins a message and broadcasts a removal notice.
+ *
+ * Security:
+ *  - Per-user rate limiting via `isSocketRateLimited`; auto-bans flooding users.
+ *  - Permission checks via `getUserRole` + `getPerms` from the channel repository.
+ *
+ * Imported by: socket/handlers.ts.
+ */
+
 import type { Server } from "socket.io";
 import type { AuthUser, Db, MessageRow } from "../types";
 import { getDb } from "../db/database";
@@ -8,6 +30,7 @@ import { ack, getFullMessage, getReactions, notifyMentions, onlineUsers } from "
 type AckFn = (data: unknown) => void;
 type AuthedSocket = { id: string; emit: (ev: string, d: unknown) => void; disconnect: (c: boolean) => void };
 
+/** Payload shape for the message:send event. */
 type MessageSendPayload = {
   channelId: number;
   content?: string;
@@ -17,16 +40,26 @@ type MessageSendPayload = {
   fileName?: string | null;
 };
 
-type MessageEditPayload   = { messageId: number; content?: string };
-type MessageIdPayload     = { messageId: number };
+type MessageEditPayload     = { messageId: number; content?: string };
+type MessageIdPayload       = { messageId: number };
 type MessageReactionPayload = MessageIdPayload & { emoji: string };
 
+/**
+ * Registers all channel-message Socket.io event listeners for one connection.
+ *
+ * Each listener runs in a try/catch and reports errors via the ack callback
+ * so the client can display an error without the socket disconnecting.
+ *
+ * @param socket - The authenticated socket instance.
+ * @param io     - The Socket.io Server (used to broadcast to rooms).
+ * @param user   - The authenticated user attached by the auth middleware.
+ */
 export function registerMessageHandlers(
   socket: AuthedSocket & { on: (ev: string, cb: (...a: unknown[]) => void) => void },
   io: Server,
   user: AuthUser,
 ) {
-  // message:send
+  // ─── message:send ──────────────────────────────────────────────────────────
   socket.on("message:send", ({ channelId, content, replyToId, fileUrl, fileType, fileName }: MessageSendPayload, callback?: AckFn) => {
     try {
       const text = (content || "").trim();
@@ -34,8 +67,9 @@ export function registerMessageHandlers(
       if (text.length > 2000) return ack(callback, { error: "Message is too long (max 2000 characters)" });
 
       const db = getDb();
-      const { limited, count } = isSocketRateLimited(user.id);
 
+      // Rate-limit check — auto-ban on extreme flooding
+      const { limited, count } = isSocketRateLimited(user.id);
       if (count >= RATE_BAN) {
         db.prepare("UPDATE users SET is_banned = 1, ban_reason = ? WHERE id = ?")
           .run("Auto-banned: message flooding", user.id);
@@ -49,6 +83,7 @@ export function registerMessageHandlers(
         return ack(callback, { error: "You are sending messages too fast. Please slow down." });
       }
 
+      // Permission check: the user must have can_write in this channel
       const role  = getUserRole(db, user.id, channelId);
       const perms = role ? getPerms(db, channelId, role) : null;
       if (!perms?.can_write) return ack(callback, { error: "You do not have permission to write in this channel" });
@@ -58,11 +93,13 @@ export function registerMessageHandlers(
         .run(text, channelId, user.id, replyToId || null, fileUrl || null, fileType || null, fileName || null);
 
       const message = getFullMessage(db, lastInsertRowid);
+      // Broadcast the new message to all sockets in the channel room
       io.to(`channel:${channelId}`).emit("message:new", message);
 
-      // Private channels: notify only members. Public channels: notify all online users.
+      // Send a channel notification to all other users (members only for private channels)
       const ch = db.prepare("SELECT is_private FROM channels WHERE id = ?").get(channelId) as { is_private: number } | undefined;
       if (ch?.is_private) {
+        // Private channel: notify only members
         const members = db.prepare("SELECT user_id FROM channel_members WHERE channel_id = ?")
           .all(channelId) as Array<{ user_id: number }>;
         for (const { user_id } of members) {
@@ -71,6 +108,7 @@ export function registerMessageHandlers(
           }
         }
       } else {
+        // Public channel: notify all online users
         onlineUsers.forEach((_, uid) => {
           if (uid !== user.id) {
             io.to(`notifications:${uid}`).emit("channel:notification", { channelId: Number(channelId), messageId: message?.id });
@@ -78,6 +116,7 @@ export function registerMessageHandlers(
         });
       }
 
+      // Parse @mentions and deliver targeted notifications
       if (text && message) notifyMentions(io, db, text, message, user);
       ack(callback, { success: true, message });
     } catch (err) {
@@ -86,7 +125,7 @@ export function registerMessageHandlers(
     }
   });
 
-  // message:edit
+  // ─── message:edit ──────────────────────────────────────────────────────────
   socket.on("message:edit", ({ messageId, content }: MessageEditPayload, callback?: AckFn) => {
     try {
       if (!content?.trim()) return ack(callback, { error: "Content cannot be empty" });
@@ -109,16 +148,16 @@ export function registerMessageHandlers(
     }
   });
 
-  // message:delete
+  // ─── message:delete ────────────────────────────────────────────────────────
   socket.on("message:delete", ({ messageId }: MessageIdPayload, callback?: AckFn) => {
     try {
       const db  = getDb();
       const msg = db.prepare("SELECT * FROM messages WHERE id = ?").get(messageId) as MessageRow | undefined;
       if (!msg) return ack(callback, { error: "Message not found" });
 
+      // Admins can delete any message; regular users can only delete their own
       const isAdmin = user.role === "admin" ||
         (db.prepare("SELECT role FROM users WHERE id = ?").get(user.id) as { role?: string } | undefined)?.role === "admin";
-
       if (msg.user_id !== user.id && !isAdmin) return ack(callback, { error: "You do not have permission to delete this message" });
 
       db.prepare("DELETE FROM messages WHERE id = ?").run(messageId);
@@ -130,13 +169,14 @@ export function registerMessageHandlers(
     }
   });
 
-  // message:react
+  // ─── message:react ─────────────────────────────────────────────────────────
   socket.on("message:react", ({ messageId, emoji }: MessageReactionPayload, callback?: AckFn) => {
     try {
       const db  = getDb();
       const msg = db.prepare("SELECT channel_id FROM messages WHERE id = ?").get(messageId) as { channel_id: number } | undefined;
       if (!msg) return ack(callback, { error: "Message not found" });
 
+      // Toggle: remove if already reacted, add if not
       const existing = db
         .prepare("SELECT id FROM message_reactions WHERE message_id = ? AND user_id = ? AND emoji = ?")
         .get(messageId, user.id, emoji) as { id: number } | undefined;
@@ -156,18 +196,19 @@ export function registerMessageHandlers(
     }
   });
 
-  // message:pin
+  // ─── message:pin ───────────────────────────────────────────────────────────
   socket.on("message:pin", ({ messageId }: MessageIdPayload, callback?: AckFn) => {
     try {
       const db     = getDb();
       const msg    = db.prepare("SELECT * FROM messages WHERE id = ?").get(messageId) as MessageRow | undefined;
       if (!msg) return ack(callback, { error: "Message not found" });
 
-      const channel = db.prepare("SELECT created_by FROM channels WHERE id = ?").get(msg.channel_id) as { created_by: number } | undefined;
-      const isAdmin = user.role === "admin" ||
+      const channel   = db.prepare("SELECT created_by FROM channels WHERE id = ?").get(msg.channel_id) as { created_by: number } | undefined;
+      const isAdmin   = user.role === "admin" ||
         (db.prepare("SELECT role FROM users WHERE id = ?").get(user.id) as { role?: string } | undefined)?.role === "admin";
       const isCreator = channel?.created_by === user.id;
 
+      // Only the channel creator or a global admin can pin messages
       if (!isAdmin && !isCreator) return ack(callback, { error: "You do not have permission to pin messages" });
 
       db.prepare("UPDATE messages SET is_pinned = 1 WHERE id = ?").run(messageId);
@@ -180,7 +221,7 @@ export function registerMessageHandlers(
     }
   });
 
-  // message:unpin
+  // ─── message:unpin ─────────────────────────────────────────────────────────
   socket.on("message:unpin", ({ messageId }: MessageIdPayload, callback?: AckFn) => {
     try {
       const db  = getDb();

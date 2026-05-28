@@ -1,3 +1,23 @@
+/**
+ * Channel list section in the sidebar.
+ *
+ * Renders the "Channels" section header (clicking it toggles the new-channel form),
+ * a new-channel creation form (name, description, private toggle), and the list
+ * of channel items.
+ *
+ * Each channel item:
+ *  - Lock or hash icon (private vs public).
+ *  - Channel name (bold when unread messages exist).
+ *  - Unread badge (shown when not hovering).
+ *  - On hover: settings and delete buttons (conditionally visible by role).
+ *
+ * Permission helpers:
+ *  - `canManage` — true for admins, channel creators, owners, and managers.
+ *  - `isOwnerOrAdmin` — true only for admins, creators, and owners (can delete).
+ *
+ * Used by: Sidebar.tsx.
+ */
+
 import { useState } from "react";
 import type { ChangeEvent, FormEvent, MouseEvent } from "react";
 import type { Channel, User } from "../types";
@@ -78,7 +98,7 @@ export default function SidebarChannelList({ channels, activeChannel, activeDm, 
             >
               {ch.is_private ? <Icon name="lock" size={13} /> : <Icon name="hash" size={13} />}
             </span>
-            <span style={{ ...s.channelName, fontWeight: unread > 0 ? 700 : undefined, color: unread > 0 ? "#f2f3f5" : undefined }}>{ch.name}</span>
+            <span style={{ ...s.channelName, fontWeight: unread > 0 ? 700 : undefined, color: unread > 0 ? "var(--col-text-primary)" : undefined }}>{ch.name}</span>
             {unread > 0 && !isHovered && <span style={s.unreadBadge}>{unread > 99 ? "99+" : unread}</span>}
             {isHovered && (
               <div style={{ display: "flex", gap: "2px" }}>

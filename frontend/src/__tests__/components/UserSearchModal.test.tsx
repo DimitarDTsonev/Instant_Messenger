@@ -1,3 +1,7 @@
+/**
+ * UserSearchModal tests — verifies the user search input, result display,
+ * "Start DM" and "View profile" actions, and modal dismiss.
+ */
 import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import UserSearchModal from "../../components/UserSearchModal";

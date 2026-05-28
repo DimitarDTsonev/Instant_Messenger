@@ -1,3 +1,13 @@
+/**
+ * Test application factory — creates a bare Express app with all API routes
+ * mounted but without the Socket.io server, so HTTP-level tests can run
+ * without WebSocket infrastructure.
+ *
+ * The upload route is intentionally omitted because file upload tests use
+ * separate test helpers with `multer` memory storage.
+ *
+ * Used by: all backend integration test files via `supertest(createTestApp())`.
+ */
 import express from "express";
 
 import authRoutes from "../routes/auth";

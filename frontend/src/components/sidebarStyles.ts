@@ -1,3 +1,18 @@
+/**
+ * Inline-style map for Sidebar, SidebarChannelList, and SidebarDmList.
+ *
+ * Notable entries:
+ *  - `channelItem` / `dmItem` — parameterised: when active, adds an accent
+ *    left-border stripe and a translucent accent background.
+ *  - `statusDot` — parameterised: green when socket is connected, red when not.
+ *  - `onlineDot` — parameterised: takes a colour string (from STATUS_COLORS) to
+ *    show the user's presence status on their avatar badge.
+ *  - `unreadBadge` — red pill used for both channel unread counts and DM totals.
+ *  - `newChannelForm` / `newChannelInput` — inline channel-creation form that
+ *    appears below the "Channels" section header when expanded.
+ *
+ * Used by: Sidebar.tsx, SidebarChannelList.tsx, SidebarDmList.tsx.
+ */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export const s: Record<string, any> = {
   sidebar:      { width: "240px", flexShrink: 0, background: "var(--col-bg-elevated)", display: "flex", flexDirection: "column", borderRight: "1px solid var(--col-border)", overflow: "hidden" },

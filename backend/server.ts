@@ -85,6 +85,12 @@ const io = new Server(httpServer, {
 // Express middleware
 // -----------------------------------------------------------
 
+// Serve uploaded files BEFORE helmet so they are not given X-Frame-Options /
+// CSP headers — without this, the browser refuses to render PDFs and Office
+// documents inside the in-app preview iframe (cross-origin framing block).
+// The uploads/ directory lives at the monorepo root, not inside backend/.
+app.use("/uploads", express.static(path.join(process.cwd(), "../uploads")));
+
 // Security headers (CSP, X-Frame-Options, HSTS, etc.)
 app.use(helmet());
 
@@ -134,11 +140,6 @@ const authLimiter = rateLimit({
 
 // Parse incoming JSON request bodies.
 app.use(express.json({ limit: "50kb" }));
-
-// Serve uploaded files statically.
-// The uploads/ directory lives at the monorepo root, not inside backend/,
-// so we resolve it one level above __dirname.
-app.use("/uploads", express.static(path.join(process.cwd(), "../uploads")));
 
 app.use([
   "/api/auth/login",

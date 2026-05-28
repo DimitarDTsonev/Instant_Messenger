@@ -1,4 +1,22 @@
-// Shared inline-style map for ChatArea and its sub-components.
+/**
+ * Shared inline-style map for ChatArea and MessageRow.
+ *
+ * Tokens from the global CSS custom properties (`var(--col-*)`) are used
+ * throughout so that both light and dark themes are handled automatically.
+ *
+ * Notable entries:
+ *  - `msgRow` — flex row with relative positioning, required by the absolute
+ *    `actionBar` overlay that floats above the row on hover.
+ *  - `actionBar` — `position: absolute; top: -20px` floats the action buttons
+ *    above the message row without disturbing layout.
+ *  - `reactionPill` — parameterised: `isMine` applies an accent tint to
+ *    reactions the current user has already added.
+ *  - `emojiPicker` — `position: absolute; top: -54px` overlaps both the action
+ *    bar and the message above; `zIndex: 20` ensures it sits on top.
+ *  - `modalOverlay` / `modalBox` — styles for FilePreviewModal's overlay/dialog.
+ *
+ * Used by: ChatArea.tsx, MessageRow.tsx, FilePreviewModal.tsx.
+ */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export const s: Record<string, any> = {
   area:       { flex: 1, overflowY: "auto", padding: "16px 24px", display: "flex", flexDirection: "column", gap: "2px" },

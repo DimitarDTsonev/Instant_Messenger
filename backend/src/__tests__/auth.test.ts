@@ -1,3 +1,12 @@
+/**
+ * Auth API integration tests — exercises registration, login, guest account
+ * creation, forgot-password, and reset-password flows using a real in-memory
+ * SQLite database via `createTestApp` + `createTestDb`.
+ *
+ * Verifies: input validation, duplicate-email rejection, password hashing,
+ * JWT token issuance, password-reset token generation and expiry, and
+ * correct error responses.
+ */
 import request from "supertest";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";

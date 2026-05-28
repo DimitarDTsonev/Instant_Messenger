@@ -1,3 +1,8 @@
+/**
+ * AuthContext tests — verifies login, register, logout, loginWithToken,
+ * authFetch (with token injection), and session persistence across
+ * localStorage / sessionStorage (guest vs regular users).
+ */
 import { AuthProvider, useAuth } from "../../context/AuthContext";
 import { render, screen, act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";

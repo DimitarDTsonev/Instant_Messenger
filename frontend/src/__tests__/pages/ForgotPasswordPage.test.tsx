@@ -1,3 +1,7 @@
+/**
+ * ForgotPasswordPage tests — verifies form validation, API call on submit,
+ * success banner display, and "Back to sign in" navigation.
+ */
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { vi } from "vitest";
 import ForgotPasswordPage from "../../pages/ForgotPasswordPage";

@@ -1,3 +1,17 @@
+/**
+ * Inline-style map for AdminPage and its sub-components
+ * (AdminUsersTable, AdminLogsTable, BanModal).
+ *
+ * Notable entries:
+ *  - `tab` — parameterised: accent bottom border + primary text on the active tab.
+ *  - `badge` — parameterised by banned boolean: red (banned) or green (active).
+ *  - `actionBtn` — parameterised by danger boolean: red tint for destructive
+ *    actions (ban), blue tint for safe actions (unban / view).
+ *  - `logBadge` — parameterised by event string: maps known security-log event
+ *    types to their badge colour via a local lookup object.
+ *
+ * Used by: AdminPage.tsx, AdminUsersTable.tsx, AdminLogsTable.tsx, BanModal.tsx.
+ */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export const s: Record<string, any> = {
   page:        { minHeight: "100vh", background: "var(--col-bg-base)", color: "var(--col-text-primary)", fontFamily: "inherit" },

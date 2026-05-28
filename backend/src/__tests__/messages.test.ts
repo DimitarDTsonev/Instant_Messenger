@@ -1,3 +1,11 @@
+/**
+ * Messages API integration tests — exercises message CRUD and search
+ * endpoints: GET, POST, PATCH, DELETE on /api/messages/:channelId,
+ * and GET /api/messages/search with a real in-memory SQLite database.
+ *
+ * Verifies: pagination, reply threading, pin/unpin, reactions,
+ * permission gating, and cross-channel search results.
+ */
 import request from "supertest";
 import bcrypt from "bcryptjs";
 

@@ -1,3 +1,11 @@
+/**
+ * Channel Invites API integration tests — exercises invite creation,
+ * retrieval, redemption (join via invite code), and deletion with a real
+ * in-memory SQLite database.
+ *
+ * Verifies: invite code generation, max-uses / expiry enforcement, join
+ * flow for guests and registered users, and authorization gates.
+ */
 import request from "supertest";
 import bcrypt from "bcryptjs";
 

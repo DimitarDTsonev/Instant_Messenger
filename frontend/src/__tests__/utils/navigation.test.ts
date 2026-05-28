@@ -1,3 +1,7 @@
+/**
+ * Navigation utility tests — verifies getAppPath, navigateHome, and navigateTo
+ * helpers, including History API push vs replace modes and popstate dispatch.
+ */
 import { getAppPath, navigateHome, navigateTo } from "../../utils/navigation";
 
 describe("navigation helpers", () => {

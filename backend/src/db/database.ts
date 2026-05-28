@@ -1,14 +1,47 @@
+/**
+ * SQLite database setup using `better-sqlite3`.
+ *
+ * Key responsibilities:
+ *  1. Singleton pattern: `getDb()` creates the database on first call and returns
+ *     the same instance on subsequent calls. This avoids multiple open file handles.
+ *  2. WAL mode: `journal_mode = WAL` enables concurrent reads while writes are in
+ *     progress, which improves performance for the WebSocket-heavy workload.
+ *  3. Foreign keys: enforced at the connection level (`foreign_keys = ON`).
+ *  4. Schema creation: `initDatabase()` runs `CREATE TABLE IF NOT EXISTS` for all
+ *     tables on every startup — idempotent and safe to call repeatedly.
+ *  5. Migrations: column additions are applied via `ALTER TABLE ADD COLUMN IF NOT EXISTS`
+ *     guards so existing databases are upgraded without data loss.
+ *  6. Guest cleanup: stale guest accounts older than 24 hours are deleted on startup.
+ *  7. Bot seeding: if `BOT_EMAIL` / `BOT_PASSWORD` env vars are set, a system user
+ *     is created for the Music Dashboard integration.
+ *
+ * Used by: every repository module and the integrations route.
+ */
+
 import type { Db } from "../types";
 import Database from "better-sqlite3";
 import path from "path";
 import bcrypt from "bcryptjs";
 
-// Absolute path to the SQLite file. Docker can override it to persist data in a volume.
+/**
+ * Absolute path to the SQLite database file.
+ * Defaults to `<cwd>/messenger.db`; Docker can override with `DB_PATH` to
+ * mount a persistent volume.
+ */
 const DB_PATH = process.env.DB_PATH || path.join(process.cwd(), "messenger.db");
 
-// Module-level singleton; populated on first call to getDb()
+/** Module-level singleton; populated on first call to `getDb()`. */
 let db: Db | null = null;
 
+/**
+ * Returns the shared `better-sqlite3` database connection, creating it on first call.
+ *
+ * Applies two pragmas on creation:
+ *  - `journal_mode = WAL` — Write-Ahead Logging for better read concurrency.
+ *  - `foreign_keys = ON`  — Enforce referential integrity constraints.
+ *
+ * @returns The `Db` (better-sqlite3 `Database`) singleton.
+ */
 export function getDb(): Db {
   if (!db) {
     db = new Database(DB_PATH);
@@ -18,6 +51,23 @@ export function getDb(): Db {
   return db;
 }
 
+/**
+ * Creates all tables and indexes (idempotent via `IF NOT EXISTS`) and applies
+ * any pending column migrations. Called once at application startup.
+ *
+ * Tables created:
+ *  - `users`                 — Accounts with role, guest flag, and ban fields.
+ *  - `channels`              — Chat rooms with optional private flag.
+ *  - `messages`              — Channel messages with edit, pin, file, and reply fields.
+ *  - `direct_messages`       — DMs with read receipt and file attachment support.
+ *  - `message_reactions`     — Per-user emoji reactions on channel messages.
+ *  - `dm_reactions`          — Per-user emoji reactions on DMs.
+ *  - `channel_members`       — Channel membership with role (owner/manager/member/viewer).
+ *  - `channel_permissions`   — Per-role permission overrides for a channel.
+ *  - `channel_invites`       — Invite links with optional expiry and use-count cap.
+ *  - `password_reset_tokens` — Single-use tokens with 1-hour TTL.
+ *  - `security_logs`         — Immutable audit trail for auth and moderation events.
+ */
 export function initDatabase() {
   const db = getDb();
 
@@ -164,13 +214,17 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_prt_token ON password_reset_tokens(token);
   `);
 
-  // Migration: add new columns to existing tables if they do not yet exist
-  const msgCols  = (db.pragma("table_info(messages)") as 
+  // ─── Column migrations ────────────────────────────────────────────────────
+  // Check existing columns via `PRAGMA table_info` and add any that are missing.
+  // This pattern lets new columns be added to existing deployed databases without
+  // wiping data.
+
+  const msgCols  = (db.pragma("table_info(messages)") as
         Array<{ name: string }>).map((c) => c.name);
-  const userCols = (db.pragma("table_info(users)") as 
+  const userCols = (db.pragma("table_info(users)") as
         Array<{ name: string }>).map((c) => c.name);
 
-  // New columns added to messages over time
+  // New columns added to the messages table over time
   const msgMigrations = [
     ["is_edited",    "INTEGER DEFAULT 0"],
     ["edited_at",    "DATETIME"],
@@ -189,23 +243,13 @@ export function initDatabase() {
   }
 
   // Add global role, guest flag, and ban fields to users
-  if (!userCols.includes("role")) {
-    db.exec("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'member'");
-  }
-  if (!userCols.includes("is_guest")) {
-    db.exec("ALTER TABLE users ADD COLUMN is_guest INTEGER DEFAULT 0");
-  }
-  if (!userCols.includes("is_banned")) {
-    db.exec("ALTER TABLE users ADD COLUMN is_banned INTEGER DEFAULT 0");
-  }
-  if (!userCols.includes("ban_reason")) {
-    db.exec("ALTER TABLE users ADD COLUMN ban_reason TEXT");
-  }
-  if (!userCols.includes("is_system")) {
-    db.exec("ALTER TABLE users ADD COLUMN is_system INTEGER DEFAULT 0");
-  }
+  if (!userCols.includes("role"))       db.exec("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'member'");
+  if (!userCols.includes("is_guest"))   db.exec("ALTER TABLE users ADD COLUMN is_guest INTEGER DEFAULT 0");
+  if (!userCols.includes("is_banned"))  db.exec("ALTER TABLE users ADD COLUMN is_banned INTEGER DEFAULT 0");
+  if (!userCols.includes("ban_reason")) db.exec("ALTER TABLE users ADD COLUMN ban_reason TEXT");
+  if (!userCols.includes("is_system"))  db.exec("ALTER TABLE users ADD COLUMN is_system INTEGER DEFAULT 0");
 
-  // Security event log
+  // ─── Security log table ───────────────────────────────────────────────────
   db.exec(`
     CREATE TABLE IF NOT EXISTS security_logs (
       id         INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -222,14 +266,16 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_sec_created ON security_logs(created_at);
   `);
 
-  // Migration: add is_private flag to channels
+  // ─── Channel is_private migration ─────────────────────────────────────────
   const chCols = (db.pragma("table_info(channels)") as Array<{ name: string }>).map((c) => c.name);
   if (!chCols.includes("is_private")) {
     db.exec("ALTER TABLE channels ADD COLUMN is_private INTEGER DEFAULT 0");
   }
 
-  // Migration: back-fill existing channel creators as 'owner' in channel_members
-  const existingChannels = db.prepare("SELECT id, created_by FROM channels WHERE created_by IS NOT NULL").all() as 
+  // ─── Back-fill channel owners ─────────────────────────────────────────────
+  // Existing channels created before the channel_members table existed won't
+  // have an owner row — insert one now using the channel's created_by field.
+  const existingChannels = db.prepare("SELECT id, created_by FROM channels WHERE created_by IS NOT NULL").all() as
         Array<{ id: number; created_by: number }>;
   const insertOwner = db.prepare(
     "INSERT OR IGNORE INTO channel_members (channel_id, user_id, role) VALUES (?, ?, 'owner')"
@@ -238,15 +284,16 @@ export function initDatabase() {
     insertOwner.run(ch.id, ch.created_by);
   }
 
-  // Cleanup: remove guest accounts older than 24 hours
+  // ─── Guest account cleanup ────────────────────────────────────────────────
+  // Remove guest accounts older than 24 hours to keep the user table lean
   db.prepare(`
     DELETE FROM users
     WHERE is_guest = 1
       AND created_at < datetime('now', '-24 hours')
   `).run();
 
-  // Migration: add file attachment and edit-tracking columns to direct_messages
-  const dmCols = (db.pragma("table_info(direct_messages)") as 
+  // ─── Direct message column migrations ────────────────────────────────────
+  const dmCols = (db.pragma("table_info(direct_messages)") as
         Array<{ name: string }>).map((c) => c.name);
   const dmMigrations = [
     ["file_url",    "TEXT"],
@@ -263,6 +310,7 @@ export function initDatabase() {
     }
   }
 
+  // ─── Bot user seed ────────────────────────────────────────────────────────
   // Auto-seed the Music Dashboard bot user when BOT_* env vars are provided.
   // Runs on every startup but is a no-op if the user already exists.
   const botEmail    = process.env.BOT_EMAIL;

@@ -1,3 +1,12 @@
+/**
+ * Socket.io integration tests — spins up a real HTTP + Socket.io server
+ * with a real in-memory SQLite database and exercises the socket event
+ * handlers end-to-end via socket.io-client connections.
+ *
+ * Covers: channel message send/edit/delete/react/pin, DM send/edit/delete/react,
+ * typing indicators, read receipts, channel join/leave, and authentication
+ * (banned users, missing tokens).
+ */
 import http from "http";
 import bcrypt from "bcryptjs";
 import { Server } from "socket.io";

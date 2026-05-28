@@ -1,3 +1,11 @@
+/**
+ * Upload API integration tests — exercises POST /api/upload with various
+ * file types (images, PDFs, Office documents, ZIP archives) and verifies
+ * correct `type` classification, file size validation, MIME-type rejection,
+ * and authentication guard.
+ *
+ * Uses `multer` memory storage in the test app so no files are written to disk.
+ */
 import fs from "fs";
 import path from "path";
 import express from "express";

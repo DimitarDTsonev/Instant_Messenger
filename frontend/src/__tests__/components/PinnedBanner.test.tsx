@@ -1,3 +1,7 @@
+/**
+ * PinnedBanner tests — verifies banner visibility, multi-pin navigation,
+ * unpin button permission gating, and click callbacks.
+ */
 import { render, screen, fireEvent } from "@testing-library/react";
 import { vi } from "vitest";
 import PinnedBanner from "../../components/PinnedBanner";

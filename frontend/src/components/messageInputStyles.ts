@@ -1,3 +1,17 @@
+/**
+ * Inline-style map for MessageInput and its overlay sub-components.
+ *
+ * Notable entries:
+ *  - `wrapper` — the main input row (emoji btn + attach btn + textarea + send btn).
+ *  - `wrapperWithTop` — drops the top border-radius when a reply bar or file
+ *    preview is shown above, creating a visually joined compound widget.
+ *  - `sendBtn` — parameterised: accent background + white icon when active (has
+ *    text or file), muted background + icon when the input is empty.
+ *  - `emojiPanel` / `mentionDropdown` — both use `position: absolute;
+ *    bottom: calc(100% + 4px)` to float above the input container.
+ *
+ * Used by: MessageInput.tsx.
+ */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export const s: Record<string, any> = {
   container:    { padding: "0 16px 16px", flexShrink: 0, position: "relative" },

@@ -1,18 +1,45 @@
+/**
+ * Music Dashboard message card — renders a rich preview for messages posted by
+ * the Music Dashboard integration bot.
+ *
+ * Displayed when a message has `source === "music-dashboard"` and its `metadata`
+ * field parses to a `MusicMetadata` object with `integration === "music-dashboard"`.
+ *
+ * Card sections:
+ *  - Album art (or "No artwork" placeholder).
+ *  - Track title, artist, album, release year, and duration.
+ *  - Scoring badge (0–100) + YouTube view count.
+ *  - Scoring breakdown (Spotify, YouTube, recency, match quality).
+ *  - Links to Spotify and YouTube when available.
+ *
+ * Used by: MessageRow.tsx (rendered below the message text when metadata is present).
+ */
+
 import type { Message } from "../types";
 
+/**
+ * Shape of the JSON object stored in `message.metadata` for music integration posts.
+ */
 type MusicMetadata = {
+  /** Identifies the integration source. Must be `"music-dashboard"` to trigger rendering. */
   integration?: string;
   title?: string;
   artist?: string;
   album?: string;
+  /** URL of the album art image. */
   albumArt?: string;
+  /** 4-digit year string, e.g. `"2024"`. */
   releaseYear?: string;
+  /** Track duration in milliseconds. */
   durationMs?: number;
+  /** Composite score 0–100. */
   score?: number;
   spotifyUrl?: string;
   youtubeUrl?: string;
   youtubeViewCount?: number;
+  /** True when no YouTube video match was found. */
   youtubeUnavailable?: boolean;
+  /** Breakdown of the composite score into its four components. */
   scoringDetails?: {
     spotifyPopularity?: number;
     youtubeViewScore?: number;
@@ -121,6 +148,13 @@ const styles = {
   },
 } satisfies Record<string, AppStyle>;
 
+/**
+ * Parses the raw JSON string stored in `message.metadata`.
+ * Returns `null` on invalid JSON or non-object values.
+ *
+ * @param raw - Raw JSON string from the database.
+ * @returns   Parsed `MusicMetadata` or `null`.
+ */
 function parseMetadata(raw: string | null | undefined): MusicMetadata | null {
   if (!raw) return null;
   try {
@@ -131,6 +165,12 @@ function parseMetadata(raw: string | null | undefined): MusicMetadata | null {
   }
 }
 
+/**
+ * Formats a duration in milliseconds to `M:SS` string.
+ * Returns `null` when `ms` is falsy.
+ *
+ * @param ms - Duration in milliseconds.
+ */
 function formatDuration(ms?: number): string | null {
   if (!ms) return null;
   const total = Math.round(ms / 1000);
@@ -139,11 +179,24 @@ function formatDuration(ms?: number): string | null {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
+/**
+ * Formats a raw YouTube view count to a human-readable string.
+ *
+ * @param count - Raw integer view count.
+ */
 function formatViews(count?: number): string | null {
   if (!count) return null;
+  // toLocaleString adds thousands separators
   return `${count.toLocaleString()} YouTube views`;
 }
 
+/**
+ * Extracts music metadata from a message, checking both `metadata.integration`
+ * and the legacy `msg.source` field.
+ *
+ * @param msg - The `Message` object to inspect.
+ * @returns   Parsed `MusicMetadata` if this is a Music Dashboard message, else `null`.
+ */
 export function getMusicMetadata(msg: Message): MusicMetadata | null {
   const metadata = parseMetadata(msg.metadata);
   if (metadata?.integration === "music-dashboard") return metadata;
@@ -151,12 +204,19 @@ export function getMusicMetadata(msg: Message): MusicMetadata | null {
   return null;
 }
 
+/**
+ * Renders a rich music card for a Music Dashboard integration message.
+ * Returns `null` if the message is not a music integration post.
+ *
+ * @param msg - The channel message to render a preview for.
+ */
 export default function MusicMessagePreview({ msg }: { msg: Message }) {
   const metadata = getMusicMetadata(msg);
   if (!metadata) return null;
 
   const duration = formatDuration(metadata.durationMs);
   const views = formatViews(metadata.youtubeViewCount);
+  // Scoring breakdown string — shows individual sub-scores when available
   const scoreDetails = metadata.scoringDetails
     ? [
         `Spotify ${metadata.scoringDetails.spotifyPopularity ?? 0}`,
@@ -177,6 +237,7 @@ export default function MusicMessagePreview({ msg }: { msg: Message }) {
         <div style={styles.content}>
           <div style={styles.eyebrow}>Music Dashboard</div>
           <div style={styles.title}>{metadata.title || "Untitled track"}</div>
+          {/* Join non-null metadata fields with a bullet separator */}
           <div style={styles.meta}>
             {[metadata.artist, metadata.album, metadata.releaseYear, duration].filter(Boolean).join(" • ")}
           </div>

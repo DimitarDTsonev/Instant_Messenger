@@ -1,3 +1,8 @@
+/**
+ * Sidebar tests — verifies channel list rendering, DM list, online users,
+ * new-channel form submission, status picker, theme toggle, logout button,
+ * admin link visibility, and mobile open/close behaviour.
+ */
 import { render, screen, fireEvent, within } from "@testing-library/react";
 import { useAuth } from "../../context/AuthContext";
 import { useSocket } from "../../context/SocketContext";

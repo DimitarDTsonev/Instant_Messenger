@@ -1,3 +1,7 @@
+/**
+ * UserProfileModal tests — verifies profile loading, online/offline status
+ * display, "Start DM" button, and modal dismiss behaviour.
+ */
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import UserProfileModal from "../../components/UserProfileModal";
 

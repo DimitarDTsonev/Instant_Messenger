@@ -1,3 +1,9 @@
+/**
+ * ChatPage integration tests — renders the full ChatPage with mocked hooks,
+ * contexts, and child components to verify page-level behaviour: session
+ * restore, channel/DM switching, modal opening, keyboard shortcut (Ctrl+F),
+ * and write-permission computation.
+ */
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { vi } from "vitest";
 import { useAuth } from "../../context/AuthContext";

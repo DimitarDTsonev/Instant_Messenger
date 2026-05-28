@@ -1,3 +1,7 @@
+/**
+ * AdminPage tests — verifies the admin dashboard: user/log loading, ban/unban
+ * actions, tab switching, filter input, and access guard for non-admin users.
+ */
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { vi } from "vitest";
 import { useAuth } from "../../context/AuthContext";

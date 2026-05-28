@@ -1,3 +1,17 @@
+/**
+ * DM list section in the sidebar — shows all users (excluding self) with their
+ * unread count, presence status indicator, and admin badge.
+ *
+ * The section can be collapsed/expanded via `onToggle`. A total unread counter
+ * appears next to the "Direct" heading when collapsed.
+ *
+ * Presence rendering:
+ *  - `dotColor` maps (onlineUserIds + userStatuses) to an RGBA colour string.
+ *  - Online users show in primary text colour; offline users are muted.
+ *
+ * Used by: Sidebar.tsx.
+ */
+
 import type { Conversation, User, UserStatus } from "../types";
 import { avatarLabel } from "../utils/avatar";
 import Icon from "./Icons";

@@ -1,3 +1,17 @@
+/**
+ * In-memory SQLite test database utilities.
+ *
+ * `createTestDb()` — creates a fresh `:memory:` SQLite database with WAL mode,
+ *   foreign keys, and the full application schema (all tables matching
+ *   production).  Suitable for use in `beforeEach` to give each test a
+ *   clean, isolated database.
+ *
+ * `clearDb(db)` — deletes all rows from every table in dependency order
+ *   (reactions → messages → channels → users) so each test can start
+ *   clean without recreating the entire database.
+ *
+ * Used by: all backend integration test files.
+ */
 import Database from "better-sqlite3";
 import type { Db } from "../types";
 

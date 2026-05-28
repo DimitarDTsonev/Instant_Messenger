@@ -1,3 +1,19 @@
+/**
+ * Main sidebar — displays channel list, DM conversations, online users panel,
+ * and the current user's footer with status picker, theme toggle, and logout.
+ *
+ * Composed of:
+ *  - `SidebarChannelList` — clickable channel items with unread badges.
+ *  - `SidebarDmList`      — recent DM conversations with unread counts.
+ *  - Inline online-users section — all users with presence-coloured status dots.
+ *  - Footer — current user's avatar + status picker + admin link + theme toggle + logout.
+ *
+ * Mobile: controlled by the `open` prop. The CSS class `sidebar open` makes the panel
+ * slide in; `onClose` hides it by removing the class.
+ *
+ * Used by: ChatPage.tsx.
+ */
+
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";

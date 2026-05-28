@@ -1,3 +1,20 @@
+/**
+ * Channel settings modal — tabbed settings dialog for managing a channel.
+ *
+ * Tabs:
+ *  - General     — Edit channel name, description, and private flag. Always visible.
+ *  - Members     — Add, remove, and change roles of channel members. Always visible.
+ *  - Permissions — Per-role permission overrides. Visible only to the channel owner.
+ *  - Invites     — Generate and manage invite links. Hidden for members without `can_invite`.
+ *
+ * The visible tabs are computed from `myRole` and `channel.can_invite` so that
+ * lower-privileged users only see what they are allowed to manage.
+ *
+ * Dismiss: clicking the overlay backdrop or the close (×) button.
+ *
+ * Used by: ChatPage.tsx (triggered by ChatTopbar settings button or SidebarChannelList gear).
+ */
+
 import { useState } from "react";
 import type { MouseEvent } from "react";
 import { useAuth } from "../context/AuthContext";

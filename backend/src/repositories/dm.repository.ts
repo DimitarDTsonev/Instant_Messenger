@@ -1,5 +1,22 @@
+/**
+ * Direct Messages repository — all database access for `direct_messages`
+ * and `dm_reactions` tables.
+ *
+ * The `BASE_SELECT` fragment joins each DM row with sender info and the
+ * optional quoted reply, matching the shape used by the socket and REST layers.
+ *
+ * Imported by: dm.service.ts, socket/dmHandlers.ts (via socketUtils).
+ */
+
 import type { Db, MessageRow, ReactionMap } from "../types";
 
+/**
+ * Attaches per-message reaction maps to an array of DM rows (one DB query per row).
+ * Mutates each row's `.reactions` field in place.
+ *
+ * @param db       - Database instance.
+ * @param messages - DM rows to enrich.
+ */
 function attachDmReactions(db: Db, messages: MessageRow[]) {
   for (const msg of messages) {
     const rows = db
@@ -14,6 +31,13 @@ function attachDmReactions(db: Db, messages: MessageRow[]) {
   }
 }
 
+/**
+ * Builds a `ReactionMap` for a single direct message.
+ *
+ * @param db        - Database instance.
+ * @param messageId - DM primary key.
+ * @returns         Reaction map object.
+ */
 export function getDmReactions(db: Db, messageId: number): ReactionMap {
   const rows = db
     .prepare("SELECT emoji, user_id FROM dm_reactions WHERE message_id = ?")
@@ -26,6 +50,17 @@ export function getDmReactions(db: Db, messageId: number): ReactionMap {
   return map;
 }
 
+/**
+ * Returns a list of all DM conversation partners for a user, each with the
+ * most-recent message preview and unread count.
+ *
+ * The correlated subquery finds the latest message in each conversation to
+ * use as the join key. Results are sorted by most recent activity first.
+ *
+ * @param db     - Database instance.
+ * @param userId - The current user's ID.
+ * @returns      Array of conversation summary objects.
+ */
 export function findConversations(db: Db, userId: number) {
   return db
     .prepare(
@@ -58,6 +93,10 @@ export function findConversations(db: Db, userId: number) {
     .all(userId, userId, userId, userId);
 }
 
+/**
+ * SQL fragment shared by all full DM message queries.
+ * Joins sender info and the optional quoted reply.
+ */
 const BASE_SELECT = `
   SELECT
     dm.id, dm.content, dm.created_at, dm.is_read,
@@ -77,6 +116,19 @@ const BASE_SELECT = `
       OR (dm.sender_id = ? AND dm.receiver_id = ?))
 `;
 
+/**
+ * Returns a paginated list of DMs between two users in ascending order.
+ *
+ * Uses the same cursor-based keyset pagination as the channel messages repo:
+ * fetch DESC by ID, then reverse for ascending display order.
+ *
+ * @param db     - Database instance.
+ * @param me     - The current user's ID.
+ * @param other  - The conversation partner's ID.
+ * @param limit  - Maximum number of messages to return.
+ * @param before - Cursor: only return messages with ID < before.
+ * @returns      Array of DM rows in ascending order, with reactions.
+ */
 export function findMessages(db: Db, me: number, other: number, limit: number, before: number | null): MessageRow[] {
   const rows = before
     ? (db.prepare(`${BASE_SELECT} AND dm.id < ? ORDER BY dm.id DESC LIMIT ?`).all(me, other, other, me, before, limit) as MessageRow[]).reverse()
@@ -85,6 +137,13 @@ export function findMessages(db: Db, me: number, other: number, limit: number, b
   return rows;
 }
 
+/**
+ * Fetches a single DM by primary key with full sender info and reply context.
+ *
+ * @param db        - Database instance.
+ * @param messageId - DM primary key.
+ * @returns         Full DM row with reactions, or `undefined`.
+ */
 export function findMessageById(db: Db, messageId: number): MessageRow | undefined {
   const msg = db
     .prepare(
@@ -109,15 +168,41 @@ export function findMessageById(db: Db, messageId: number): MessageRow | undefin
   return msg;
 }
 
+/**
+ * Fetches a raw `direct_messages` row without joins (used for ownership checks).
+ *
+ * @param db        - Database instance.
+ * @param messageId - DM primary key.
+ * @returns         Raw row, or `undefined`.
+ */
 export function findRaw(db: Db, messageId: number) {
   return db.prepare("SELECT * FROM direct_messages WHERE id = ?").get(messageId) as MessageRow | undefined;
 }
 
+/**
+ * Marks all unread messages from `senderId` to `receiverId` as read,
+ * recording the `read_at` timestamp.
+ *
+ * Called when the recipient opens the DM conversation.
+ *
+ * @param db         - Database instance.
+ * @param senderId   - The user who sent the messages.
+ * @param receiverId - The user who is now reading them.
+ */
 export function markRead(db: Db, senderId: number, receiverId: number) {
   const now = new Date().toISOString().replace("T", " ").slice(0, 19);
   db.prepare("UPDATE direct_messages SET is_read = 1, read_at = ? WHERE sender_id = ? AND receiver_id = ? AND is_read = 0").run(now, senderId, receiverId);
 }
 
+/**
+ * Toggles an emoji reaction on a direct message (add or remove).
+ *
+ * @param db        - Database instance.
+ * @param messageId - DM to react to.
+ * @param userId    - User performing the reaction.
+ * @param emoji     - Emoji character string.
+ * @returns         `"added"` or `"removed"`.
+ */
 export function toggleReaction(db: Db, messageId: number, userId: number, emoji: string): "added" | "removed" {
   const existing = db
     .prepare("SELECT id FROM dm_reactions WHERE message_id = ? AND user_id = ? AND emoji = ?")

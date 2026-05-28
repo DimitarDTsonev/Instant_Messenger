@@ -1,3 +1,8 @@
+/**
+ * ErrorBoundary tests — verifies the class component catches render errors,
+ * shows the fallback UI (or a custom fallback prop), and re-renders children
+ * when there is no error.
+ */
 import { render, screen } from "@testing-library/react";
 import ErrorBoundary from "../../components/ErrorBoundary";
 

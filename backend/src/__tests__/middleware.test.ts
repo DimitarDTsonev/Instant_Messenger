@@ -1,3 +1,13 @@
+/**
+ * Middleware unit tests — verifies `authMiddleware`, `errorHandler`, and
+ * `rateLimiter` in isolation.
+ *
+ * authMiddleware: valid JWT → populates req.user; missing/invalid/expired
+ *   token → 401 Unauthorized.
+ * errorHandler: AppError subclasses → correct status codes; generic errors →
+ *   500 Internal Server Error.
+ * rateLimiter: configured limit reached → 429 Too Many Requests.
+ */
 import type { NextFunction, Request, Response } from "express";
 import jwt, { type JwtPayload } from "jsonwebtoken";
 

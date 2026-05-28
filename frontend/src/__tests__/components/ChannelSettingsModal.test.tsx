@@ -1,3 +1,8 @@
+/**
+ * ChannelSettingsModal tests — renders the modal with different role/permission
+ * combinations and verifies that the correct tabs are shown, forms submit correctly,
+ * and tab switching works.
+ */
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { vi } from "vitest";
 import { useAuth } from "../../context/AuthContext";

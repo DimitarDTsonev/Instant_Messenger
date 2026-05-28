@@ -1,3 +1,11 @@
+/**
+ * Admin API integration tests — exercises GET /api/admin/users,
+ * GET /api/admin/security-logs, POST /api/admin/ban/:id, and
+ * POST /api/admin/unban/:id using a real in-memory SQLite database.
+ *
+ * Verifies: admin-only access guard, ban/unban state changes, log creation,
+ * and error responses for invalid inputs.
+ */
 import request from "supertest";
 import bcrypt from "bcryptjs";
 

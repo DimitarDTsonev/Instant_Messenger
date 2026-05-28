@@ -1,3 +1,8 @@
+/**
+ * MarkdownRenderer tests — verifies all inline markdown patterns (bold, italic,
+ * strikethrough, code, links, bare URLs, @-mentions, triple-backtick code
+ * blocks) and their combinations/edge cases.
+ */
 import { render, screen } from "@testing-library/react";
 import MarkdownRenderer from "../../components/MarkdownRenderer";
 

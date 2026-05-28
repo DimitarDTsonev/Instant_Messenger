@@ -1,3 +1,46 @@
+/**
+ * Message composer — the text input bar at the bottom of every channel and DM view.
+ *
+ * Features:
+ *  - Auto-growing textarea: height resets to "auto" then snaps to `scrollHeight`
+ *    (capped at 160 px) on every keystroke.
+ *  - File attachment: click the paperclip icon → hidden `<input type="file">`.
+ *    Uploads go to POST /api/upload (with Bearer token).  An image attachment
+ *    shows a thumbnail preview via `URL.createObjectURL`; other files show a
+ *    file-type icon from `fileIcon()`.
+ *  - Emoji picker: `EmojiPicker` inserts at cursor position via
+ *    `setSelectionRange` in a `setTimeout(0)` microtask (so React has
+ *    re-rendered the new text value before we move the cursor).
+ *  - @-mention autocomplete: scans the text before the cursor for `/@(\w*)$/`
+ *    on every change.  `MentionDropdown` pops up with matching users;
+ *    ArrowUp/Down navigate it, Enter/Tab commit, Escape dismisses.
+ *  - Typing indicators: emits `typing:start` on each keypress with content,
+ *    debounced 1500 ms to emit `typing:stop` via `useDebounce`.
+ *  - Send: Enter (without Shift) calls `handleSend`.  Shift+Enter inserts a
+ *    newline.  The send button is accent-coloured only when there is content.
+ *  - Reply: if `replyTo` is set, a dismissible reply bar is shown above the
+ *    input wrapper; the message ID is forwarded to `sendMessage` / `sendDm`.
+ *
+ * Channel vs DM: `isDm` switches between `sendMessage` (channel) and `sendDm`
+ * (DM).  DM sends use an ack callback to receive the returned `DirectMessage`
+ * object and pass it to `onAddMessage` for immediate optimistic display.
+ *
+ * ACCEPTED_TYPES: comma-separated MIME types forwarded to the file input's
+ * `accept` attribute to filter the OS file picker.
+ *
+ * Used by: ChatPage.tsx.
+ *
+ * @param channelId    - Active channel ID (undefined in DM mode).
+ * @param channelName  - Channel name shown in the placeholder text.
+ * @param dmUser       - DM partner (undefined in channel mode).
+ * @param isDm         - Switches between channel and DM send paths.
+ * @param disabled     - Disables the entire input (no channel selected).
+ * @param canWrite     - False when the user's channel role forbids writing.
+ * @param onAddMessage - Optimistic DM message inserter called with the ack payload.
+ * @param users        - Full user list for @-mention suggestions.
+ * @param replyTo      - Message being replied to; null when no reply is active.
+ * @param onClearReply - Callback to clear the active reply context.
+ */
 import { useState, useRef, useCallback, useEffect } from "react";
 import type { ChangeEvent, KeyboardEvent } from "react";
 import { useSocket } from "../context/SocketContext";
@@ -56,6 +99,7 @@ export default function MessageInput({
   const textareaRef  = useRef<HTMLTextAreaElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  // Debounced typing-stop emitter: fires 1500 ms after the last keystroke
   const stopTyping = useDebounce(useCallback(() => {
     if (isDm && dmUser) emitDmTypingStop(dmUser.id);
     else if (channelId) emitTypingStop(channelId);
@@ -69,12 +113,14 @@ export default function MessageInput({
     if (isDm && dmUser && val.trim()) { emitDmTypingStart(dmUser.id); stopTyping(); }
     else if (!isDm && channelId && val.trim()) { emitTypingStart(channelId); stopTyping(); }
 
+    // Detect @mention trigger: match "@word" immediately before the cursor
     const cursor = e.target.selectionStart;
     const before = val.slice(0, cursor);
     const atMatch = before.match(/@(\w*)$/);
     if (atMatch) {
       const q = (atMatch[1] || "").toLowerCase();
       setMentionQ(q);
+      // Cap at 8 suggestions to keep the dropdown compact
       setMentionList(users.filter((u) => u.username.toLowerCase().startsWith(q)).slice(0, 8));
       setMentionIdx(0);
     } else {
@@ -82,6 +128,11 @@ export default function MessageInput({
     }
   }
 
+  /**
+   * Replace the `@partial` trigger with the selected username and restore cursor
+   * focus.  `setTimeout(0)` defers the `setSelectionRange` call until React has
+   * committed the new text value to the DOM.
+   */
   function insertMention(username: string) {
     const ta     = textareaRef.current;
     const cursor = ta?.selectionStart ?? text.length;
@@ -136,11 +187,13 @@ export default function MessageInput({
         if (error) { setText(content); console.error("DM error:", error); }
         else if (message) { onAddMessage?.(message); }
         setSending(false);
+        setTimeout(() => textareaRef.current?.focus(), 0);
       });
     } else {
       sendMessage(channelId, content, replyTo?.id, fileUrl, fileType, fileName, ({ error }: SocketAck = {}) => {
         if (error) { setText(content); console.error("Send error:", error); }
         setSending(false);
+        setTimeout(() => textareaRef.current?.focus(), 0);
       });
     }
     onClearReply?.();

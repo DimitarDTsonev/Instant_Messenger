@@ -1,3 +1,24 @@
+/**
+ * SVG icon sprite component — renders Lucide-style line icons as inline SVG.
+ *
+ * All icon paths are inlined as data constants (no external sprite or icon font
+ * dependency). Each icon is defined as an array of SVG path `d` strings drawn on
+ * a 24×24 viewBox with `stroke="currentColor"` so they inherit the CSS `color`
+ * of their parent.
+ *
+ * `aria-hidden="true"` and `focusable="false"` are set on every SVG so screen
+ * readers skip the decorative graphics and keyboard focus is not consumed.
+ *
+ * Used by: MessageInput.tsx, MessageRow.tsx, ChatTopbar.tsx, Sidebar.tsx,
+ *          SidebarChannelList.tsx, SidebarDmList.tsx, ChannelSettingsModal.tsx,
+ *          and most other UI components.
+ *
+ * @example
+ * <Icon name="send" size={20} />
+ * <Icon name="trash" />    // defaults to size 18
+ */
+
+/** All available icon names — extend this union when adding a new icon. */
 type IconName =
   | "smile"
   | "paperclip"
@@ -27,10 +48,17 @@ type IconName =
   | "menu";
 
 type Props = {
+  /** Which icon to render. */
   name: IconName;
+  /** SVG width and height in pixels (default: 18). */
   size?: number;
 };
 
+/**
+ * Maps each `IconName` to an array of SVG path `d` attribute strings.
+ * Multiple paths per icon are rendered as separate `<path>` elements to
+ * match the Lucide multi-path convention.
+ */
 const paths: Record<IconName, string[]> = {
   smile: [
     "M8 14s1.5 2 4 2 4-2 4-2",
@@ -137,6 +165,12 @@ const paths: Record<IconName, string[]> = {
   ],
 };
 
+/**
+ * Renders a single named icon as an inline SVG.
+ *
+ * @param name - Icon identifier (see `IconName` union).
+ * @param size - Width and height in pixels (default: 18).
+ */
 export default function Icon({ name, size = 18 }: Props) {
   return (
     <svg

@@ -1,3 +1,38 @@
+/**
+ * Single message row — renders one message in the chat timeline.
+ *
+ * Responsibilities:
+ *  - Display: avatar/timestamp column, author header (first in group only),
+ *    reply-quote bar, text content (via MarkdownRenderer or MusicMessagePreview),
+ *    and file/image attachments.
+ *  - Editing: inline textarea with save/cancel, Enter = save, Escape = cancel.
+ *    The edit textarea grows to match line count (max 8 rows).
+ *  - Reactions: quick-emoji bar on hover (8 preset emojis), existing reaction pills
+ *    with counts.  Click-outside closes the picker via a `mousedown` document listener.
+ *  - Actions bar: appears on hover — react, reply, pin/unpin, edit, delete.
+ *    Edit and delete are own-message only; pin is available only in channels with `canPin`.
+ *  - Long-press touch: 500 ms `setTimeout` triggers haptic feedback (`navigator.vibrate`)
+ *    and opens `TouchMenu` with the same action set.
+ *  - File preview: clicking an image or file card opens `FilePreviewModal`.
+ *
+ * Channel vs DM: `isDm` switches between channel socket emitters
+ * (editMessage / deleteMessage / reactToMessage) and DM equivalents.
+ *
+ * Used by: ChatArea.tsx.
+ *
+ * @param msg          - The message object to render.
+ * @param isGroupFirst - Whether this is the first message in a consecutive group
+ *                       (controls avatar + header visibility).
+ * @param avatar       - Emoji avatar string for the author.
+ * @param username     - Display name for the author.
+ * @param role         - Global role of the author (shows admin badge if "admin").
+ * @param onReply      - Called when the reply button is clicked; passes the message.
+ * @param onPin        - Called to pin or unpin the message.
+ * @param canPin       - Whether the current user may pin/unpin messages.
+ * @param users        - Full user list, forwarded to MarkdownRenderer for @-mention
+ *                       resolution.
+ * @param isDm         - True when rendering inside a DM conversation.
+ */
 import { useEffect, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 import { useAuth } from "../context/AuthContext";
@@ -47,11 +82,14 @@ export default function MessageRow({ msg, isGroupFirst, avatar, username, role, 
   const rowRef        = useRef<HTMLDivElement | null>(null);
   const touchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Channel messages use user_id; DM messages use sender_id — handle both
   const isOwn    = (msg.user_id ?? msg.sender_id) === user?.id;
   const isAdmin  = role === "admin";
   const isPinned = !!msg.is_pinned;
   const musicMetadata = getMusicMetadata(msg);
+  // Integration messages (webhooks, music-dashboard) are rendered differently and labelled "API"
   const isIntegrationMessage = !!musicMetadata || msg.source === "webhook" || msg.source === "music-dashboard";
+  // Dispatch to channel or DM socket emitters based on context
   const doEdit   = isDm ? editDmMessage   : editMessage;
   const doDelete = isDm ? deleteDmMessage : deleteMessage;
   const doReact  = isDm ? reactToDmMessage : reactToMessage;
@@ -75,6 +113,8 @@ export default function MessageRow({ msg, isGroupFirst, avatar, username, role, 
     }
   }, [editing]);
 
+  // Long-press detection: start a 500 ms timer; cancel it on end/move to avoid
+  // triggering during scrolls or accidental taps.
   function handleTouchStart() {
     touchTimerRef.current = setTimeout(() => {
       if (navigator.vibrate) navigator.vibrate(50);

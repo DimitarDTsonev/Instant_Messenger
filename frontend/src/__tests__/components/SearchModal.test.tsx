@@ -1,3 +1,8 @@
+/**
+ * SearchModal tests — verifies the search input, query display, result
+ * rendering, empty state, loading state, backdrop/Escape dismiss, and
+ * result click navigation.
+ */
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import SearchModal from "../../components/SearchModal";

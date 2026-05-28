@@ -1,3 +1,18 @@
+/**
+ * Global message search modal — searches messages across all accessible channels
+ * and DMs in real time as the user types.
+ *
+ * Uses `useGlobalSearch` which hits `GET /api/messages/search?q=` on each change.
+ * Results are rendered as a list with:
+ *  - Author avatar, username, channel/DM source badge, and timestamp.
+ *  - Message content with the search query highlighted using `highlightText`.
+ *
+ * Dismiss: clicking the backdrop or pressing `Escape`.
+ * Navigation: clicking a result calls `onNavigate` (e.g. to jump to the message's channel).
+ *
+ * Used by: ChatPage.tsx.
+ */
+
 import { useEffect, useRef } from "react";
 import type { ChangeEvent, MouseEvent, ReactNode } from "react";
 import { useGlobalSearch } from "../hooks/useApi";

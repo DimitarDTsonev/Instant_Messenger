@@ -1,3 +1,18 @@
+/**
+ * User profile modal — displays a user's profile and provides admin role management.
+ *
+ * Features:
+ *  - Fetches the full `User` object from `GET /api/auth/users/:id` on open.
+ *  - Shows avatar, username, admin badge, online indicator, email, and join date.
+ *  - "Send direct message" button (hidden on own profile).
+ *  - Role management section (visible only to admins viewing another user):
+ *    PATCH `/api/auth/users/:id/role` with the selected role.
+ *
+ * Dismiss: clicking the backdrop or pressing `Escape`.
+ *
+ * Used by: ChatPage.tsx (profile card click), UserSearchModal.tsx (Profile button).
+ */
+
 import { useState, useEffect } from "react";
 import type { ChangeEvent, MouseEvent } from "react";
 import { useAuth } from "../context/AuthContext";
@@ -14,26 +29,26 @@ const s = {
     alignItems: "center", justifyContent: "center", zIndex: 1000,
   },
   modal: {
-    background: "#1e1e2e", border: "1px solid #2d2d3f", borderRadius: "16px",
+    background: "var(--col-bg-elevated)", border: "1px solid var(--col-border)", borderRadius: "16px",
     width: "360px", overflow: "hidden",
     boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
   },
   header: {
-    background: "linear-gradient(135deg, #2d2d3f 0%, #1a1a2e 100%)",
+    background: "linear-gradient(135deg, var(--col-bg-hover) 0%, var(--col-bg-input) 100%)",
     padding: "24px", display: "flex", alignItems: "center", gap: "16px",
-    borderBottom: "1px solid #2d2d3f",
+    borderBottom: "1px solid var(--col-border)",
   },
   avatar: { fontSize: "48px", lineHeight: 1 },
   headerInfo: { flex: 1, minWidth: 0 },
-  username: { fontSize: "18px", fontWeight: 700, color: "#f2f3f5", display: "flex", alignItems: "center", gap: "6px" },
+  username: { fontSize: "18px", fontWeight: 700, color: "var(--col-text-primary)", display: "flex", alignItems: "center", gap: "6px" },
     roleBadge: (role: "admin" | "member") => ({
     fontSize: "11px", padding: "2px 8px", borderRadius: "10px", fontWeight: 600,
     background: role === "admin" ? "#faa61a20" : "#5865f220",
-    color: role === "admin" ? "#faa61a" : "#7289da",
+    color: role === "admin" ? "var(--col-warning-gold)" : "var(--col-link)",
     border: `1px solid ${role === "admin" ? "#faa61a40" : "#5865f240"}`,
   }),
-  email: { fontSize: "12px", color: "#5c6068", marginTop: "4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
-  joinDate: { fontSize: "11px", color: "#3a3a4f", marginTop: "2px" },
+  email: { fontSize: "12px", color: "var(--col-text-muted)", marginTop: "4px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+  joinDate: { fontSize: "11px", color: "var(--col-text-muted)", marginTop: "2px" },
   body: { padding: "16px", display: "flex", flexDirection: "column", gap: "10px" },
   dmBtn: {
     width: "100%", padding: "10px", background: "#5865f2", border: "none",
@@ -42,13 +57,13 @@ const s = {
     alignItems: "center", justifyContent: "center", gap: "8px",
   },
   roleSection: {
-    background: "#0f0f1a", border: "1px solid #2d2d3f", borderRadius: "8px",
+    background: "var(--col-bg-input)", border: "1px solid var(--col-border)", borderRadius: "8px",
     padding: "12px",
   },
-  roleTitle: { fontSize: "11px", color: "#5c6068", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "8px" },
+  roleTitle: { fontSize: "11px", color: "var(--col-text-muted)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "8px" },
   roleSelect: {
-    width: "100%", background: "#2d2d3f", border: "1px solid #3a3a4f",
-    borderRadius: "6px", color: "#f2f3f5", fontSize: "13px",
+    width: "100%", background: "var(--col-bg-hover)", border: "1px solid var(--col-bg-subtle)",
+    borderRadius: "6px", color: "var(--col-text-primary)", fontSize: "13px",
     padding: "6px 10px", outline: "none", fontFamily: "inherit", cursor: "pointer",
   },
   saveRoleBtn: {
@@ -58,18 +73,18 @@ const s = {
   },
     onlineDot: (online: boolean) => ({
     width: "10px", height: "10px", borderRadius: "50%",
-    background: online ? "#23a55a" : "#5c6068",
-    border: "2px solid #1e1e2e", flexShrink: 0,
+    background: online ? "var(--col-success)" : "var(--col-text-muted)",
+    border: "2px solid var(--col-bg-elevated)", flexShrink: 0,
   }),
-    onlineLabel: (online: boolean) => ({ fontSize: "12px", color: online ? "#23a55a" : "#5c6068" }),
+    onlineLabel: (online: boolean) => ({ fontSize: "12px", color: online ? "var(--col-success)" : "var(--col-text-muted)" }),
   closeBtn: {
     position: "absolute", top: "12px", right: "12px",
-    background: "transparent", border: "none", color: "#5c6068",
+    background: "transparent", border: "none", color: "var(--col-text-muted)",
     cursor: "pointer", lineHeight: 1, padding: "4px",
     display: "flex", alignItems: "center", justifyContent: "center",
   },
-  successMsg: { fontSize: "12px", color: "#23a55a", textAlign: "center" },
-  errorMsg: { fontSize: "12px", color: "#f23f42", textAlign: "center" },
+  successMsg: { fontSize: "12px", color: "var(--col-success)", textAlign: "center" },
+  errorMsg: { fontSize: "12px", color: "var(--col-danger)", textAlign: "center" },
 } satisfies AppStyleMap;
 
 function formatDate(dateStr?: string | null) {
@@ -148,9 +163,9 @@ export default function UserProfileModal({
         </button>
 
         {loading ? (
-          <div style={{ padding: "40px", textAlign: "center", color: "#5c6068" }}>Loading...</div>
+          <div style={{ padding: "40px", textAlign: "center", color: "var(--col-text-muted)" }}>Loading...</div>
         ) : !profile ? (
-          <div style={{ padding: "40px", textAlign: "center", color: "#f23f42" }}>User not found</div>
+          <div style={{ padding: "40px", textAlign: "center", color: "var(--col-danger)" }}>User not found</div>
         ) : (
           <>
             {/* Header: avatar, username, online status, role badge, email, join date */}
@@ -160,7 +175,7 @@ export default function UserProfileModal({
                 <div style={s.username}>
                   {profile.username}
                   {profile.role === "admin" && (
-                    <span title="Admin" style={{ color: "#faa61a", display: "inline-flex", alignItems: "center" }}>
+                    <span title="Admin" style={{ color: "var(--col-warning-gold)", display: "inline-flex", alignItems: "center" }}>
                       <Icon name="shield" size={14} />
                     </span>
                   )}

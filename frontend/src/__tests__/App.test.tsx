@@ -1,3 +1,10 @@
+/**
+ * App routing tests — verifies that App renders the correct page component
+ * based on the current URL path and authentication state.
+ *
+ * Strategy: all page components and contexts are mocked so the tests only
+ * exercise the routing/conditional-render logic in App itself.
+ */
 import { render, screen } from "@testing-library/react";
 import { vi } from "vitest";
 import App from "../App";

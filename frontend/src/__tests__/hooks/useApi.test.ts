@@ -1,3 +1,15 @@
+/**
+ * useApi hooks unit tests — tests all hooks exported from hooks/useApi.ts
+ * in isolation using a mocked `authFetch` helper.
+ *
+ * Covers: useChannels, useMessages, useUsers, useDm, useConversations,
+ * usePinnedMessages, useUserSearch, useGlobalSearch, useChannelMembers,
+ * useChannelPermissions, useChannelInvites, and useSearch.
+ *
+ * Each hook is tested for: initial fetch, loading states, mutators
+ * (add/update/remove), pagination (loadMore), error handling, and edge cases
+ * (null channelId, empty responses, falsy API fields).
+ */
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { vi } from "vitest";
 import {

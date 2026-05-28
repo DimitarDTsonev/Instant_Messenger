@@ -1,3 +1,14 @@
+/**
+ * Ban confirmation modal — prompts the admin to confirm banning a user and
+ * optionally enter a ban reason.
+ *
+ * Design:
+ *  - Clicking the overlay backdrop calls `onCancel`.
+ *  - `data-testid` attributes are present for automated testing.
+ *
+ * Used by: AdminPage.tsx (shown when the admin clicks a "Ban" button in the table).
+ */
+
 import type { ChangeEvent, MouseEvent } from "react";
 import type { User } from "../types";
 import { s } from "../pages/adminStyles";

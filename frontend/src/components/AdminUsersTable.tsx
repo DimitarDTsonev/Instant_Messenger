@@ -1,3 +1,15 @@
+/**
+ * Admin users table — renders all registered users with live filtering and
+ * ban/unban action buttons.
+ *
+ * Filters `users` client-side against `filter` (checks username and email).
+ * Ban/unban buttons are hidden for:
+ *  - The currently logged-in admin (can't ban yourself).
+ *  - Other admin users (admins cannot ban admins).
+ *
+ * Used by: AdminPage.tsx (Users tab).
+ */
+
 import type { ChangeEvent } from "react";
 import type { User } from "../types";
 import { avatarLabel } from "../utils/avatar";

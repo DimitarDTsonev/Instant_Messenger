@@ -1,3 +1,23 @@
+/**
+ * ResetPasswordPage — allows users to set a new password using a token from a
+ * password-reset email link.
+ *
+ * Token extraction: reads the `?token=` query parameter from `window.location.search`
+ * via `URLSearchParams` on render.  If absent, an error is shown immediately and
+ * the submit button is disabled.
+ *
+ * Validation (client-side, before the API call):
+ *  1. Password must not be blank.
+ *  2. `validatePassword(password)` — enforces minimum strength rules.
+ *  3. `password === confirm` — prevents mismatched entries.
+ *  4. Token must be present.
+ *
+ * On submit: POSTs to POST /api/auth/reset-password with `{ token, password }`.
+ * On success, shows a confirmation message and a "Go to sign in" link that calls
+ * `navigateHome()` to redirect to the login page.
+ *
+ * Used by: App.tsx (rendered on the "/reset-password" route).
+ */
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { API_BASE } from "../config";

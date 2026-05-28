@@ -1,3 +1,8 @@
+/**
+ * MessageInput tests — verifies typing, send (Enter key and button), file
+ * upload, emoji picker, @-mention autocomplete, reply bar, typing-indicator
+ * emissions, and disabled/blocked states.
+ */
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import MessageInput from "../../components/MessageInput";

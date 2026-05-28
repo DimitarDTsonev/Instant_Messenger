@@ -1,3 +1,7 @@
+/**
+ * MusicMessagePreview tests — verifies getMusicMetadata detection logic
+ * and the preview card rendering for music-dashboard integration messages.
+ */
 import { render, screen } from "@testing-library/react";
 import MusicMessagePreview, { getMusicMetadata } from "../../components/MusicMessagePreview";
 import type { Message } from "../../types";

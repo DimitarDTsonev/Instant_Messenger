@@ -1,3 +1,11 @@
+/**
+ * Direct Messages API integration tests — exercises GET /api/dm/:userId
+ * (fetch conversation) and GET /api/dm/conversations (conversation list)
+ * with a real in-memory SQLite database.
+ *
+ * Verifies: pagination, read receipts, unread counts, and authentication
+ * guards.
+ */
 import request from "supertest";
 import bcrypt from "bcryptjs";
 

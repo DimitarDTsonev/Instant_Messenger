@@ -1,3 +1,25 @@
+/**
+ * Tab content panels for ChannelSettingsModal.
+ *
+ * Exports four named tab components and one shared Toggle widget:
+ *
+ *  - `Toggle`          — Animated on/off switch used in GeneralTab and PermissionsTab.
+ *  - `GeneralTab`      — Edit channel description and private flag (owner-only PATCH).
+ *  - `MembersTab`      — List members, add by username, kick, and reassign roles.
+ *  - `PermissionsTab`  — Per-role permission toggles (owner only). Renders one section
+ *                        per role ("manager", "member") × four permission keys.
+ *  - `InvitesTab`      — Create invite links with optional max-uses / expiry, list
+ *                        active invites, copy to clipboard, and delete.
+ *
+ * INVITE_BASE: constructed from `window.location.origin + BASE_URL + "invite/"` so that
+ * the full URL is correct on both local dev and GitHub Pages sub-path deployments.
+ *
+ * PERM_DEFS: static array that maps PermissionKey → human-readable label + description,
+ * used to render the permission toggle rows without repetition.
+ *
+ * Used by: ChannelSettingsModal.tsx.
+ */
+
 import { useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { useAuth } from "../context/AuthContext";
@@ -17,6 +39,12 @@ const PERM_DEFS: Array<{ key: PermissionKey; label: string; desc: string }> = [
   { key: "can_delete_messages", label: "Delete messages", desc: "Can delete other users' messages" },
 ];
 
+/**
+ * Animated toggle switch (on/off).
+ *
+ * @param value    - Current boolean state.
+ * @param onChange - Called with the new value when the button is clicked.
+ */
 export function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
   return (
     <button style={s.toggle(value)} onClick={() => onChange(!value)}>
@@ -25,6 +53,18 @@ export function Toggle({ value, onChange }: { value: boolean; onChange: (v: bool
   );
 }
 
+/**
+ * General settings tab — edit channel description and private flag.
+ *
+ * Only the channel owner can modify settings; other roles see the description
+ * textarea in read-only mode.  Saving issues a PATCH request and calls
+ * `onChannelUpdated` with the server-returned channel object on success.
+ *
+ * @param channel          - The current channel (name, description, is_private).
+ * @param myRole           - Caller's channel role; editing is gated behind "owner".
+ * @param onChannelUpdated - Callback invoked with the updated Channel after a
+ *                           successful save.
+ */
 export function GeneralTab({ channel, myRole, onChannelUpdated }: { channel: Channel; myRole: ChannelRole | string; onChannelUpdated: (ch: Channel) => void }) {
   const [desc, setDesc]     = useState(channel.description || "");
   const [priv, setPriv]     = useState(!!channel.is_private);
@@ -66,6 +106,20 @@ export function GeneralTab({ channel, myRole, onChannelUpdated }: { channel: Cha
   );
 }
 
+/**
+ * Members management tab — list all channel members, add new members by
+ * username, kick existing members, and change member roles.
+ *
+ * Management actions (add, kick, role change) are gated behind `canManage`
+ * (owner or manager).  Only owners can change roles; managers can only kick.
+ * A member cannot be kicked or have their role changed by their own session
+ * (`m.id !== currentUserId`), and the owner role is never available in the
+ * role selector (to prevent accidental owner transfer via this UI).
+ *
+ * @param channelId     - ID of the channel whose members are being managed.
+ * @param myRole        - Caller's role in this channel.
+ * @param currentUserId - The logged-in user's ID, used to hide self-action buttons.
+ */
 export function MembersTab({ channelId, myRole, currentUserId }: { channelId: number; myRole: ChannelRole | string; currentUserId?: number }) {
   const { members, addMember, removeMember, changeRole } = useChannelMembers(channelId);
   const [newUser, setNewUser] = useState("");
@@ -133,6 +187,17 @@ export function MembersTab({ channelId, myRole, currentUserId }: { channelId: nu
   );
 }
 
+/**
+ * Permissions tab — per-role permission toggles, only accessible to the channel
+ * owner.  Renders two sections (manager, member), each showing the four
+ * `PERM_DEFS` keys as `Toggle` rows.
+ *
+ * Per-role saving state is tracked with `Record<string, boolean>` maps so that
+ * the "Saved" confirmation appears per-section rather than globally.
+ *
+ * @param channelId - Channel whose permissions are being configured.
+ * @param myRole    - Must be "owner" or the tab renders an access-denied message.
+ */
 export function PermissionsTab({ channelId, myRole }: { channelId: number; myRole: ChannelRole | string }) {
   const { permissions, updateRole } = useChannelPermissions(channelId);
   const [saving, setSaving] = useState<Record<string, boolean>>({});
@@ -168,6 +233,17 @@ export function PermissionsTab({ channelId, myRole }: { channelId: number; myRol
   );
 }
 
+/**
+ * Invites management tab — create, list, copy, and delete channel invite links.
+ *
+ * `INVITE_BASE` is the full browser origin + BASE_URL + "invite/" prefix, so
+ * the copied URL routes correctly on both dev and production deployments.
+ *
+ * `copy` writes the full invite URL to the clipboard via `navigator.clipboard.writeText`
+ * and shows "Copied" feedback for 2 seconds using a `copied` state + `setTimeout`.
+ *
+ * @param channelId - Channel for which invites are managed.
+ */
 export function InvitesTab({ channelId }: { channelId: number }) {
   const { invites, createInvite, deleteInvite } = useChannelInvites(channelId);
   const [maxUses,      setMaxUses]      = useState("");

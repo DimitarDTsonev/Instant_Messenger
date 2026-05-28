@@ -1,3 +1,9 @@
+/**
+ * SocketContext tests — verifies socket lifecycle (connect on auth, disconnect
+ * on logout), emitter methods (sendMessage, sendDm, etc.), and handler
+ * subscriptions (onNewMessage, onTypingUpdate, etc.) using the mocked
+ * socket.io-client from test-utils/setup.ts.
+ */
 import { render, screen, act, waitFor } from "@testing-library/react";
 import { io } from "socket.io-client";
 import { SocketProvider, useSocket } from "../../context/SocketContext";

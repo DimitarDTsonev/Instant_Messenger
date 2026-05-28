@@ -1,3 +1,12 @@
+/**
+ * Security integration tests — verifies security-critical behaviours that
+ * cut across multiple layers: banned-user rejection at the socket layer,
+ * JWT tampering detection, rate limiting under load, and guest-account
+ * cleanup scheduling.
+ *
+ * Uses a real in-memory SQLite database (createTestDb) and the module-level
+ * getDb() singleton swapped in via dependency injection.
+ */
 import { getDb } from "../db/database";
 import { clearDb, createTestDb } from "../test-utils/createTestDb";
 

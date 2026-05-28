@@ -1,3 +1,15 @@
+/**
+ * Inline-style map for ChatPage and ChatTopbar.
+ *
+ * Layout overview:
+ *  - `page` — full-height flex row containing the sidebar and `main`.
+ *  - `main` — flex column: topbar (fixed height 48 px) + ChatArea (flex 1,
+ *    overflows internally) + MessageInput (fixed bottom).
+ *  - `topbar` — horizontal bar with channel/DM title, description, action buttons.
+ *  - `noChannel` — centred placeholder shown when no channel or DM is selected.
+ *
+ * Used by: ChatPage.tsx, ChatTopbar.tsx.
+ */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export const s: Record<string, any> = {
   page:        { height: "100%", display: "flex", overflow: "hidden", background: "var(--col-bg-base)" },

@@ -1,3 +1,9 @@
+/**
+ * notificationSound utility tests — verifies that playNotificationSound
+ * creates an AudioContext and schedules the correct Web Audio API nodes
+ * (OscillatorNode, GainNode), and gracefully handles browsers where
+ * AudioContext is unavailable.
+ */
 import { playNotificationSound } from "../../utils/notificationSound";
 
 afterEach(() => {
