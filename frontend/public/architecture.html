@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Instant Messenger — Architecture</title>
+<script src="https://unpkg.com/vis-network@9.1.9/standalone/umd/vis-network.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #f6f8fa; color: #24292f;
+  height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+}
+
+#header {
+  padding: 10px 18px; background: #fff; border-bottom: 1px solid #d0d7de;
+  display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+}
+#header h1 { font-size: 15px; font-weight: 700; color: #1f2328; }
+#header p  { font-size: 11px; color: #656d76; margin-top: 2px; }
+#header-right { display: flex; align-items: center; gap: 8px; }
+#search-box {
+  padding: 5px 12px; background: #fff; border: 1px solid #d0d7de;
+  border-radius: 6px; font-size: 12px; color: #24292f; outline: none; width: 220px;
+}
+#search-box:focus { border-color: #0969da; box-shadow: 0 0 0 3px rgba(9,105,218,0.1); }
+#search-box::placeholder { color: #8c959f; }
+#btn-fit {
+  padding: 5px 14px; background: #fff; border: 1px solid #d0d7de;
+  border-radius: 6px; font-size: 12px; cursor: pointer; color: #24292f; white-space: nowrap;
+}
+#btn-fit:hover { background: #f3f4f6; border-color: #0969da; color: #0969da; }
+
+#main { display: flex; flex: 1; overflow: hidden; }
+#graph { flex: 1; }
+
+#panel {
+  width: 240px; background: #fff; border-left: 1px solid #d0d7de;
+  display: flex; flex-direction: column; overflow: hidden; flex-shrink: 0;
+}
+#panel-header {
+  padding: 10px 14px; border-bottom: 1px solid #d0d7de;
+  font-size: 12px; font-weight: 600; color: #1f2328;
+}
+
+#legend-section { padding: 12px 14px; overflow-y: auto; flex: 1; }
+.legend-item { display: flex; align-items: center; gap: 8px; font-size: 11px; padding: 3px 0; }
+.legend-dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+.legend-group { font-size: 10px; font-weight: 600; color: #656d76; text-transform: uppercase; letter-spacing: 0.5px; margin: 10px 0 4px; }
+.legend-group:first-child { margin-top: 0; }
+
+#node-section { padding: 12px 14px; overflow-y: auto; flex: 1; display: none; flex-direction: column; gap: 10px; }
+.nf-label { font-size: 10px; color: #656d76; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 2px; }
+.nf-val   { font-size: 12px; color: #1f2328; line-height: 1.5; }
+.nf-val.path { font-family: monospace; font-size: 11px; color: #0969da; word-break: break-all; }
+.nf-val.name { font-weight: 700; font-size: 14px; }
+#conn-list { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+.conn-tag {
+  padding: 2px 7px; border-radius: 4px; font-size: 10px; font-family: monospace;
+  cursor: pointer; border: 1px solid transparent;
+}
+.conn-tag:hover { opacity: 0.8; }
+#btn-back {
+  margin-top: 4px; padding: 5px 12px; background: #f3f4f6; border: 1px solid #d0d7de;
+  border-radius: 6px; font-size: 11px; cursor: pointer; align-self: flex-start;
+}
+#btn-back:hover { background: #e9ecef; }
+#hint { font-size: 11px; color: #656d76; line-height: 1.6; margin-top: 12px; }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <div>
+    <h1>Instant Messenger — File Dependency Graph</h1>
+    <p>Scroll to zoom · Drag to pan · Click any node to see details</p>
+  </div>
+  <div id="header-right">
+    <input id="search-box" type="text" placeholder="Search files…" autocomplete="off" />
+    <button id="btn-fit">Fit View</button>
+  </div>
+</div>
+
+<div id="main">
+  <div id="graph"></div>
+
+  <div id="panel">
+    <div id="panel-header" id="ph">Legend</div>
+
+    <div id="legend-section">
+      <div class="legend-group">Frontend</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#c8a0e8"></div>Entry Points</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#7ec8f8"></div>Pages</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#60c8c0"></div>Components</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#78cc88"></div>Context Providers</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f0c840"></div>Custom Hooks</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#a0e8a8"></div>Utilities</div>
+      <div class="legend-group">Backend</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f8a060"></div>Routes</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f07070"></div>Controllers</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f8c070"></div>Services</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#d8a828"></div>Repositories</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#e878b8"></div>Middleware</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#b090f0"></div>Socket Handlers</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#909aa6"></div>DB / Config / Types</div>
+      <div id="hint">Click a node to see its file path, layer, description, and connections.</div>
+    </div>
+
+    <div id="node-section">
+      <div>
+        <div class="nf-label">File</div>
+        <div class="nf-val name" id="nd-label"></div>
+      </div>
+      <div>
+        <div class="nf-label">Layer</div>
+        <div class="nf-val" id="nd-group"></div>
+      </div>
+      <div>
+        <div class="nf-label">Path</div>
+        <div class="nf-val path" id="nd-file"></div>
+      </div>
+      <div>
+        <div class="nf-label">Description</div>
+        <div class="nf-val" id="nd-desc"></div>
+      </div>
+      <div>
+        <div class="nf-label">Connected to</div>
+        <div id="conn-list"></div>
+      </div>
+      <button id="btn-back">← Back</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Color palette (light theme) ────────────────────────────────────────────────
+const C = {
+  entry:      { bg:'#c8a0e8', bd:'#9b70c0', hl:'#ddc0f8' },
+  page:       { bg:'#7ec8f8', bd:'#4090d0', hl:'#a8dcff' },
+  component:  { bg:'#60c8c0', bd:'#2c9890', hl:'#90dcd8' },
+  context:    { bg:'#78cc88', bd:'#3c9850', hl:'#a0e0b0' },
+  hook:       { bg:'#f0c840', bd:'#c09010', hl:'#f8dc78' },
+  util:       { bg:'#a0e8a8', bd:'#50b860', hl:'#c0f0c8' },
+  config:     { bg:'#b0bac4', bd:'#808d99', hl:'#ccd4dc' },
+  route:      { bg:'#f8a060', bd:'#d06020', hl:'#ffc090' },
+  controller: { bg:'#f07070', bd:'#c03838', hl:'#f8a0a0' },
+  service:    { bg:'#f8c070', bd:'#c07818', hl:'#ffd898' },
+  repository: { bg:'#d8a828', bd:'#a07010', hl:'#ecc858' },
+  middleware: { bg:'#e878b8', bd:'#b03880', hl:'#f8a8d0' },
+  socket:     { bg:'#b090f0', bd:'#7048c8', hl:'#d0b8ff' },
+  db:         { bg:'#909aa6', bd:'#586070', hl:'#b8c4cc' },
+};
+
+const GROUP_LABELS = {
+  entry:'Entry Point', page:'Page', component:'Component', context:'Context Provider',
+  hook:'Custom Hook', util:'Utility', config:'Config / Types', route:'Route',
+  controller:'Controller', service:'Service', repository:'Repository',
+  middleware:'Middleware', socket:'Socket Handler', db:'DB / Config / Types',
+};
+
+// ── Node factory ──────────────────────────────────────────────────────────────
+function n(id, label, group, file, desc, xHint) {
+  const c = C[group] || C.config;
+  return {
+    id, label, group, file, desc,
+    color: { background: c.bg, border: c.bd, highlight: { background: c.hl, border: c.bd }, hover: { background: c.hl, border: c.bd } },
+    font: { color: '#1f2328', size: 12, face: 'ui-monospace,SFMono-Regular,Consolas,monospace' },
+    shape: 'box', borderWidth: 1.5,
+    shadow: { enabled: false },
+    margin: { top: 5, bottom: 5, left: 8, right: 8 },
+    x: xHint,
+  };
+}
+
+// ── Edge factory ──────────────────────────────────────────────────────────────
+function e(from, to) {
+  return { from, to,
+    arrows: { to: { enabled: true, scaleFactor: 0.5 } },
+    color: { color: '#c8d0d8', highlight: '#0969da', hover: '#0969da', opacity: 0.9 },
+    width: 1.2, hoverWidth: 2.5, selectionWidth: 3,
+    smooth: { type: 'continuous', roundness: 0.15 },
+  };
+}
+
+// ── Nodes ─────────────────────────────────────────────────────────────────────
+const nodesRaw = [
+  // FRONTEND ENTRY
+  n('main',    'main.tsx',  'entry',  'frontend/src/main.tsx',  'React root — mounts App into the DOM, sets up React 18 createRoot', -800),
+  n('app',     'App.tsx',   'entry',  'frontend/src/App.tsx',   'Root component — ThemeProvider, ErrorBoundary, AuthProvider, routing', -600),
+
+  // FRONTEND CONFIG
+  n('fe-config',  'config.ts',  'config', 'frontend/src/config.ts',   'Exports API_BASE and SOCKET_URL from Vite environment variables', -900),
+  n('fe-types',   'types.ts',   'config', 'frontend/src/types.ts',    'Shared TypeScript interfaces: User, Channel, Message, DirectMessage', -900),
+  n('fe-css',     'index.css',  'config', 'frontend/src/index.css',   'Global theme, layout, CSS variables, responsive rules', -1000),
+  n('sw',         'sw.ts',      'config', 'frontend/src/sw.ts',       'Service worker — app-shell caching for PWA offline support', -1000),
+
+  // PAGES
+  n('LoginPage',          'LoginPage',          'page', 'frontend/src/pages/LoginPage.tsx',          'Login, register, guest access, forgot-password link', -700),
+  n('ChatPage',           'ChatPage',           'page', 'frontend/src/pages/ChatPage.tsx',           'Main chat shell — channels, DMs, modals, state orchestration', -500),
+  n('AdminPage',          'AdminPage',          'page', 'frontend/src/pages/AdminPage.tsx',          'Admin panel — user list, ban/unban, security log', -700),
+  n('InvitePage',         'InvitePage',         'page', 'frontend/src/pages/InvitePage.tsx',         'Public invite preview and authenticated join flow', -600),
+  n('ForgotPasswordPage', 'ForgotPasswordPage', 'page', 'frontend/src/pages/ForgotPasswordPage.tsx', 'Request a password reset email', -700),
+  n('ResetPasswordPage',  'ResetPasswordPage',  'page', 'frontend/src/pages/ResetPasswordPage.tsx',  'Complete a password reset using the token from email', -600),
+
+  // CONTEXTS
+  n('AuthContext',       'AuthContext',       'context', 'frontend/src/context/AuthContext.tsx',       'JWT token, user state, login/logout, authenticated fetch helper', -800),
+  n('SocketContext',     'SocketContext',     'context', 'frontend/src/context/SocketContext.tsx',     'Socket.io lifecycle, online presence, event listener wiring', -700),
+  n('ThemeContext',      'ThemeContext',      'context', 'frontend/src/context/ThemeContext.tsx',      'Dark / light / system theme preference, persisted in localStorage', -900),
+  n('socketEmitters',   'socketEmitters',    'context', 'frontend/src/context/socketEmitters.ts',    'Stable useCallback wrappers for every outbound socket.emit', -800),
+  n('socketHandlerRefs','socketHandlerRefs', 'context', 'frontend/src/context/socketHandlerRefs.ts', 'Mutable refs so hooks swap handlers without reconnecting the socket', -900),
+  n('socketTypes',      'socketTypes',       'context', 'frontend/src/context/socketTypes.ts',       'TypeScript types for socket context and all event payloads', -1000),
+
+  // HOOKS
+  n('useApi',            'useApi',            'hook', 'frontend/src/hooks/useApi.ts',            'Base hook for authenticated REST fetch — wraps AuthContext api helper', -600),
+  n('useChannels',       'useChannels',       'hook', 'frontend/src/hooks/useChannels.ts',       'Fetches channel list, exposes createChannel and deleteChannel', -500),
+  n('useMessages',       'useMessages',       'hook', 'frontend/src/hooks/useMessages.ts',       'Paginated channel message history and pinned message loading', -400),
+  n('useDm',             'useDm',             'hook', 'frontend/src/hooks/useDm.ts',             'Paginated DM history and conversation list', -500),
+  n('useUsers',          'useUsers',          'hook', 'frontend/src/hooks/useUsers.ts',          'Full user list and search', -600),
+  n('useSearch',         'useSearch',         'hook', 'frontend/src/hooks/useSearch.ts',         'Global and per-channel message search', -400),
+  n('useChannelMembers', 'useChannelMembers', 'hook', 'frontend/src/hooks/useChannelMembers.ts', 'Loads the member list for the active channel', -500),
+  n('useChannelSettings','useChannelSettings','hook', 'frontend/src/hooks/useChannelSettings.ts','Loads channel permissions and invite links', -600),
+  n('useChatSocket',     'useChatSocket',     'hook', 'frontend/src/hooks/useChatSocket.ts',     'Subscribes ChatPage to every inbound socket event', -400),
+  n('useChatHandlers',   'useChatHandlers',   'hook', 'frontend/src/hooks/useChatHandlers.ts',   'Local state updates for sent, edited, deleted, reacted messages', -500),
+  n('useDebounce',       'useDebounce',       'hook', 'frontend/src/hooks/useDebounce.ts',       'Generic debounce hook for search inputs and typing events', -700),
+
+  // COMPONENTS
+  n('Sidebar',              'Sidebar',              'component', 'frontend/src/components/Sidebar.tsx',              'Desktop/mobile sidebar shell with open/close state', -800),
+  n('SidebarChannelList',   'SidebarChannelList',   'component', 'frontend/src/components/SidebarChannelList.tsx',   'Channel list with unread badges and create channel button', -900),
+  n('SidebarDmList',        'SidebarDmList',        'component', 'frontend/src/components/SidebarDmList.tsx',        'DM conversation list with unread indicators', -900),
+  n('ChatTopbar',           'ChatTopbar',           'component', 'frontend/src/components/ChatTopbar.tsx',           'Active channel or DM title bar with search and settings buttons', -600),
+  n('ChatArea',             'ChatArea',             'component', 'frontend/src/components/ChatArea.tsx',             'Scrollable message timeline with grouping and empty states', -500),
+  n('MessageRow',           'MessageRow',           'component', 'frontend/src/components/MessageRow.tsx',           'Single message: text, reactions, edit state, action menu', -500),
+  n('MessageInput',         'MessageInput',         'component', 'frontend/src/components/MessageInput.tsx',         'Composer bar — send, reply, file attach, typing events', -600),
+  n('MarkdownRenderer',     'MarkdownRenderer',     'component', 'frontend/src/components/MarkdownRenderer.tsx',     'Renders inline markdown syntax in message content', -400),
+  n('EmojiPicker',          'EmojiPicker',          'component', 'frontend/src/components/EmojiPicker.tsx',          'Emoji reaction picker grid', -700),
+  n('MentionDropdown',      'MentionDropdown',      'component', 'frontend/src/components/MentionDropdown.tsx',      '@mention autocomplete dropdown', -700),
+  n('PinnedBanner',         'PinnedBanner',         'component', 'frontend/src/components/PinnedBanner.tsx',         'Displays pinned messages above the chat area', -600),
+  n('SearchModal',          'SearchModal',          'component', 'frontend/src/components/SearchModal.tsx',          'Full-text message search modal (Ctrl+F)', -700),
+  n('ChannelSettingsModal', 'ChannelSettingsModal', 'component', 'frontend/src/components/ChannelSettingsModal.tsx', 'Channel settings: info, members, permissions, invites', -800),
+  n('ChannelSettingsTabs',  'ChannelSettingsTabs',  'component', 'frontend/src/components/ChannelSettingsTabs.tsx',  'Tab navigation inside ChannelSettingsModal', -900),
+  n('UserSearchModal',      'UserSearchModal',      'component', 'frontend/src/components/UserSearchModal.tsx',      'User search — start a DM or view profile', -800),
+  n('UserProfileModal',     'UserProfileModal',     'component', 'frontend/src/components/UserProfileModal.tsx',     'User profile card with DM shortcut', -700),
+  n('FilePreviewModal',     'FilePreviewModal',     'component', 'frontend/src/components/FilePreviewModal.tsx',     'Full-screen image or document preview', -600),
+  n('MusicMessagePreview',  'MusicMessagePreview',  'component', 'frontend/src/components/MusicMessagePreview.tsx',  'Rich preview rendered for music integration webhook messages', -500),
+  n('AdminUsersTable',      'AdminUsersTable',      'component', 'frontend/src/components/AdminUsersTable.tsx',      'Admin user moderation table with ban/unban controls', -900),
+  n('AdminLogsTable',       'AdminLogsTable',       'component', 'frontend/src/components/AdminLogsTable.tsx',       'Security log viewer table', -1000),
+  n('BanModal',             'BanModal',             'component', 'frontend/src/components/BanModal.tsx',             'Modal form for entering a ban reason', -1000),
+  n('TouchMenu',            'TouchMenu',            'component', 'frontend/src/components/TouchMenu.tsx',            'Mobile long-press action sheet for messages', -600),
+  n('ErrorBoundary',        'ErrorBoundary',        'component', 'frontend/src/components/ErrorBoundary.tsx',        'React error boundary — catches unhandled render errors', -500),
+  n('Icons',                'Icons',                'component', 'frontend/src/components/Icons.tsx',                'Local SVG icon components used across the UI', -400),
+
+  // UTILS
+  n('navigation',        'navigation',        'util', 'frontend/src/utils/navigation.ts',        'getAppPath() — strips VITE_BASE_PATH for SPA routing on GitHub Pages', -800),
+  n('chatSession',       'chatSession',       'util', 'frontend/src/utils/chatSession.ts',        'sessionStorage save/load for last-viewed channel or DM', -700),
+  n('avatar',            'avatar',            'util', 'frontend/src/utils/avatar.ts',             'Avatar URL generator from username', -600),
+  n('fileUtils',         'fileUtils',         'util', 'frontend/src/utils/fileUtils.ts',          'File type detection, icon selection, size formatting', -500),
+  n('messageFormatting', 'messageFormatting', 'util', 'frontend/src/utils/messageFormatting.ts',  'Timestamp formatting and message grouping helpers', -400),
+  n('notificationSound', 'notificationSound', 'util', 'frontend/src/utils/notificationSound.ts',  'Web Audio API notification sound for background messages', -500),
+  n('validatePassword',  'validatePassword',  'util', 'frontend/src/utils/validatePassword.ts',   'Password complexity rule checker (length, uppercase, number, symbol)', -700),
+
+  // BACKEND ENTRY
+  n('server', 'server.ts', 'entry', 'backend/server.ts', 'Express + Socket.io bootstrap — mounts all routes and socket handlers', 600),
+
+  // BACKEND CONFIG / TYPES
+  n('be-types',       'types.ts (be)',   'db', 'backend/src/types.ts',                    'Shared TypeScript interfaces for backend: User, Channel, Message row shapes', 900),
+  n('be-errors',      'errors.ts',       'db', 'backend/src/errors.ts',                   'AppError subclasses: ValidationError(400) ForbiddenError(403) NotFoundError(404)', 1000),
+  n('schema-auth',    'auth.schemas',    'db', 'backend/src/schemas/auth.schemas.ts',     'Zod: RegisterSchema, LoginSchema, ForgotPasswordSchema, ResetPasswordSchema', 900),
+  n('schema-channel', 'channel.schemas', 'db', 'backend/src/schemas/channel.schemas.ts',  'Zod: CreateChannelSchema, UpdateChannelSchema, AddMemberSchema, InviteSchema', 1000),
+  n('schema-admin',   'admin.schemas',   'db', 'backend/src/schemas/admin.schemas.ts',    'Zod: BanSchema', 1000),
+
+  // DATABASE
+  n('db-database', 'database.ts', 'db', 'backend/src/db/database.ts', 'better-sqlite3 singleton, initDatabase() with WAL mode and auto-migrations', 800),
+  n('db-seed',     'seed.ts',     'db', 'backend/src/db/seed.ts',     'Seeds demo users, channels, and messages for local development', 900),
+
+  // MIDDLEWARE
+  n('mw-auth',         'auth.ts',         'middleware', 'backend/src/middleware/auth.ts',         'Verifies Bearer JWT, performs fresh DB user lookup, enforces ban status', 700),
+  n('mw-security',     'security.ts',     'middleware', 'backend/src/middleware/security.ts',     'IP ban check, login failure tracking, security event logging, flood detection', 700),
+  n('mw-validate',     'validate.ts',     'middleware', 'backend/src/middleware/validate.ts',     'Runs Zod schema validation on req.body, returns 400 on failure', 800),
+  n('mw-errorHandler', 'errorHandler.ts', 'middleware', 'backend/src/middleware/errorHandler.ts', 'Converts AppError instances to structured JSON {error, code} responses', 800),
+
+  // ROUTES
+  n('r-auth',         'routes/auth',           'route', 'backend/src/routes/auth.ts',                    '/api/auth — register, guest, login, me, users, password reset', 500),
+  n('r-channels',     'routes/channels',       'route', 'backend/src/routes/channels/index.ts',          '/api/channels — list, create, update, delete + sub-router mounts', 600),
+  n('r-ch-members',   'routes/ch/members',     'route', 'backend/src/routes/channels/members.ts',        '/api/channels/:id/members — add, list, update role, remove', 700),
+  n('r-ch-perms',     'routes/ch/permissions', 'route', 'backend/src/routes/channels/permissions.ts',    '/api/channels/:id/permissions — read and update per-role permissions', 700),
+  n('r-ch-invites',   'routes/ch/invites',     'route', 'backend/src/routes/channels/channelInvites.ts', '/api/channels/:id/invites — create, list, revoke invite links', 700),
+  n('r-messages',     'routes/messages',       'route', 'backend/src/routes/messages.ts',                '/api/messages — history, pinned messages, global and channel search', 500),
+  n('r-dm',           'routes/dm',             'route', 'backend/src/routes/dm.ts',                      '/api/dm — conversation list, DM history, mark read', 600),
+  n('r-upload',       'routes/upload',         'route', 'backend/src/routes/upload.ts',                  '/api/upload — multer multipart file upload, 25 MB limit', 500),
+  n('r-invites',      'routes/invites',        'route', 'backend/src/routes/invites.ts',                 '/api/invite — public preview (:code) and authenticated join (:code/join)', 600),
+  n('r-admin',        'routes/admin',          'route', 'backend/src/routes/admin.ts',                   '/api/admin — user list, security logs, ban, unban', 500),
+  n('r-integrations', 'routes/integrations',   'route', 'backend/src/routes/integrations.ts',            '/api/integrations — authenticated webhook and health check', 600),
+
+  // CONTROLLERS
+  n('c-auth',     'auth.controller',     'controller', 'backend/src/controllers/auth.controller.ts',     'register, guest, login, me, listUsers, searchUsers, updateRole, forgotPassword, resetPassword', 400),
+  n('c-channels', 'channels.controller', 'controller', 'backend/src/controllers/channels.controller.ts', 'list, create, update, remove, member CRUD, permission CRUD, invite CRUD', 500),
+  n('c-messages', 'messages.controller', 'controller', 'backend/src/controllers/messages.controller.ts', 'getHistory, getPinned, searchAll, searchInChannel', 400),
+  n('c-dm',       'dm.controller',       'controller', 'backend/src/controllers/dm.controller.ts',       'getConversations, getMessages, markRead', 500),
+  n('c-invites',  'invites.controller',  'controller', 'backend/src/controllers/invites.controller.ts',  'getInvite (preview), joinInvite', 400),
+  n('c-admin',    'admin.controller',    'controller', 'backend/src/controllers/admin.controller.ts',    'getUsers, getSecurityLogs, ban, unban', 400),
+
+  // SERVICES
+  n('s-auth',     'auth.service',     'service', 'backend/src/services/auth.service.ts',     'Password complexity rules, registration, guest creation, login, JWT signing, password reset tokens', 300),
+  n('s-channels', 'channels.service', 'service', 'backend/src/services/channels.service.ts', 'Channel visibility rules, ownership enforcement, member role logic, invite creation/validation', 400),
+  n('s-messages', 'messages.service', 'service', 'backend/src/services/messages.service.ts', 'Paginated message history, pinned messages, global and channel full-text search', 300),
+  n('s-dm',       'dm.service',       'service', 'backend/src/services/dm.service.ts',       'DM conversation list, paginated history, read receipt updates', 400),
+  n('s-invites',  'invites.service',  'service', 'backend/src/services/invites.service.ts',  'Invite code lookup, expiry and max-uses validation, member join transaction', 300),
+  n('s-admin',    'admin.service',    'service', 'backend/src/services/admin.service.ts',    'Ban/unban safety checks (prevent self-ban), security log writes', 400),
+  n('s-email',    'email.service',    'service', 'backend/src/services/email.service.ts',    'Sends password reset email via Resend API; falls back to console log if unconfigured', 300),
+
+  // REPOSITORIES
+  n('repo-users',    'users.repository',    'repository', 'backend/src/repositories/users.repository.ts',    'SQL for user lookup, creation, public projection, role and ban updates', 200),
+  n('repo-password', 'password.repository', 'repository', 'backend/src/repositories/password.repository.ts', 'SQL for password reset token create, lookup by hash, mark-used', 200),
+  n('repo-channels', 'channels.repository', 'repository', 'backend/src/repositories/channels.repository.ts', 'SQL for channels, member management, permissions, invite codes', 300),
+  n('repo-messages', 'messages.repository', 'repository', 'backend/src/repositories/messages.repository.ts', 'SQL for channel messages, edits, reactions, pins, FTS search', 200),
+  n('repo-dm',       'dm.repository',       'repository', 'backend/src/repositories/dm.repository.ts',       'SQL for direct messages, reactions, and read timestamp updates', 300),
+  n('repo-admin',    'admin.repository',    'repository', 'backend/src/repositories/admin.repository.ts',    'SQL for admin user list and security_logs read/write', 200),
+
+  // SOCKET HANDLERS
+  n('sock-handlers',  'socket/handlers',         'socket', 'backend/src/socket/handlers.ts',          'registerSocketHandlers(io) — auth handshake, room joins, event routing', 700),
+  n('sock-messages',  'socket/msgHandlers',      'socket', 'backend/src/socket/messageHandlers.ts',   'message:send · edit · delete · react · pin · unpin with rate limiting', 700),
+  n('sock-dm',        'socket/dmHandlers',       'socket', 'backend/src/socket/dmHandlers.ts',         'dm:send · edit · delete · react · read · typing:start · typing:stop', 700),
+  n('sock-presence',  'socket/presenceHandlers', 'socket', 'backend/src/socket/presenceHandlers.ts',  'users:online broadcast, status:set (online/away/dnd), disconnect cleanup', 800),
+  n('sock-utils',     'socket/socketUtils',      'socket', 'backend/src/socket/socketUtils.ts',       'emitToDmPair() and other shared socket emit helpers', 800),
+];
+
+// ── Edges ─────────────────────────────────────────────────────────────────────
+const edgesRaw = [
+  // Frontend entry
+  e('main', 'app'),
+  e('app', 'AuthContext'), e('app', 'SocketContext'), e('app', 'ThemeContext'),
+  e('app', 'ErrorBoundary'), e('app', 'LoginPage'), e('app', 'ChatPage'),
+  e('app', 'InvitePage'), e('app', 'AdminPage'), e('app', 'ResetPasswordPage'),
+  e('app', 'fe-config'), e('app', 'navigation'),
+
+  // ChatPage
+  e('ChatPage', 'SocketContext'), e('ChatPage', 'AuthContext'),
+  e('ChatPage', 'useChannels'), e('ChatPage', 'useMessages'), e('ChatPage', 'useDm'),
+  e('ChatPage', 'useUsers'), e('ChatPage', 'Sidebar'), e('ChatPage', 'ChatArea'),
+  e('ChatPage', 'MessageInput'), e('ChatPage', 'SearchModal'), e('ChatPage', 'PinnedBanner'),
+  e('ChatPage', 'UserProfileModal'), e('ChatPage', 'UserSearchModal'),
+  e('ChatPage', 'ChannelSettingsModal'), e('ChatPage', 'ChatTopbar'),
+  e('ChatPage', 'chatSession'), e('ChatPage', 'useChatSocket'), e('ChatPage', 'useChatHandlers'),
+
+  // AdminPage
+  e('AdminPage', 'AuthContext'), e('AdminPage', 'AdminLogsTable'),
+  e('AdminPage', 'AdminUsersTable'), e('AdminPage', 'BanModal'),
+
+  // Other pages
+  e('LoginPage', 'AuthContext'), e('LoginPage', 'validatePassword'),
+  e('InvitePage', 'AuthContext'), e('InvitePage', 'fe-config'),
+  e('ForgotPasswordPage', 'AuthContext'),
+  e('ResetPasswordPage', 'validatePassword'),
+
+  // Contexts
+  e('SocketContext', 'AuthContext'), e('SocketContext', 'fe-config'),
+  e('SocketContext', 'socketTypes'), e('SocketContext', 'socketEmitters'),
+  e('SocketContext', 'socketHandlerRefs'),
+  e('AuthContext', 'fe-config'),
+
+  // Hooks
+  e('useApi', 'AuthContext'), e('useApi', 'fe-config'),
+  e('useChannels', 'useApi'), e('useMessages', 'useApi'), e('useDm', 'useApi'),
+  e('useUsers', 'useApi'), e('useSearch', 'useApi'),
+  e('useChannelMembers', 'useApi'), e('useChannelSettings', 'useApi'),
+  e('useChatSocket', 'SocketContext'), e('useChatHandlers', 'SocketContext'),
+
+  // Components
+  e('Sidebar', 'SidebarChannelList'), e('Sidebar', 'SidebarDmList'),
+  e('ChatArea', 'MessageRow'),
+  e('MessageRow', 'MarkdownRenderer'), e('MessageRow', 'MusicMessagePreview'),
+  e('MessageRow', 'FilePreviewModal'), e('MessageRow', 'EmojiPicker'),
+  e('MessageRow', 'Icons'), e('MessageRow', 'TouchMenu'),
+  e('MessageInput', 'EmojiPicker'), e('MessageInput', 'MentionDropdown'),
+  e('ChannelSettingsModal', 'ChannelSettingsTabs'),
+  e('ChannelSettingsModal', 'useChannelMembers'), e('ChannelSettingsModal', 'useChannelSettings'),
+
+  // Backend server
+  e('server', 'r-auth'), e('server', 'r-channels'), e('server', 'r-messages'),
+  e('server', 'r-dm'), e('server', 'r-upload'), e('server', 'r-invites'),
+  e('server', 'r-admin'), e('server', 'r-integrations'),
+  e('server', 'sock-handlers'),
+  e('server', 'mw-security'), e('server', 'mw-errorHandler'), e('server', 'db-database'),
+
+  // Routes → middleware + controllers
+  e('r-auth', 'mw-auth'), e('r-auth', 'mw-validate'), e('r-auth', 'c-auth'), e('r-auth', 'schema-auth'),
+  e('r-channels', 'mw-auth'), e('r-channels', 'c-channels'),
+  e('r-channels', 'r-ch-members'), e('r-channels', 'r-ch-perms'), e('r-channels', 'r-ch-invites'),
+  e('r-ch-members', 'mw-auth'), e('r-ch-members', 'mw-validate'), e('r-ch-members', 'c-channels'), e('r-ch-members', 'schema-channel'),
+  e('r-ch-perms', 'mw-auth'), e('r-ch-perms', 'c-channels'),
+  e('r-ch-invites', 'mw-auth'), e('r-ch-invites', 'mw-validate'), e('r-ch-invites', 'c-channels'), e('r-ch-invites', 'schema-channel'),
+  e('r-messages', 'mw-auth'), e('r-messages', 'c-messages'),
+  e('r-dm', 'mw-auth'), e('r-dm', 'c-dm'),
+  e('r-upload', 'mw-auth'),
+  e('r-invites', 'c-invites'),
+  e('r-admin', 'mw-auth'), e('r-admin', 'mw-validate'), e('r-admin', 'c-admin'), e('r-admin', 'schema-admin'),
+  e('r-integrations', 'mw-auth'), e('r-integrations', 'db-database'),
+
+  // Controllers → services
+  e('c-auth', 's-auth'), e('c-channels', 's-channels'), e('c-messages', 's-messages'),
+  e('c-dm', 's-dm'), e('c-invites', 's-invites'), e('c-admin', 's-admin'),
+
+  // Services → repos
+  e('s-auth', 'repo-users'), e('s-auth', 'repo-password'), e('s-auth', 's-email'),
+  e('s-channels', 'repo-channels'),
+  e('s-messages', 'repo-messages'),
+  e('s-dm', 'repo-dm'),
+  e('s-invites', 'repo-channels'), e('s-invites', 'repo-users'),
+  e('s-admin', 'repo-admin'),
+
+  // Repos → DB
+  e('repo-users', 'db-database'), e('repo-password', 'db-database'),
+  e('repo-channels', 'db-database'), e('repo-messages', 'db-database'),
+  e('repo-dm', 'db-database'), e('repo-admin', 'db-database'),
+
+  // Socket
+  e('sock-handlers', 'sock-messages'), e('sock-handlers', 'sock-dm'),
+  e('sock-handlers', 'sock-presence'), e('sock-handlers', 'mw-auth'),
+  e('sock-messages', 's-messages'), e('sock-messages', 'db-database'), e('sock-messages', 'sock-utils'),
+  e('sock-dm', 's-dm'), e('sock-dm', 'sock-utils'),
+  e('sock-presence', 'db-database'), e('sock-presence', 'sock-utils'),
+];
+
+// ── Build DataSets ─────────────────────────────────────────────────────────────
+const nodes = new vis.DataSet(nodesRaw);
+const edges = new vis.DataSet(edgesRaw);
+
+// ── Network ────────────────────────────────────────────────────────────────────
+const network = new vis.Network(
+  document.getElementById('graph'),
+  { nodes, edges },
+  {
+    physics: {
+      enabled: true,
+      solver: 'forceAtlas2Based',
+      forceAtlas2Based: { gravitationalConstant: -55, centralGravity: 0.008, springLength: 140, springConstant: 0.06, damping: 0.5, avoidOverlap: 0.6 },
+      stabilization: { enabled: true, iterations: 2000, fit: true, updateInterval: 50 },
+      maxVelocity: 60, minVelocity: 0.5,
+    },
+    interaction: { hover: true, tooltipDelay: 250, navigationButtons: false, zoomView: true, dragView: true, dragNodes: true },
+    edges: { width: 1.2, selectionWidth: 3, hoverWidth: 2.5, arrows: { to: { enabled: true, scaleFactor: 0.5 } }, smooth: { type: 'continuous', roundness: 0.15 } },
+    nodes: { shape: 'box', borderWidth: 1.5, font: { color: '#1f2328', size: 12, face: 'ui-monospace,Consolas,monospace' }, margin: { top: 5, bottom: 5, left: 8, right: 8 } },
+    layout: { improvedLayout: false },
+  }
+);
+
+network.once('stabilizationIterationsDone', () => network.setOptions({ physics: { enabled: false } }));
+
+// ── Info panel ─────────────────────────────────────────────────────────────────
+function showLegend() {
+  document.getElementById('panel-header').textContent = 'Legend';
+  document.getElementById('legend-section').style.display = '';
+  document.getElementById('node-section').style.display = 'none';
+}
+
+function showNode(nodeId) {
+  const nd = nodes.get(nodeId);
+  if (!nd) return;
+  document.getElementById('panel-header').textContent = 'File Details';
+  document.getElementById('legend-section').style.display = 'none';
+  document.getElementById('node-section').style.display = 'flex';
+  document.getElementById('nd-label').textContent = nd.label;
+  document.getElementById('nd-group').textContent = GROUP_LABELS[nd.group] || nd.group;
+  document.getElementById('nd-file').textContent = nd.file;
+  document.getElementById('nd-desc').textContent = nd.desc;
+
+  const allEdges = edges.get();
+  const connIds = new Set();
+  allEdges.forEach(edge => {
+    if (edge.from === nodeId) connIds.add(edge.to);
+    if (edge.to === nodeId) connIds.add(edge.from);
+  });
+
+  const list = document.getElementById('conn-list');
+  list.innerHTML = '';
+  if (connIds.size === 0) {
+    list.innerHTML = '<span style="color:#656d76;font-size:11px">None</span>';
+  } else {
+    connIds.forEach(cid => {
+      const cn = nodes.get(cid);
+      if (!cn) return;
+      const cc = C[cn.group] || C.config;
+      const tag = document.createElement('span');
+      tag.className = 'conn-tag';
+      tag.style.background = cc.bg + '40';
+      tag.style.color = '#1f2328';
+      tag.style.borderColor = cc.bd + '80';
+      tag.textContent = cn.label;
+      tag.title = cn.file;
+      tag.onclick = () => { network.selectNodes([cid]); network.focus(cid, { animation: true, scale: 1.2 }); showNode(cid); };
+      list.appendChild(tag);
+    });
+  }
+}
+
+network.on('click', params => params.nodes.length > 0 ? showNode(params.nodes[0]) : showLegend());
+network.on('doubleClick', params => {
+  if (params.nodes.length > 0)
+    network.focus(params.nodes[0], { scale: 1.8, animation: { duration: 400, easingFunction: 'easeInOutQuad' } });
+});
+document.getElementById('btn-back').onclick = () => { network.unselectAll(); showLegend(); };
+document.getElementById('btn-fit').onclick = () => network.fit({ animation: { duration: 500, easingFunction: 'easeInOutQuad' } });
+
+// ── Search ─────────────────────────────────────────────────────────────────────
+let searchTimer;
+document.getElementById('search-box').addEventListener('input', function () {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    const q = this.value.toLowerCase().trim();
+    if (!q) {
+      nodes.update(nodesRaw.map(nd => ({ id: nd.id, opacity: 1 })));
+      return;
+    }
+    nodes.update(nodesRaw.map(nd => {
+      const match = nd.label.toLowerCase().includes(q) || nd.file.toLowerCase().includes(q);
+      return { id: nd.id, opacity: match ? 1 : 0.1 };
+    }));
+    // Focus view on matching nodes
+    const matchIds = nodesRaw.filter(nd => nd.label.toLowerCase().includes(q) || nd.file.toLowerCase().includes(q)).map(nd => nd.id);
+    if (matchIds.length > 0) network.selectNodes(matchIds);
+  }, 150);
+});
+document.getElementById('search-box').addEventListener('keydown', function (e) {
+  if (e.key === 'Escape') { this.value = ''; nodes.update(nodesRaw.map(nd => ({ id: nd.id, opacity: 1 }))); network.unselectAll(); }
+});
+</script>
+</body>
+</html>

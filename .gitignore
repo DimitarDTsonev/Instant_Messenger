@@ -15,8 +15,10 @@ dist/
 */.env.local
 */.env.production
 
-# Database (SQLite file created at runtime)
+# Database (SQLite file created at runtime, including WAL-mode sidecar files)
 *.db
+*.db-shm
+*.db-wal
 *.sqlite
 *.sqlite3
 
