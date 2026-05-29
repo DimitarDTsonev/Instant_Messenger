@@ -25,7 +25,10 @@ import { isSocketRateLimited, logSecurityEvent, RATE_BAN } from "../middleware/s
 import { ack, emitToDmPair, getDmReactions, getFullDmMessage } from "./socketUtils";
 
 type AckFn = (data: unknown) => void;
-type AuthedSocket = { emit: (ev: string, d: unknown) => void; disconnect: (c: boolean) => void; to: (room: string) => { emit: (ev: string, d: unknown) => void } };
+type AuthedSocket = { 
+  emit: (ev: string, d: unknown) => void; 
+  disconnect: (c: boolean) => void; 
+  to: (room: string) => { emit: (ev: string, d: unknown) => void } };
 
 /** Payload shape for the dm:send event. */
 type DmSendPayload = {
@@ -54,7 +57,8 @@ export function registerDmHandlers(
   user: AuthUser,
 ) {
   // ─── dm:send ───────────────────────────────────────────────────────────────
-  socket.on("dm:send", ({ receiverId, content, fileUrl, fileType, fileName, replyToId }: DmSendPayload, callback?: AckFn) => {
+  socket.on("dm:send", ({ receiverId, content, fileUrl, 
+                          fileType, fileName, replyToId }: DmSendPayload, callback?: AckFn) => {
     try {
       const text = (content || "").trim();
       if (!text && !fileUrl) return ack(callback, { error: "Message cannot be empty" });
@@ -66,7 +70,10 @@ export function registerDmHandlers(
       if (count >= RATE_BAN) {
         db.prepare("UPDATE users SET is_banned = 1, ban_reason = ? WHERE id = ?")
           .run("Auto-banned: message flooding", user.id);
-        logSecurityEvent(db, { event: "msg_flood_ban", userId: user.id, username: user.username, detail: `${count} DMs in 10s - auto-banned` });
+        logSecurityEvent(db, { event: "msg_flood_ban", 
+                               userId: user.id, 
+                               username: user.username, 
+                               detail: `${count} DMs in 10s - auto-banned` });
         socket.emit("error", { message: "You have been banned for flooding." });
         socket.disconnect(true);
         return;

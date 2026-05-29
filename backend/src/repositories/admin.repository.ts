@@ -32,7 +32,8 @@ export function findAllUsers(db: Db) {
  * @param id - User ID to look up.
  * @returns  Minimal user object, or `undefined` if not found.
  */
-export function findUserById(db: Db, id: number): { id: number; username: string; role?: string } | undefined {
+export function findUserById(db: Db, id: number): 
+  { id: number; username: string; role?: string } | undefined {
   return db.prepare("SELECT id, username, role FROM users WHERE id = ?").get(id) as
     | { id: number; username: string; role?: string }
     | undefined;

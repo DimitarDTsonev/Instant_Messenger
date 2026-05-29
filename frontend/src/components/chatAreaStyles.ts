@@ -40,7 +40,7 @@ export const s: Record<string, any> = {
   },
   avatarCol:   { width: "36px", flexShrink: 0, display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: "2px" },
   avatarEmoji: { fontSize: "22px", lineHeight: "1" },
-  msgContent:  { flex: 1, minWidth: 0 },
+  msgContent:  { flex: 1, minWidth: 0, overflowWrap: "break-word", wordBreak: "break-word" },
   msgHeader:   { display: "flex", alignItems: "baseline", gap: "8px", marginBottom: "2px", flexWrap: "wrap" },
   username:    (isOwn: boolean) => ({ fontWeight: 600, fontSize: "14px", color: isOwn ? "var(--col-link)" : "var(--col-text-primary)" }),
   adminBadge:  { color: "var(--col-warning-gold)", display: "inline-flex", alignItems: "center" },
