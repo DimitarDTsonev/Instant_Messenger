@@ -1,5 +1,9 @@
 # Instant Messenger
 
+**Live Demo:** https://DimitarDTsonev.github.io/Instant_Messenger/
+
+> The backend runs on Render's free tier, which sleeps after inactivity. The first request (e.g. login) may take 30–60 seconds while the server wakes up — this is expected, not a bug.
+
 Instant Messenger is a fullstack real-time chat application built with TypeScript, React, Vite, Node.js, Express, Socket.io, and SQLite. It supports account registration, guest login, JWT authentication, public and private channels, channel roles and permissions, direct messages, message search, file uploads, replies, reactions, pins, mentions, browser notifications, online presence, admin moderation, security logging, password reset, and an authenticated webhook used by the companion Music Dashboard application.
 
 This README is intentionally detailed. It explains how the application is structured, how data moves through it, where each feature lives, how security is enforced, how tests are organized, and how the backend, frontend, database, sockets, middleware, controllers, services, repositories, CI/CD, and external integrations connect.
