@@ -4,6 +4,7 @@
     "module": "node16",
     "moduleDetection": "force",
     "moduleResolution": "node16",
+    "isolatedModules": true,
     "rootDir": ".",
     "outDir": "dist",
     "esModuleInterop": true,
